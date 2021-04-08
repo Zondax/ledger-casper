@@ -17,6 +17,8 @@
 
 #include <coin.h>
 #include <zxtypes.h>
+#include <zxerror.h>
+#include "cx.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,22 +28,27 @@ extern "C" {
 #include <stddef.h>
 
 typedef struct {
-    int8_t *ptr;
-    int32_t len;
-} parser_u8Array_t;
+    uint8_t pubkeytype;
+    uint32_t lenDependencies;
+    uint32_t lenChainName;
+    uint8_t bodyhash[32];
+} parser_header_t;
 
 typedef struct {
-    parser_u8Array_t request_type;
-    parser_u8Array_t nonce;
+    uint8_t paymenttype;
+} parser_payment_t;
 
-    uint64_t ingress_expiry;
+typedef struct {
+    uint8_t paymenttype;
+} parser_session_t;
 
-    int8_t *ptr_canister_id;            // 10 bytes? TODO: Confirm
-    int8_t *ptr_sender_id;              // 29 bytes? TODO: Confirm
 
-    parser_u8Array_t method_name;
-    parser_u8Array_t arg;
+typedef struct {
+    parser_header_t header;
+    parser_payment_t payment;
+    parser_session_t session;
 } parser_tx_t;
+
 
 #ifdef __cplusplus
 }

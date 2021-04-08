@@ -17,24 +17,71 @@
 #include <zxmacros.h>
 #include "parser_impl.h"
 #include "parser_txdef.h"
-#include "cbor.h"
 #include "app_mode.h"
 
 parser_tx_t parser_tx_obj;
 
-__Z_INLINE parser_error_t parser_mapCborError(CborError err);
-
-#define CHECK_CBOR_MAP_ERR(CALL) { \
-    CborError err = CALL;  \
-    if (err!=CborNoError) return parser_mapCborError(err);}
-
 #define PARSER_ASSERT_OR_ERROR(CALL, ERROR) if (!(CALL)) return ERROR;
 
-#define CHECK_CBOR_TYPE(type, expected) {if (type!=expected) return parser_unexpected_type;}
+//pub account: PublicKey,             //1 + 32/33
+//pub timestamp: Timestamp,           //8
+//pub ttl: TimeDiff,                  //8
+//pub gas_price: u64,                 //8
+//pub body_hash: Digest,              //32
+//pub dependencies: Vec<DeployHash>,  //4 + len*32
+//pub chain_name: String,             //4+14 = 18
 
-#define INIT_CBOR_PARSER(c, it)  \
-    CborParser parser;           \
-    CHECK_CBOR_MAP_ERR(cbor_parser_init(c->buffer + c->offset, c->bufferLen - c->offset, 0, &parser, &it))
+uint16_t headerLength(parser_header_t header){
+    uint16_t pubkeyLen = 1 + (header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
+    uint16_t depsLen = 4 +  header.lenDependencies * 32;
+    uint16_t chainNameLen = 4 + header.lenChainName;
+    return pubkeyLen + depsLen + chainNameLen;
+}
+
+zxerr_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
+    *index = 0;
+    uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
+    uint16_t deployHashLen = 4 + head.lenDependencies * 32;
+    switch (part){
+        case header_pubkey : {
+            *index = 0;
+            return zxerr_ok;
+        }
+        case header_timestamp : {
+            *index = pubkeyLen;
+            return zxerr_ok;
+        }
+
+        case header_ttl : {
+            *index = pubkeyLen + 8;
+            return zxerr_ok;
+        }
+
+        case header_gasprice : {
+            *index = pubkeyLen + 16;
+            return zxerr_ok;
+        }
+
+        case header_bodyhash : {
+            *index = pubkeyLen + 24;
+            return zxerr_ok;
+        }
+
+        case header_deps : {
+            *index = pubkeyLen + 56;
+            return zxerr_ok;
+        }
+
+        case header_chainname : {
+            *index = pubkeyLen + deployHashLen;
+            return zxerr_ok;
+        }
+
+        default : {
+            return zxerr_unknown;
+        }
+    }
+}
 
 parser_error_t parser_init_context(parser_context_t *ctx,
                                    const uint8_t *buffer,
@@ -56,19 +103,6 @@ parser_error_t parser_init_context(parser_context_t *ctx,
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize) {
     CHECK_PARSER_ERR(parser_init_context(ctx, buffer, bufferSize))
     return parser_ok;
-}
-
-__Z_INLINE parser_error_t parser_mapCborError(CborError err) {
-    switch (err) {
-        case CborErrorUnexpectedEOF:
-            return parser_cbor_unexpected_EOF;
-        case CborErrorMapNotSorted:
-            return parser_cbor_not_canonical;
-        case CborNoError:
-            return parser_ok;
-        default:
-            return parser_cbor_unexpected;
-    }
 }
 
 const char *parser_getErrorDescription(parser_error_t err) {
@@ -131,84 +165,20 @@ const char *parser_getErrorDescription(parser_error_t err) {
     }
 }
 
-parser_error_t _read(const parser_context_t *c, parser_tx_t *v) {
-    CborValue it;
-    INIT_CBOR_PARSER(c, it)
-    PARSER_ASSERT_OR_ERROR(!cbor_value_at_end(&it), parser_unexpected_buffer_end)
+parser_error_t _read(parser_context_t *c, parser_tx_t *v) {
+    uint8_t type = c->buffer[0];
+    PARSER_ASSERT_OR_ERROR(type == 0x02, parser_context_unknown_prefix);
+    MEMCPY(&v->header.pubkeytype, &type, 1);
 
-//    // It is an array
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_array(&it), parser_unexpected_type)
-//    size_t arraySize;
-//    CHECK_CBOR_MAP_ERR(cbor_value_get_array_length(&it, &arraySize))
-//
-//    // Depends if we have params or not
-//    PARSER_ASSERT_OR_ERROR(arraySize == 10 || arraySize == 9, parser_unexpected_number_items);
-//
-//    CborValue arrayContainer;
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_container(&it), parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_enter_container(&it, &arrayContainer))
-//
-//    // "version" field
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_integer(&arrayContainer), parser_unexpected_type)
-//    CHECK_PARSER_ERR(cbor_value_get_int64_checked(&arrayContainer, &v->version))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    if (v->version != COIN_SUPPORTED_TX_VERSION) {
-//        return parser_unexpected_tx_version;
-//    }
+    CHECK_ZXERR(index_headerpart(v->header, header_deps, &c->offset));
+    CHECK_PARSER_ERR(_readUInt32(&c, &v->header.lenDependencies));
 
-    // "to" field
-//    CHECK_PARSER_ERR(_readAddress(&v->to, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "from" field
-//    CHECK_PARSER_ERR(_readAddress(&v->from, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "nonce" field
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_unsigned_integer(&arrayContainer), parser_unexpected_type)
-//    CHECK_PARSER_ERR(cbor_value_get_uint64(&arrayContainer, &v->nonce))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "value" field
-//    CHECK_PARSER_ERR(_readBigInt(&v->value, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
+    CHECK_ZXERR(index_headerpart(v->header, header_chainname, &c->offset));
+    CHECK_PARSER_ERR(_readUInt32(&c, &v->header.lenChainName));
 
-//    // "gasLimit" field
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_integer(&arrayContainer), parser_unexpected_type)
-//    CHECK_PARSER_ERR(cbor_value_get_int64(&arrayContainer, &v->gaslimit))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "gasPremium" field
-//    CHECK_PARSER_ERR(_readBigInt(&v->gaspremium, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
+    PARSER_ASSERT_OR_ERROR(v->header.lenDependencies == 1, parser_context_unknown_prefix);
 
-//    // "gasFeeCap" field
-//    CHECK_PARSER_ERR(_readBigInt(&v->gasfeecap, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "method" field
-//    CHECK_PARSER_ERR(_readMethod(v, &arrayContainer))
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type != CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_advance(&arrayContainer))
-//
-//    // "params" field is consumed inside readMethod
-//    PARSER_ASSERT_OR_ERROR(cbor_value_is_container(&it), parser_unexpected_type)
-//    PARSER_ASSERT_OR_ERROR(arrayContainer.type == CborInvalidType, parser_unexpected_type)
-//    CHECK_CBOR_MAP_ERR(cbor_value_leave_container(&it, &arrayContainer))
-//
-//    // End of buffer does not match end of parsed data
-//    PARSER_ASSERT_OR_ERROR(it.ptr == c->buffer + c->bufferLen, parser_cbor_unexpected_EOF)
-
-    return parser_no_data;
+    return parser_ok;
 }
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {

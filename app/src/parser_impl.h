@@ -23,15 +23,39 @@
 extern "C" {
 #endif
 
+#define GEN_DEC_READFIX_UNSIGNED(BITS) parser_error_t _readUInt ## BITS(parser_context_t *ctx, uint ## BITS ##_t *value)
+#define GEN_DEF_READFIX_UNSIGNED(BITS) parser_error_t _readUInt ## BITS(parser_context_t *ctx, uint ## BITS ##_t *value) \
+{                                                                                           \
+    if (value == NULL)  return parser_no_data;                                              \
+    *value = 0u;                                                                            \
+    for(uint8_t i=0u; i < (BITS##u>>3u); i++, ctx->offset++) {                              \
+        if (ctx->offset >= ctx->bufferLen) return parser_unexpected_buffer_end;             \
+        *value += (uint ## BITS ##_t) *(ctx->buffer + ctx->offset) << (8u*i);               \
+    }                                                                                       \
+    return parser_ok;                                                                       \
+}
+
+GEN_DEC_READFIX_UNSIGNED(8);
+
+GEN_DEC_READFIX_UNSIGNED(16);
+
+GEN_DEC_READFIX_UNSIGNED(32);
+
+GEN_DEC_READFIX_UNSIGNED(64);
+
+#define
+
 extern parser_tx_t parser_tx_obj;
 
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
 
-parser_error_t _read(const parser_context_t *c, parser_tx_t *v);
+parser_error_t _read(parser_context_t *c, parser_tx_t *v);
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v);
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v);
+
+zxerr_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index);
 
 #ifdef __cplusplus
 }
