@@ -77,4 +77,52 @@ describe('Standard', function () {
             await sim.close();
         }
     });
+
+    test.each(models)('get address (%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
+
+            const resp = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
+
+            console.log(resp)
+
+            expect(resp.returnCode).toEqual(0x9000);
+            expect(resp.errorMessage).toEqual("No errors");
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+
+            expect(resp.publicKey.toString('hex')).toEqual(expected_pk);
+        } finally {
+            await sim.close();
+        }
+    });
+
+    test.each(models)('show address (%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
+
+            const respRequest = app.showAddressAndPubKey("m/44'/506'/0'/0/0");
+
+            await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-show_address`, model === "nanos" ? 2 : 3);
+
+            const resp = await respRequest;
+
+            console.log(resp)
+
+            expect(resp.returnCode).toEqual(0x9000);
+            expect(resp.errorMessage).toEqual("No errors");
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+
+            expect(resp.publicKey.toString('hex')).toEqual(expected_pk);
+        } finally {
+            await sim.close();
+        }
+    });
 });

@@ -27,15 +27,15 @@ extern "C" {
 #define HDPATH_LEN_DEFAULT   5
 
 #define HDPATH_0_DEFAULT     (0x80000000u | 0x2cu)
-#define HDPATH_1_DEFAULT     (0x80000000u | 0x0e8)
+#define HDPATH_1_DEFAULT     (0x80000000u | 0x1fau)
 #define HDPATH_2_DEFAULT     (0x80000000u | 0u)
 #define HDPATH_3_DEFAULT     (0u)
 #define HDPATH_4_DEFAULT     (0u)
 
 #define HDPATH_0_TESTNET     (0x80000000u | 0x2cu)
-#define HDPATH_1_TESTNET     (0x80000000u | 0x1u)
+#define HDPATH_1_TESTNET     (0x80000000u | 0x1fau)
 
-#define SECP256K1_PK_LEN            65u
+#define SECP256K1_PK_LEN            33u
 
 typedef enum {
     addr_secp256k1 = 0,

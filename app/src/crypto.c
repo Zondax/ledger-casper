@@ -55,7 +55,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
         }
     }
     END_TRY;
-
+    cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
     memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
     return zxerr_ok;
 }
@@ -224,15 +224,6 @@ uint8_t decompressLEB128(const uint8_t *input, uint16_t inputSize, uint64_t *v) 
 typedef struct {
     uint8_t publicKey[SECP256K1_PK_LEN];
 
-    // payload [prot][hashed(pk)]       // 1 + 20
-    uint8_t addrBytesLen;
-    uint8_t addrBytes[21];
-
-    uint8_t addrStrLen;
-    uint8_t addrStr[41];  // 41 = because (20+1+4)*8/5 (32 base encoded size)
-
-    uint8_t padding[4];
-
 } __attribute__((packed)) answer_t;
 
 zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrLen) {
@@ -250,9 +241,6 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
         return err;
     }
 
-    // addr bytes
-    // TODO: Complete here
-
-    *addrLen = sizeof(answer_t) - sizeof_field(answer_t, padding);
+    *addrLen = sizeof_field(answer_t, publicKey);
     return zxerr_ok;
 }

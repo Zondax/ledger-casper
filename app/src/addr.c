@@ -35,12 +35,13 @@ zxerr_t addr_getItem(int8_t displayIdx,
                      char *outVal, uint16_t outValLen,
                      uint8_t pageIdx, uint8_t *pageCount) {
     char buffer[300];
-    snprintf(buffer, sizeof(buffer), "addr_getItem %d/%d", displayIdx, pageIdx);
     zemu_log_stack(buffer);
+    array_to_hexstr(buffer, sizeof(buffer), G_io_apdu_buffer, SECP256K1_PK_LEN);
+
     switch (displayIdx) {
         case 0:
-            snprintf(outKey, outKeyLen, "Address");
-            pageString(outVal, outValLen, (char *) (G_io_apdu_buffer + VIEW_ADDRESS_OFFSET_SECP256K1), pageIdx, pageCount);
+            snprintf(outKey, outKeyLen, "Pubkey");
+            pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
             return zxerr_ok;
         case 1: {
             if (!app_mode_expert()) {
