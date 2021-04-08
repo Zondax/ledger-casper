@@ -78,6 +78,9 @@ zxerr_t crypto_sign(uint8_t *signature,
                     uint16_t messageLen,
                     uint16_t *sigSize) {
 
+    MEMZERO(signature, signatureMaxlen);
+    *sigSize = 64;
+
 //    uint8_t tmp[BLAKE2B_256_SIZE];
 //    uint8_t message_digest[BLAKE2B_256_SIZE];
 //

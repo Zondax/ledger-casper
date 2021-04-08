@@ -21,6 +21,25 @@
 
 parser_tx_t parser_tx_obj;
 
+#define GEN_DEC_READFIX_UNSIGNED(BITS) parser_error_t _readUInt ## BITS(parser_context_t *ctx, uint ## BITS ##_t *value) \
+{                                                                                           \
+    if (value == NULL)  return parser_no_data;                                              \
+    *value = 0u;                                                                            \
+    for(uint8_t i=0u; i < (BITS##u>>3u); i++, ctx->offset++) {                              \
+        if (ctx->offset >= ctx->bufferLen) return parser_unexpected_buffer_end;             \
+        *value += (uint ## BITS ##_t) *(ctx->buffer + ctx->offset) << (8u*i);               \
+    }                                                                                       \
+    return parser_ok;                                                                       \
+}
+
+GEN_DEC_READFIX_UNSIGNED(8);
+
+GEN_DEC_READFIX_UNSIGNED(16);
+
+GEN_DEC_READFIX_UNSIGNED(32);
+
+GEN_DEC_READFIX_UNSIGNED(64);
+
 #define PARSER_ASSERT_OR_ERROR(CALL, ERROR) if (!(CALL)) return ERROR;
 
 //pub account: PublicKey,             //1 + 32/33
@@ -38,47 +57,51 @@ uint16_t headerLength(parser_header_t header){
     return pubkeyLen + depsLen + chainNameLen;
 }
 
-zxerr_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result){
+    return _readUInt32(ctx, result);
+}
+
+parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
     uint16_t deployHashLen = 4 + head.lenDependencies * 32;
     switch (part){
         case header_pubkey : {
-            *index = 0;
-            return zxerr_ok;
+            *index = 1;
+            return parser_ok;
         }
         case header_timestamp : {
             *index = pubkeyLen;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         case header_ttl : {
             *index = pubkeyLen + 8;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         case header_gasprice : {
             *index = pubkeyLen + 16;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         case header_bodyhash : {
             *index = pubkeyLen + 24;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         case header_deps : {
             *index = pubkeyLen + 56;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         case header_chainname : {
             *index = pubkeyLen + deployHashLen;
-            return zxerr_ok;
+            return parser_ok;
         }
 
         default : {
-            return zxerr_unknown;
+            return parser_unexepected_error;
         }
     }
 }
@@ -165,18 +188,15 @@ const char *parser_getErrorDescription(parser_error_t err) {
     }
 }
 
-parser_error_t _read(parser_context_t *c, parser_tx_t *v) {
-    uint8_t type = c->buffer[0];
-    PARSER_ASSERT_OR_ERROR(type == 0x02, parser_context_unknown_prefix);
-    MEMCPY(&v->header.pubkeytype, &type, 1);
+parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
+    PARSER_ASSERT_OR_ERROR( ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
+    v->header.pubkeytype = ctx->buffer[0];
 
-    CHECK_ZXERR(index_headerpart(v->header, header_deps, &c->offset));
-    CHECK_PARSER_ERR(_readUInt32(&c, &v->header.lenDependencies));
+    CHECK_PARSER_ERR(index_headerpart(v->header, header_deps, &ctx->offset));
+    CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenDependencies));
 
-    CHECK_ZXERR(index_headerpart(v->header, header_chainname, &c->offset));
-    CHECK_PARSER_ERR(_readUInt32(&c, &v->header.lenChainName));
-
-    PARSER_ASSERT_OR_ERROR(v->header.lenDependencies == 1, parser_context_unknown_prefix);
+    CHECK_PARSER_ERR(index_headerpart(v->header, header_chainname, &ctx->offset));
+    CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
     return parser_ok;
 }
@@ -189,7 +209,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 }
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
-    uint8_t itemCount = 9;
-
+    //uint8_t itemCount = 6 + v->header.lenDependencies;
+    uint8_t itemCount = 5;
     return itemCount;
 }

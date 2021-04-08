@@ -33,6 +33,26 @@ parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t d
     return err;
 }
 
+parser_error_t parser_printBytes(uint8_t *bytes, uint16_t byteLength,
+                                  char *outVal, uint16_t outValLen,
+                                  uint8_t pageIdx, uint8_t *pageCount){
+    char buffer[300];
+    MEMZERO(buffer, sizeof(buffer));
+    array_to_hexstr(buffer, sizeof(buffer), bytes, byteLength);
+    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
+parser_error_t parser_printU64(uint64_t value, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount){
+    char tmpBuffer[100];
+    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
+
 parser_error_t parser_validate(const parser_context_t *ctx) {
     CHECK_PARSER_ERR(_validateTx(ctx, &parser_tx_obj))
 
@@ -56,7 +76,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;
 }
 
-parser_error_t parser_getItem(const parser_context_t *ctx,
+parser_error_t parser_getItem(parser_context_t *ctx,
                               uint8_t displayIdx,
                               char *outKey, uint16_t outKeyLen,
                               char *outVal, uint16_t outValLen,
@@ -75,89 +95,60 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
         return parser_no_data;
     }
 
-//    if (displayIdx == 0) {
-//        snprintf(outKey, outKeyLen, "To");
-//        return parser_printAddress(&parser_tx_obj.to,
-//                                   outVal, outValLen, pageIdx, pageCount);
-//    }
-//
-//    if (displayIdx == 1) {
-//        snprintf(outKey, outKeyLen, "From");
-//        return parser_printAddress(&parser_tx_obj.from,
-//                                   outVal, outValLen, pageIdx, pageCount);
-//    }
-//
-//    if (displayIdx == 2) {
-//        snprintf(outKey, outKeyLen, "Nonce");
-//        if (uint64_to_str(outVal, outValLen, parser_tx_obj.nonce) != NULL) {
-//            return parser_unexepected_error;
-//        }
-//        *pageCount = 1;
-//        return parser_ok;
-//    }
-//
-//    if (displayIdx == 3) {
-//        snprintf(outKey, outKeyLen, "Value");
-//        return parser_printBigIntFixedPoint(&parser_tx_obj.value, outVal, outValLen, pageIdx, pageCount);
-//    }
-//
-//    if (displayIdx == 4) {
-//        snprintf(outKey, outKeyLen, "Gas Limit");
-//        if (int64_to_str(outVal, outValLen, parser_tx_obj.gaslimit) != NULL) {
-//            return parser_unexepected_error;
-//        }
-//        *pageCount = 1;
-//        return parser_ok;
-//    }
-//
-//    if (displayIdx == 5) {
-//        snprintf(outKey, outKeyLen, "Gas Premium");
-//        return parser_printBigIntFixedPoint(&parser_tx_obj.gaspremium, outVal, outValLen, pageIdx, pageCount);
-//    }
-//
-//    if (displayIdx == 6) {
-//        snprintf(outKey, outKeyLen, "Gas Fee Cap");
-//        return parser_printBigIntFixedPoint(&parser_tx_obj.gasfeecap, outVal, outValLen, pageIdx, pageCount);
-//    }
-//
-//    if (displayIdx == 7) {
-//        snprintf(outKey, outKeyLen, "Method");
-//        *pageCount = 1;
-//        switch(parser_tx_obj.method) {
-//            case method0:
-//                snprintf(outVal, outValLen, "Transfer");
-//                return parser_ok;
-//            case method1:
-//                snprintf(outVal, outValLen, "Method1");
-//                return parser_ok;
-//            case method2:
-//                snprintf(outVal, outValLen, "Method2");
-//                return parser_ok;
-//            case method3:
-//                snprintf(outVal, outValLen, "Method3");
-//                return parser_ok;
-//            case method4:
-//                snprintf(outVal, outValLen, "Method4");
-//                return parser_ok;
-//            case method5:
-//                snprintf(outVal, outValLen, "Method5");
-//                return parser_ok;
-//            case method6:
-//                snprintf(outVal, outValLen, "Method6");
-//                return parser_ok;
-//            case method7:
-//                snprintf(outVal, outValLen, "Method7");
-//                return parser_ok;
-//        }
-//        return parser_unexpected_method;
-//    }
-//
-//    if (displayIdx == 8) {
-//        *pageCount = 1;
-//        snprintf(outKey, outKeyLen, "Params");
-//        snprintf(outVal, outValLen, "Not Available");
-//        return parser_ok;
-//    }
+    if (displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Account");
+        uint16_t index = 0;
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &index));
+        return parser_printBytes(ctx->buffer + index, SECP256K1_PK_LEN, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    if (displayIdx == 1) {
+        snprintf(outKey, outKeyLen, "Timestamp");
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_timestamp, &ctx->offset));
+        uint64_t value = 0;
+        CHECK_PARSER_ERR(readU64(ctx,&value));
+        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    if (displayIdx == 2) {
+        snprintf(outKey, outKeyLen, "TTL");
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
+        uint64_t value = 0;
+        CHECK_PARSER_ERR(readU64(ctx,&value));
+        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    if (displayIdx == 3) {
+        snprintf(outKey, outKeyLen, "Gas price");
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_gasprice, &ctx->offset));
+        uint64_t value = 0;
+        CHECK_PARSER_ERR(readU64(ctx,&value));
+        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    if (displayIdx == 4) {
+        snprintf(outKey, outKeyLen, "Chain name");
+        snprintf(outVal, outValLen, "Casper Example");
+        //FIXME: grab the network name from the bytes?
+//        uint16_t index = 0 ;
+//        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &index));
+//        char buffer[100];
+//        MEMZERO(buffer, sizeof(buffer));
+//        MEMCPY(buffer, (char *)(ctx->buffer + index), parser_tx_obj.header.lenChainName);
+//        asciify_ext(buffer,buffer);
+//        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+        return parser_ok;
+    }
+
+
+
+    //pub account: PublicKey,             //1 + 32/33
+//pub timestamp: Timestamp,           //8
+//pub ttl: TimeDiff,                  //8
+//pub gas_price: u64,                 //8
+//pub body_hash: Digest,              //32
+//pub dependencies: Vec<DeployHash>,  //4 + len*32
+//pub chain_name: String,             //4+14 = 18
 
     return parser_ok;
 }
