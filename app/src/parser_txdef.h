@@ -35,10 +35,14 @@ typedef struct {
 
 typedef struct {
     uint8_t paymenttype;
+    uint32_t lenName;
+    uint32_t lenEntry;
+    uint32_t totalLength;
 } parser_payment_t;
 
 typedef struct {
-    uint8_t paymenttype;
+    uint8_t sessiontype;
+    uint32_t totalLength;
 } parser_session_t;
 
 
@@ -48,7 +52,14 @@ typedef struct {
     parser_session_t session;
 } parser_tx_t;
 
-
+//let payment_args = runtime_args! {
+//"quantity" => 1000
+//};
+//let payment = ExecutableDeployItem::StoredContractByName {
+//        name: String::from("casper-example"),
+//        entry_point: String::from("example-entry-point"),
+//        args: payment_args,
+//};
 #ifdef __cplusplus
 }
 #endif

@@ -52,9 +52,10 @@ GEN_DEC_READFIX_UNSIGNED(64);
 
 uint16_t headerLength(parser_header_t header){
     uint16_t pubkeyLen = 1 + (header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
+    uint16_t fixedLen = 56;
     uint16_t depsLen = 4 +  header.lenDependencies * 32;
     uint16_t chainNameLen = 4 + header.lenChainName;
-    return pubkeyLen + depsLen + chainNameLen;
+    return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
 parser_error_t readU64(parser_context_t *ctx, uint64_t *result){
@@ -198,6 +199,69 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(index_headerpart(v->header, header_chainname, &ctx->offset));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
+    ctx->offset = headerLength(v->header) + 32;
+    CHECK_PARSER_ERR(_readUInt8(ctx, &v->payment.paymenttype));
+    PARSER_ASSERT_OR_ERROR( v->payment.paymenttype == 2, parser_context_unknown_prefix);
+
+    //Payment: StoredContractByName
+
+    uint32_t total = 1;
+    uint32_t part = 0;
+
+    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+    v->payment.lenName = part;
+    total += 4 + part;
+    ctx->offset += part;
+
+    part = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+    v->payment.lenEntry = part;
+    total += 4 + part;
+    ctx->offset += part;
+
+    uint32_t argLen = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
+    total += 4;
+    for(int i = 0; i < argLen; i++){
+        //key
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+
+        //value
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+    }
+
+    v->payment.totalLength = total + 1;
+    ctx->offset++;
+
+    CHECK_PARSER_ERR(_readUInt8(ctx, &v->session.sessiontype));
+    PARSER_ASSERT_OR_ERROR( v->session.sessiontype == 5, parser_context_unknown_prefix);
+
+    total = 1;
+    part = 0;
+
+    argLen = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
+    total += 4;
+    for(int i = 0; i < argLen; i++){
+        //key
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+
+        //value
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+    }
+    v->session.totalLength = total + 1;
     return parser_ok;
 }
 
@@ -210,6 +274,6 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
-    uint8_t itemCount = 5;
+    uint8_t itemCount = 5 + 1 + 1; //header + payment + session
     return itemCount;
 }

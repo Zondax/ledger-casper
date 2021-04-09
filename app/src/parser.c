@@ -137,15 +137,31 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         return parser_ok;
     }
 
+    if (displayIdx == 5) {
+        snprintf(outKey, outKeyLen, "Payment Type");
+        switch(parser_tx_obj.payment.paymenttype){
+            case 0x02: {
+                snprintf(outVal, outValLen, "StoredContractByName");
+                return parser_ok;
+            }
+            default : {
+                return parser_unexepected_error;
+            }
+        }
+    }
 
-
-    //pub account: PublicKey,             //1 + 32/33
-//pub timestamp: Timestamp,           //8
-//pub ttl: TimeDiff,                  //8
-//pub gas_price: u64,                 //8
-//pub body_hash: Digest,              //32
-//pub dependencies: Vec<DeployHash>,  //4 + len*32
-//pub chain_name: String,             //4+14 = 18
+    if (displayIdx == 6) {
+        snprintf(outKey, outKeyLen, "Session Type");
+        switch(parser_tx_obj.session.sessiontype){
+            case 0x05: {
+                snprintf(outVal, outValLen, "Transfer");
+                return parser_ok;
+            }
+            default : {
+                return parser_unexepected_error;
+            }
+        }
+    }
 
     return parser_ok;
 }
