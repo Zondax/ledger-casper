@@ -96,7 +96,7 @@ parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16
         }
 
         case header_chainname : {
-            *index = pubkeyLen + deployHashLen;
+            *index = pubkeyLen + 56 + deployHashLen;
             return parser_ok;
         }
 

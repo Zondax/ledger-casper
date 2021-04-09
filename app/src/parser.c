@@ -128,15 +128,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
     if (displayIdx == 4) {
         snprintf(outKey, outKeyLen, "Chain name");
-        snprintf(outVal, outValLen, "Casper Example");
-        //FIXME: grab the network name from the bytes?
-//        uint16_t index = 0 ;
-//        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &index));
-//        char buffer[100];
-//        MEMZERO(buffer, sizeof(buffer));
-//        MEMCPY(buffer, (char *)(ctx->buffer + index), parser_tx_obj.header.lenChainName);
-//        asciify_ext(buffer,buffer);
-//        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+        uint16_t index = 0;
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &index));
+        char buffer[100];
+        MEMZERO(buffer, sizeof(buffer));
+        MEMCPY(buffer, (char *)(ctx->buffer + 4 + index), parser_tx_obj.header.lenChainName);
+        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
         return parser_ok;
     }
 

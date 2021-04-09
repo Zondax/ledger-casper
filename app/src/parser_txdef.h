@@ -18,7 +18,6 @@
 #include <coin.h>
 #include <zxtypes.h>
 #include <zxerror.h>
-#include "cx.h"
 
 #ifdef __cplusplus
 extern "C" {
