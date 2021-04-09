@@ -111,7 +111,7 @@ zxerr_t crypto_sign(uint8_t *signature,
             cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
 
             // Sign
-            signatureLength = cx_ecdsa_sign(&cx_privateKey,
+            cx_ecdsa_sign(&cx_privateKey,
                                             CX_RND_RFC6979 | CX_LAST,
                                             CX_SHA256,
                                             message_digest,
@@ -133,7 +133,7 @@ zxerr_t crypto_sign(uint8_t *signature,
         MEMZERO(signature, signatureMaxlen);
         return zxerr_unknown;
     }
-    *sigSize = 64;
+    *sigSize = SIG_RS_LEN;
 
     return zxerr_ok;
 }
