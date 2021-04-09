@@ -155,7 +155,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     return zxerr_ok;
 }
 
-zxerr_t blake_hash(const unsigned char *in, unsigned int inLen,
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                           unsigned char *out) {
     blake2b_state s;
     blake2b_init(&s, outLen);

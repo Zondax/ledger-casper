@@ -266,6 +266,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     return parser_ok;
 }
 
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX)
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     uint8_t hash[BLAKE2B_256_SIZE];
 
@@ -286,7 +287,11 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
     return parser_ok;
 }
-
+#else
+parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
+    return parser_ok;
+}
+#endif
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
     uint8_t itemCount = 5 + 1 + 1; //header + payment + session
