@@ -18,6 +18,7 @@
 #include "parser_impl.h"
 #include "parser_txdef.h"
 #include "app_mode.h"
+#include "crypto.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -266,9 +267,23 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 }
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
-    // Note: This is place holder for transaction level checks that the project may require before accepting
-    // the parsed values. the parser already validates input
-    // This function is called by parser_validate, where additional checks are made (formatting, UI/UX, etc.(
+    uint8_t hash[BLAKE2B_256_SIZE];
+
+    //check headerhash
+    MEMZERO(hash, sizeof(hash));
+    blake2b_hash(c->buffer,headerLength(v->header),hash);
+    PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
+
+    //check bodyhash
+    MEMZERO(hash, sizeof(hash));
+    uint16_t index = headerLength(v->header) + BLAKE2B_256_SIZE;
+    uint32_t size = v->payment.totalLength + v->session.totalLength;
+    blake2b_hash(c->buffer + index,size,hash);
+
+    index = 0;
+    CHECK_PARSER_ERR(index_headerpart(v->header,header_bodyhash, &index));
+    PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + index, BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
+
     return parser_ok;
 }
 

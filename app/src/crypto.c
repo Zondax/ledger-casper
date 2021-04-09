@@ -28,6 +28,15 @@ bool isTestnet() {
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX)
 #include "cx.h"
 
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                          unsigned char *out) {
+    cx_blake2b_t ctx;
+    cx_blake2b_init2(&ctx, 256, NULL, 0, NULL, 0);
+    cx_hash(&ctx.header, CX_LAST, in, inLen, out, 32);
+    return zxerr_ok;
+}
+
+
 zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
     cx_ecfp_public_key_t cx_publicKey;
     cx_ecfp_private_key_t cx_privateKey;
@@ -146,13 +155,13 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     return zxerr_ok;
 }
 
-__Z_INLINE int blake_hash(const unsigned char *in, unsigned int inLen,
-                          unsigned char *out, unsigned int outLen) {
+zxerr_t blake_hash(const unsigned char *in, unsigned int inLen,
+                          unsigned char *out) {
     blake2b_state s;
     blake2b_init(&s, outLen);
     blake2b_update(&s, in, inLen);
     blake2b_final(&s, out, outLen);
-    return 0;
+    return zxerr_ok;
 }
 
 __Z_INLINE int blake_hash_cid(const unsigned char *in, unsigned int inLen,

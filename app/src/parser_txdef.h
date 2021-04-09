@@ -30,7 +30,6 @@ typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
     uint32_t lenChainName;
-    uint8_t bodyhash[32];
 } parser_header_t;
 
 typedef struct {
