@@ -34,6 +34,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v);
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v);
 
 parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index);
+uint16_t headerLength(parser_header_t header);
 parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 
 #ifdef __cplusplus
