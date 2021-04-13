@@ -35,11 +35,23 @@ extern "C" {
 #define HDPATH_0_TESTNET     (0x80000000u | 0x2cu)
 #define HDPATH_1_TESTNET     (0x80000000u | 0x1fau)
 
+#define SIG_RS_LEN                     64u
 #define SECP256K1_PK_LEN            33u
+#define ED25519_PK_LEN              32u
 
 typedef enum {
     addr_secp256k1 = 0,
 } address_kind_e;
+
+typedef enum {
+    header_pubkey = 0,
+    header_timestamp = 1,
+    header_ttl = 2,
+    header_gasprice = 3,
+    header_bodyhash = 4,
+    header_deps = 5,
+    header_chainname = 6,
+} header_part_e;
 
 #define CBOR_PARSER_MAX_RECURSIONS          4
 #define COIN_SECRET_REQUIRED_CLICKS         0

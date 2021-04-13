@@ -53,6 +53,9 @@ zxerr_t crypto_sign(uint8_t *signature,
                     uint16_t messageLen,
                     uint16_t *sigSize);
 
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                     unsigned char *out);
+
 #ifdef __cplusplus
 }
 #endif

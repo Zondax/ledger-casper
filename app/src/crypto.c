@@ -17,6 +17,7 @@
 #include "crypto.h"
 #include "coin.h"
 #include "zxmacros.h"
+#include "parser_impl.h"
 
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
@@ -27,6 +28,15 @@ bool isTestnet() {
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX)
 #include "cx.h"
+
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                          unsigned char *out) {
+    cx_blake2b_t ctx;
+    cx_blake2b_init2(&ctx, 256, NULL, 0, NULL, 0);
+    cx_hash(&ctx.header, CX_LAST, in, inLen, out, 32);
+    return zxerr_ok;
+}
+
 
 zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
     cx_ecfp_public_key_t cx_publicKey;
@@ -78,56 +88,52 @@ zxerr_t crypto_sign(uint8_t *signature,
                     uint16_t messageLen,
                     uint16_t *sigSize) {
 
-//    uint8_t tmp[BLAKE2B_256_SIZE];
-//    uint8_t message_digest[BLAKE2B_256_SIZE];
-//
-//    blake_hash(message, messageLen, tmp, BLAKE2B_256_SIZE);
-//    blake_hash_cid(tmp, BLAKE2B_256_SIZE, message_digest, BLAKE2B_256_SIZE);
-//
-//    cx_ecfp_private_key_t cx_privateKey;
-//    uint8_t privateKeyData[32];
-//    int signatureLength;
-//    unsigned int info = 0;
-//
-//    signature_t *const signature = (signature_t *) buffer;
-//
-//    BEGIN_TRY
-//    {
-//        TRY
-//        {
-//            // Generate keys
-//            os_perso_derive_node_bip32(CX_CURVE_256K1,
-//                                                      hdPath,
-//                                                      HDPATH_LEN_DEFAULT,
-//                                                      privateKeyData, NULL);
-//
-//            cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
-//
-//            // Sign
-//            signatureLength = cx_ecdsa_sign(&cx_privateKey,
-//                                            CX_RND_RFC6979 | CX_LAST,
-//                                            CX_SHA256,
-//                                            message_digest,
-//                                            BLAKE2B_256_SIZE,
-//                                            signature->der_signature,
-//                                            sizeof_field(signature_t, der_signature),
-//                                            &info);
-//        }
-//        FINALLY {
-//            MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
-//            MEMZERO(privateKeyData, 32);
-//        }
-//    }
-//    END_TRY;
-//
-//    err_convert_e err = convertDERtoRSV(signature->der_signature, info,  signature->r, signature->s, &signature->v);
-//    if (err != no_error) {
-//        // Error while converting so return length 0
-//        return 0;
-//    }
-//
-//    // return actual size using value from signatureLength
-//    return sizeof_field(signature_t, r) + sizeof_field(signature_t, s) + sizeof_field(signature_t, v) + signatureLength;
+    MEMZERO(signature, signatureMaxlen);
+
+    const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+
+    cx_ecfp_private_key_t cx_privateKey;
+    uint8_t privateKeyData[32];
+    unsigned int info = 0;
+
+    signature_t *const signature_object = (signature_t *) signature;
+
+    BEGIN_TRY
+    {
+        TRY
+        {
+            // Generate keys
+            os_perso_derive_node_bip32(CX_CURVE_256K1,
+                                                      hdPath,
+                                                      HDPATH_LEN_DEFAULT,
+                                                      privateKeyData, NULL);
+
+            cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
+
+            // Sign
+            cx_ecdsa_sign(&cx_privateKey,
+                                            CX_RND_RFC6979 | CX_LAST,
+                                            CX_SHA256,
+                                            message_digest,
+                                            BLAKE2B_256_SIZE,
+                                            signature_object->der_signature,
+                                            sizeof_field(signature_t, der_signature),
+                                            &info);
+        }
+        FINALLY {
+            MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
+            MEMZERO(privateKeyData, 32);
+        }
+    }
+    END_TRY;
+
+    err_convert_e err = convertDERtoRSV(signature_object->der_signature, info,  signature_object->r, signature_object->s, &signature_object->v);
+    if (err != no_error) {
+        // Error while converting so return length 0
+        MEMZERO(signature, signatureMaxlen);
+        return zxerr_unknown;
+    }
+    *sigSize = SIG_RS_LEN;
 
     return zxerr_ok;
 }
@@ -143,13 +149,13 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     return zxerr_ok;
 }
 
-__Z_INLINE int blake_hash(const unsigned char *in, unsigned int inLen,
-                          unsigned char *out, unsigned int outLen) {
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                          unsigned char *out) {
     blake2b_state s;
     blake2b_init(&s, outLen);
     blake2b_update(&s, in, inLen);
     blake2b_final(&s, out, outLen);
-    return 0;
+    return zxerr_ok;
 }
 
 __Z_INLINE int blake_hash_cid(const unsigned char *in, unsigned int inLen,

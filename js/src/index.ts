@@ -27,7 +27,7 @@ import {
     PAYLOAD_TYPE,
     PKLEN,
     processErrorResponse,
-    serializePath,
+    serializePath, SIGLEN,
 } from './common';
 
 export {LedgerError};
@@ -172,12 +172,8 @@ export default class CasperApp {
                 const errorCodeData = response.slice(-2);
                 const returnCode = errorCodeData[0] * 256 + errorCodeData[1];
                 let errorMessage = errorCodeToString(returnCode);
-                let errorDescription = ""
 
-                let postSignHash = Buffer.alloc(0);
-                let signatureCompact = Buffer.alloc(0);
-                let signatureVRS = Buffer.alloc(0);
-                let signatureDER = Buffer.alloc(0);
+                let signatureRS = Buffer.alloc(0);
 
                 if (returnCode === LedgerError.BadKeyHandle ||
                     returnCode === LedgerError.DataIsInvalid ||
@@ -188,17 +184,9 @@ export default class CasperApp {
                 }
 
                 if (returnCode === LedgerError.NoErrors && response.length > 2) {
-                    postSignHash = response.slice(0, 32);
-                    signatureCompact = response.slice(32, 97);
-                    signatureVRS = Buffer.alloc(65);
-                    signatureVRS[0] = signatureCompact[signatureCompact.length - 1];
-                    Buffer.from(signatureCompact).copy(signatureVRS, 1, 0, 64);
-                    signatureDER = response.slice(97, response.length - 2);
+                    signatureRS = response.slice(0, SIGLEN);
                     return {
-                        postSignHash,
-                        signatureCompact,
-                        signatureVRS,
-                        signatureDER,
+                        signatureRS,
                         returnCode: returnCode,
                         errorMessage: errorMessage,
                     };
@@ -218,9 +206,7 @@ export default class CasperApp {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
-                    postSignHash: null as null | Buffer,
-                    signatureCompact: null as null | Buffer,
-                    signatureDER: null as null | Buffer,
+                    signatureRS: null as null | Buffer,
                 };
                 for (let i = 1; i < chunks.length; i += 1) {
                     // eslint-disable-next-line no-await-in-loop

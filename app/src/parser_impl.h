@@ -27,11 +27,15 @@ extern parser_tx_t parser_tx_obj;
 
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
 
-parser_error_t _read(const parser_context_t *c, parser_tx_t *v);
+parser_error_t _read(parser_context_t *c, parser_tx_t *v);
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v);
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v);
+
+parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index);
+uint16_t headerLength(parser_header_t header);
+parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result);
 
 #ifdef __cplusplus
 }
