@@ -59,8 +59,11 @@ uint16_t headerLength(parser_header_t header){
     return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
-parser_error_t readU64(parser_context_t *ctx, uint64_t *result){
-    return _readUInt32(ctx, result);
+parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result){
+    uint32_t reader = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &reader));
+    *result = *(uint64_t *)&reader;
+    return parser_ok;
 }
 
 parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
@@ -223,7 +226,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     uint32_t argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
     total += 4;
-    for(int i = 0; i < argLen; i++){
+    for(uint32_t i = 0; i < argLen; i++){
         //key
         part = 0;
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -249,7 +252,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
     total += 4;
-    for(int i = 0; i < argLen; i++){
+    for(uint32_t i = 0; i < argLen; i++){
         //key
         part = 0;
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));

@@ -90,7 +90,7 @@ zxerr_t crypto_sign(uint8_t *signature,
 
     MEMZERO(signature, signatureMaxlen);
 
-    uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+    const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
 
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];

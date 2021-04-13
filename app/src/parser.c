@@ -33,7 +33,7 @@ parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t d
     return err;
 }
 
-parser_error_t parser_printBytes(uint8_t *bytes, uint16_t byteLength,
+parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
                                   char *outVal, uint16_t outValLen,
                                   uint8_t pageIdx, uint8_t *pageCount){
     char buffer[300];
@@ -65,7 +65,7 @@ parser_error_t parser_validate(const parser_context_t *ctx) {
 
     for (uint8_t idx = 0; idx < numItems; idx++) {
         uint8_t pageCount = 0;
-        CHECK_PARSER_ERR(parser_getItem(ctx, idx, tmpKey, sizeof(tmpKey), tmpVal, sizeof(tmpVal), 0, &pageCount))
+        CHECK_PARSER_ERR(parser_getItem((parser_context_t *)ctx, idx, tmpKey, sizeof(tmpKey), tmpVal, sizeof(tmpVal), 0, &pageCount))
     }
 
     return parser_ok;
@@ -99,14 +99,14 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Account");
         uint16_t index = 0;
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &index));
-        return parser_printBytes(ctx->buffer + index, SECP256K1_PK_LEN, outVal, outValLen, pageIdx, pageCount);
+        return parser_printBytes((const uint8_t *)(ctx->buffer + index), SECP256K1_PK_LEN, outVal, outValLen, pageIdx, pageCount);
     }
 
     if (displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Timestamp");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_timestamp, &ctx->offset));
         uint64_t value = 0;
-        CHECK_PARSER_ERR(readU64(ctx,&value));
+        CHECK_PARSER_ERR(readintoU64(ctx,&value));
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 
@@ -114,7 +114,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "TTL");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
         uint64_t value = 0;
-        CHECK_PARSER_ERR(readU64(ctx,&value));
+        CHECK_PARSER_ERR(readintoU64(ctx,&value));
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 
@@ -122,7 +122,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Gas price");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_gasprice, &ctx->offset));
         uint64_t value = 0;
-        CHECK_PARSER_ERR(readU64(ctx,&value));
+        CHECK_PARSER_ERR(readintoU64(ctx,&value));
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 
