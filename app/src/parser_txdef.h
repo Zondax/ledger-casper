@@ -34,13 +34,16 @@ typedef struct {
 
 typedef struct {
     uint8_t paymenttype;
-    uint32_t lenName;
-    uint32_t lenEntry;
+    uint32_t lenItem1;
+    uint32_t lenItem2;
+    uint32_t lenItem3;
+    uint32_t argLen;
     uint32_t totalLength;
 } parser_payment_t;
 
 typedef struct {
     uint8_t sessiontype;
+    uint32_t argLen;
     uint32_t totalLength;
 } parser_session_t;
 

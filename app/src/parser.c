@@ -136,21 +136,67 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
         return parser_ok;
     }
-
-    if (displayIdx == 5) {
-        snprintf(outKey, outKeyLen, "Payment Type");
-        switch(parser_tx_obj.payment.paymenttype){
+    ctx->offset += headerLength(parser_tx_obj.header) + 32 + 1;
+    displayIdx -= 5;
+    if (displayIdx < 3) {
+        uint8_t *data = ctx->buffer + headerLength(parser_tx_obj.header) + 32 + 1;
+        switch (parser_tx_obj.payment.paymenttype) {
             case 0x02: {
-                snprintf(outVal, outValLen, "StoredContractByName");
-                return parser_ok;
+                if (displayIdx == 0) {
+                    snprintf(outKey, outKeyLen, "Payment Type");
+                    snprintf(outVal, outValLen, "StoredContractByName");
+                    return parser_ok;
+                }
+                if (displayIdx == 1) {
+                    snprintf(outKey, outKeyLen, "Name");
+                    char buffer[100];
+                    MEMZERO(buffer, sizeof(buffer));
+                    MEMCPY(buffer, (char *)(data + 4),parser_tx_obj.payment.lenItem1);
+                    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+                    return parser_ok;
+                }
+                data += 4 + parser_tx_obj.payment.lenItem1;
+                ctx->offset += 4 + parser_tx_obj.payment.lenItem1;
+                if (displayIdx == 2) {
+                    snprintf(outKey, outKeyLen, "Entrypoint");
+                    char buffer[100];
+                    MEMZERO(buffer, sizeof(buffer));
+                    MEMCPY(buffer, (char *)(data + 4),parser_tx_obj.payment.lenItem2);
+                    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+                    return parser_ok;
+                }
+//                data += 4 + parser_tx_obj.payment.lenItem2;
+//                ctx->offset += 4 + parser_tx_obj.payment.lenItem2;
+//                displayIdx -= 3;
+//                uint8_t i = 0;
+//                uint32_t dataLen = 0;
+//                for(uint8_t i = 0; i < displayIdx; i++){
+//                    readU32(ctx, &dataLen);
+//                    ctx->offset += dataLen;
+//                    data += 4 + dataLen;
+//                    readU32(ctx, &dataLen);
+//                    ctx->offset += dataLen;
+//                    data += 4 + dataLen;
+//                }
+//                readU32(ctx, &dataLen);
+//                char buffer[100];
+//                MEMZERO(buffer, sizeof(buffer));
+//                MEMCPY(buffer, (char *)(data + 4),dataLen);
+//                snprintf(outKey, outKeyLen, "%s",buffer);
+//                ctx->offset += dataLen;
+//                data += 4 + dataLen;
+//                readU32(ctx, &dataLen);
+//                MEMZERO(buffer, sizeof(buffer));
+//                MEMCPY(buffer, (char *)(data + 4),dataLen);
+//                pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
             }
             default : {
                 return parser_unexepected_error;
             }
         }
     }
-
-    if (displayIdx == 6) {
+    displayIdx -= 3;
+    if (displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Session Type");
         switch(parser_tx_obj.session.sessiontype){
             case 0x05: {

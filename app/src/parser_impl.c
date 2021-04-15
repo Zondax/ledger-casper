@@ -66,6 +66,10 @@ parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result){
     return parser_ok;
 }
 
+parser_error_t readU32(parser_context_t *ctx, uint32_t *result){
+    return _readUInt32(ctx, result);
+}
+
 parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
@@ -213,18 +217,19 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     uint32_t part = 0;
 
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    v->payment.lenName = part;
+    v->payment.lenItem1 = part;
     total += 4 + part;
     ctx->offset += part;
 
     part = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    v->payment.lenEntry = part;
+    v->payment.lenItem2 = part;
     total += 4 + part;
     ctx->offset += part;
 
     uint32_t argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
+    v->payment.argLen = argLen;
     total += 4;
     for(uint32_t i = 0; i < argLen; i++){
         //key
@@ -251,6 +256,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 
     argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
+    v->session.argLen = argLen;
     total += 4;
     for(uint32_t i = 0; i < argLen; i++){
         //key
@@ -297,6 +303,6 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 #endif
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
-    uint8_t itemCount = 5 + 1 + 1; //header + payment + session
+    uint8_t itemCount = 5 + 3 + 1; //header + payment + session
     return itemCount;
 }
