@@ -244,10 +244,10 @@ parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_it
 parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
     uint32_t start = *(uint32_t *)&ctx->offset;
     uint32_t part = 0;
-
+    *num_items = 2;
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    *num_items = deploy_argLen;
+    *num_items += deploy_argLen;
     for(uint32_t i = 0; i < deploy_argLen; i++){
         //key
         part = 0;
@@ -335,6 +335,6 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 #endif
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
-    uint8_t itemCount = 5 + v->payment.num_items ; //header + payment + session
+    uint8_t itemCount = 5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
     return itemCount;
 }
