@@ -76,6 +76,105 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;
 }
 
+parser_error_t parser_getItem_StoredContractByName(ExecutableDeployItem item, parser_context_t *ctx,
+                              uint8_t displayIdx,
+                              char *outKey, uint16_t outKeyLen,
+                              char *outVal, uint16_t outValLen,
+                              uint8_t pageIdx, uint8_t *pageCount){
+    if (displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Payment Type");
+        snprintf(outVal, outValLen, "StoredContractByName");
+        return parser_ok;
+    }
+    uint32_t dataLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if (displayIdx == 1) {
+        snprintf(outKey, outKeyLen, "Name");
+        char buffer[100];
+        MEMZERO(buffer, sizeof(buffer));
+        uint8_t *data = ctx->buffer + ctx->offset;
+        MEMCPY(buffer, (char *)(data),dataLen);
+        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+        return parser_ok;
+    }
+    ctx->offset += dataLen;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if (displayIdx == 2) {
+        snprintf(outKey, outKeyLen, "Entrypoint");
+        char buffer[100];
+        MEMZERO(buffer, sizeof(buffer));
+        uint8_t *data = ctx->buffer + ctx->offset;
+        MEMCPY(buffer, (char *)(data),dataLen);
+        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+        return parser_ok;
+    }
+    ctx->offset += dataLen;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if(dataLen != item.num_items - 4){
+        return parser_unexepected_error;
+    }
+
+    if (displayIdx == 3) {
+        snprintf(outKey, outKeyLen, "RuntimeArgs");
+        uint64_t number = 0;
+        number += (uint64_t) ((dataLen & 0xFF000000) >> 24);
+        number += (uint64_t) ((dataLen & 0x00FF0000) >> 16);
+        number += (uint64_t) ((dataLen & 0x0000FF00) >> 8);
+        number += (uint64_t) ((dataLen & 0x000000FF) >> 0);
+        return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    uint8_t new_displayIdx = displayIdx - 4;
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items-4) {
+        return parser_no_data;
+    }
+
+    for(uint8_t index = 0; index < new_displayIdx; index++) {
+            readU32(ctx, &dataLen);
+            ctx->offset += dataLen;
+            readU32(ctx, &dataLen);
+            ctx->offset += dataLen + 1; //data + type
+    }
+    //key
+    readU32(ctx, &dataLen);
+    char buffer[100];
+    MEMZERO(buffer, sizeof(buffer));
+    uint8_t *data = ctx->buffer + ctx->offset;
+    MEMCPY(buffer, (char *)(data),dataLen);
+    snprintf(outKey, outKeyLen, "%s",buffer);
+    ctx->offset += dataLen;
+    //value
+//    snprintf(outVal, outValLen, "test");
+//    return parser_ok;
+    readU32(ctx, &dataLen);
+    data = ctx->buffer + ctx->offset;
+    uint8_t type = *(data + dataLen);
+    if(type == 0x01) {
+        uint64_t number = 0;
+        CHECK_PARSER_ERR(readintoU64(ctx,&number));
+        return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
+    }else {
+        return parser_context_mismatch;
+    }
+}
+
+
+
+parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t *ctx,
+                              uint8_t displayIdx,
+                              char *outKey, uint16_t outKeyLen,
+                              char *outVal, uint16_t outValLen,
+                              uint8_t pageIdx, uint8_t *pageCount){
+    switch(item.type){
+        case StoredContractByName : {
+            return parser_getItem_StoredContractByName(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        }
+        default : {
+            return parser_context_mismatch;
+        }
+    }
+}
+
 parser_error_t parser_getItem(parser_context_t *ctx,
                               uint8_t displayIdx,
                               char *outKey, uint16_t outKeyLen,
@@ -135,6 +234,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         MEMCPY(buffer, (char *)(ctx->buffer + 4 + index), parser_tx_obj.header.lenChainName);
         pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
         return parser_ok;
+    }
+    uint8_t new_displayIdx = displayIdx - 5;
+    ctx->offset = headerLength(parser_tx_obj.header) + 32 + 1;
+
+    if(new_displayIdx < parser_tx_obj.payment.num_items){
+        return parser_getItemDeploy(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
     }
 
     return parser_no_data;

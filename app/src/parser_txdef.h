@@ -44,9 +44,9 @@ typedef enum {
 
 
 typedef struct {
+    deploy_type_e type;
     uint32_t num_items;
     uint32_t totalLength;
-    deploy_type_e type;
 } ExecutableDeployItem;
 
 typedef struct {
