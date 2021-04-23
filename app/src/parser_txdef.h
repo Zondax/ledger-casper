@@ -32,26 +32,27 @@ typedef struct {
     uint32_t lenChainName;
 } parser_header_t;
 
-typedef struct {
-    uint8_t paymenttype;
-    uint32_t lenItem1;
-    uint32_t lenItem2;
-    uint32_t lenItem3;
-    uint32_t argLen;
-    uint32_t totalLength;
-} parser_payment_t;
+#define NUM_DEPLOY_TYPES 6
+typedef enum {
+    ModuleBytes = 0,
+    StoredContractByHash = 1,
+    StoredContractByName = 2,
+    StoredVersionedContractByHash = 3,
+    StoredVersionedContractByName = 4,
+    Transfer = 5,
+} deploy_type_e;
+
 
 typedef struct {
-    uint8_t sessiontype;
-    uint32_t argLen;
+    uint32_t num_items;
     uint32_t totalLength;
-} parser_session_t;
-
+    deploy_type_e type;
+} ExecutableDeployItem;
 
 typedef struct {
     parser_header_t header;
-    parser_payment_t payment;
-    parser_session_t session;
+    ExecutableDeployItem payment;
+    ExecutableDeployItem session;
 } parser_tx_t;
 
 //let payment_args = runtime_args! {

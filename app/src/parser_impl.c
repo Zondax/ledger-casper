@@ -197,6 +197,92 @@ const char *parser_getErrorDescription(parser_error_t err) {
     }
 }
 
+parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype){
+    if (type > NUM_DEPLOY_TYPES){
+        return parser_value_out_of_range;
+    }else{
+        *deploytype = type;
+        return parser_ok;
+    }
+}
+
+parser_error_t parseStoredContractByHash(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
+    uint32_t total = 1;
+    uint32_t part = 0;
+
+    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+    total += 4 + part;
+    ctx->offset += part;
+
+    part = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+    total += 4 + part;
+    ctx->offset += part;
+
+    num_items += 2;
+
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+    *num_items += deploy_argLen;
+    total += 4;
+    for(uint32_t i = 0; i < deploy_argLen; i++){
+        //key
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+
+        //value
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part + 1;
+        ctx->offset += part + 1;
+    }
+
+    *totalLength = total;
+    return parser_ok;
+}
+
+parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
+    uint32_t total = 1;
+    uint32_t part = 0;
+
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+    *num_items = deploy_argLen;
+    total += 4;
+    for(uint32_t i = 0; i < deploy_argLen; i++){
+        //key
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part;
+        ctx->offset += part;
+
+        //value + type
+        part = 0;
+        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+        total += 4 + part + 1;
+        ctx->offset += part + 1;
+    }
+    *totalLength = total;
+    return parser_ok;
+}
+
+parser_error_t parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength){
+    switch(deploytype){
+        case StoredContractByName : {
+            return parseStoredContractByHash(ctx,num_items,totalLength);
+        }
+
+        case Transfer : {
+            return parseTransfer(ctx,num_items,totalLength);
+        }
+        default : {
+            return parser_context_mismatch;
+        }
+    }
+}
+
 parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     PARSER_ASSERT_OR_ERROR( ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
     v->header.pubkeytype = ctx->buffer[0];
@@ -208,70 +294,20 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
     ctx->offset = headerLength(v->header) + 32;
-    CHECK_PARSER_ERR(_readUInt8(ctx, &v->payment.paymenttype));
-    PARSER_ASSERT_OR_ERROR( v->payment.paymenttype == 2, parser_context_unknown_prefix);
+    uint8_t type = 255;
+    CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    CHECK_PARSER_ERR(parseDeployType(type, &v->payment.type));
+    PARSER_ASSERT_OR_ERROR( v->payment.type == 2, parser_context_unknown_prefix);
 
-    //Payment: StoredContractByName
+    CHECK_PARSER_ERR(parseDeployItem(ctx, v->payment.type, &v->payment.num_items, &v->payment.totalLength))
 
-    uint32_t total = 1;
-    uint32_t part = 0;
+    type = 255;
+    CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
+    PARSER_ASSERT_OR_ERROR( v->session.type == 5, parser_context_unknown_prefix);
 
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    v->payment.lenItem1 = part;
-    total += 4 + part;
-    ctx->offset += part;
+    CHECK_PARSER_ERR(parseDeployItem(ctx, v->session.type, &v->session.num_items, &v->session.totalLength))
 
-    part = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    v->payment.lenItem2 = part;
-    total += 4 + part;
-    ctx->offset += part;
-
-    uint32_t argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
-    v->payment.argLen = argLen;
-    total += 4;
-    for(uint32_t i = 0; i < argLen; i++){
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        total += 4 + part;
-        ctx->offset += part;
-
-        //value
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        total += 4 + part;
-        ctx->offset += part;
-    }
-
-    v->payment.totalLength = total + 1;
-    ctx->offset++;
-
-    CHECK_PARSER_ERR(_readUInt8(ctx, &v->session.sessiontype));
-    PARSER_ASSERT_OR_ERROR( v->session.sessiontype == 5, parser_context_unknown_prefix);
-
-    total = 1;
-    part = 0;
-
-    argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &argLen));
-    v->session.argLen = argLen;
-    total += 4;
-    for(uint32_t i = 0; i < argLen; i++){
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        total += 4 + part;
-        ctx->offset += part;
-
-        //value
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        total += 4 + part;
-        ctx->offset += part;
-    }
-    v->session.totalLength = total + 1;
     return parser_ok;
 }
 
@@ -303,6 +339,6 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 #endif
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
-    uint8_t itemCount = 5 + 3 + 1; //header + payment + session
+    uint8_t itemCount = 5; //header + payment + session
     return itemCount;
 }
