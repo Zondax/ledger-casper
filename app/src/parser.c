@@ -193,6 +193,42 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
+parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+                                                   uint8_t displayIdx,
+                                                   char *outKey, uint16_t outKeyLen,
+                                                   char *outVal, uint16_t outValLen,
+                                                   uint8_t pageIdx, uint8_t *pageCount) {
+    if (displayIdx == 0) {
+        DISPLAY_TYPE(deployType, "StoredContractByHash")
+    }
+    uint32_t dataLen = HASH_LENGTH;
+    if (displayIdx == 1) {
+        snprintf(outKey, outKeyLen, "Hash");
+        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), dataLen, outVal, outValLen,
+                                 pageIdx, pageCount);
+    }
+    ctx->offset += dataLen;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if (displayIdx == 2) {
+        DISPLAY_STRING("Entrypoint", ctx->buffer + ctx->offset, dataLen);
+    }
+    ctx->offset += dataLen;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if (dataLen != item.num_items - 4) {
+        return parser_unexepected_error;
+    }
+
+    if (displayIdx == 3) {
+        DISPLAY_U32("RuntimeArgs", dataLen)
+    }
+
+    uint8_t new_displayIdx = displayIdx - 4;
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items - 4) {
+        return parser_no_data;
+    }
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+}
+
 parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
                                                    uint8_t displayIdx,
                                                    char *outKey, uint16_t outKeyLen,
@@ -247,6 +283,11 @@ parser_error_t parser_getItemDeploy(char *deployType, ExecutableDeployItem item,
             return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
                                               pageIdx, pageCount);
         }
+        case StoredContractByHash : {
+            return parser_getItem_StoredContractByHash(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
+                                                       outValLen, pageIdx, pageCount);
+        }
+
         case StoredContractByName : {
             return parser_getItem_StoredContractByName(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
                                                        outValLen, pageIdx, pageCount);

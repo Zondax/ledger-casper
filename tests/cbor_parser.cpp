@@ -39,6 +39,21 @@ namespace {
 
     }
 
+    TEST(DeployParserTest, ContractByHash) {
+        uint8_t inBuffer[1000];
+        const char *tmp = "02030f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d1774cbaf9747501000080ee36000000000001000000000000005ecf9b7c916e59d106dc0f205fe8ade59c26bd321c5e90b44c970fd30402a2930100000001010101010101010101010101010101010101010101010101010101010101010e0000006361737065722d6578616d706c655dd440a64c305581ecf8f4dfaee0ed538817a0bdf2857a4ed6a6f4530ef14488010f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f130000006578616d706c652d656e7472792d706f696e7401000000080000007175616e7469747904000000e803000001050100000006000000616d6f756e7404000000e8030000010100000002030f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177012dbf03817a51794a8e19e0724884075e6d1fbec326b766ecfa6658b41f81290da85e23b24e88b1c8d9761185c961daee1adab0649912a6477bcd2e69bd91bd08";
+
+        auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
+
+        parser_context_t ctx;
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        EXPECT_EQ(err, parser_ok);
+
+        err = parser_validate(&ctx);
+        EXPECT_EQ(err, parser_ok);
+
+    }
+
     TEST(CBORParserTest, MinimalListTest) {
         // [1,2,3]
         uint8_t inBuffer[100];
