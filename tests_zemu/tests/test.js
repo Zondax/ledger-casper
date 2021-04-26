@@ -267,4 +267,51 @@ describe('Standard', function () {
             await sim.close();
         }
     });
+
+    test.each(models)('sign basic normal -- StoredVersionedContractByHash(%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
+
+            const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
+            console.log(respAddr)
+
+            expect(respAddr.returnCode).toEqual(0x9000);
+            expect(respAddr.errorMessage).toEqual("No errors");
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+            expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
+
+            const txBlobStr = "02030f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d1774cbaf9747501000080ee3600000000000100000000000000e159c9ed050bdc2600b070d7a29e436ee53e62896ef830473cf1a669bc8b16440100000001010101010101010101010101010101010101010101010101010101010101010e0000006361737065722d6578616d706c65141722ad47b6c586e2e03825e4e0e2190f107321e9cca3d8bd692b5f8f11a984020e0000006361737065722d6578616d706c65130000006578616d706c652d656e7472792d706f696e7401000000080000007175616e7469747904000000e803000001030f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0190340000070000006578616d706c650100000006000000616d6f756e7404000000e8030000010100000002030f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177012dbf03817a51794a8e19e0724884075e6d1fbec326b766ecfa6658b41f81290da85e23b24e88b1c8d9761185c961daee1adab0649912a6477bcd2e69bd91bd08"
+
+            const txBlob = Buffer.from(txBlobStr, "hex");
+            const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
+
+            // Wait until we are not in the main menu
+            await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_basic_storedversionedcontractbyhash`, model === "nanos" ? 18 : 19);
+
+            let signatureResponse = await respRequest;
+            console.log(signatureResponse);
+
+            expect(signatureResponse.returnCode).toEqual(0x9000);
+            expect(signatureResponse.errorMessage).toEqual("No errors");
+
+            let hash = txBlob.slice(144,176);
+
+            const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
+
+        } finally {
+            await sim.close();
+        }
+    });
 });

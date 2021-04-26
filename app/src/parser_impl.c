@@ -241,21 +241,22 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
     return parser_ok;
 }
 
-parser_error_t parseStoredContractByHash(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
+parser_error_t
+parseStoredContractByHash(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
     INIT_PARSER;
 
     ctx->offset += HASH_LENGTH;
 
-    if (deploytype == StoredVersionedContractByHash){
+    if (deploytype == StoredVersionedContractByHash) {
         uint8_t type = 0xff;
         _readUInt8(ctx, &type);
-        if (type == 0x00){
+        if (type == 0x00) {
             //do nothing
-        }else if (type == 0x01){
+        } else if (type == 0x01) {
             //parse uint32
             uint32_t p = 0;
             _readUInt32(ctx, &p);
-        }else {
+        } else {
             return parser_context_unknown_prefix;
         }
         *num_items += 1;
@@ -270,19 +271,30 @@ parser_error_t parseStoredContractByHash(parser_context_t *ctx, deploy_type_e de
     return parseTotalLength(ctx, start, totalLength);
 }
 
-parser_error_t parseStoredContractByName(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
+parser_error_t
+parseStoredContractByName(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
     INIT_PARSER;
 
     PARSE_ITEM(0);
 
+    if (deploytype == StoredVersionedContractByName) {
+        uint8_t type = 0xff;
+        _readUInt8(ctx, &type);
+        if (type == 0x00) {
+            //do nothing
+        } else if (type == 0x01) {
+            //parse uint32
+            uint32_t p = 0;
+            _readUInt32(ctx, &p);
+        } else {
+            return parser_context_unknown_prefix;
+        }
+        *num_items += 1;
+    }
+
     PARSE_ITEM(0);
 
     *num_items += 2;
-
-    if (deploytype == StoredVersionedContractByHash){
-        //do something
-    }
-
 
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
 
@@ -318,10 +330,7 @@ parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_i
             return parseStoredContractByHash(ctx, deploytype, num_items, totalLength);
         }
 
-        case StoredVersionedContractByName :{
-            return parseStoredContractByName(ctx, deploytype, num_items, totalLength);
-        }
-
+        case StoredVersionedContractByName :
         case StoredContractByName : {
             return parseStoredContractByName(ctx, deploytype, num_items, totalLength);
         }
@@ -391,7 +400,6 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 #endif
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
-    //uint8_t itemCount = 6 + v->header.lenDependencies;
     uint8_t itemCount =
             5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
     return itemCount;
