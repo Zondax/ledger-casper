@@ -203,125 +203,83 @@ parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
     }
 }
 
+#define INIT_PARSER      \
+    *totalLength = 0;               \
+    *num_items = 2;                 \
+    uint32_t start = *(uint32_t *) &ctx->offset;  \
+    uint32_t part = 0;               \
+
+#define PARSE_ITEM(SKIP) {         \
+    part = 0;                       \
+    CHECK_PARSER_ERR(_readUInt32(ctx, &part));      \
+    ctx->offset += part + (SKIP);                            \
+}
+
+parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t *totalLength) {
+    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
+    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
+    return parser_ok;
+}
+
+parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
+    uint32_t part = 0;
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+    *num_items += deploy_argLen;
+    for (uint32_t i = 0; i < deploy_argLen; i++) {
+        //key
+        PARSE_ITEM(0);
+
+        //value
+        PARSE_ITEM(1);
+    }
+    return parser_ok;
+}
 
 parser_error_t parseStoredContractByHash(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    *totalLength = 0;
-    *num_items = 2;
-    uint32_t start = *(uint32_t *) &ctx->offset;
-    uint32_t part = 0;
+    INIT_PARSER;
 
     ctx->offset += HASH_LENGTH;
 
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    ctx->offset += part;
+    PARSE_ITEM(0);
 
     *num_items += 2;
 
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    *num_items += deploy_argLen;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part;
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
 
-        //value
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part + 1;
-    }
-
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
-    return parser_ok;
+    return parseTotalLength(ctx, start, totalLength);
 }
 
 parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    *totalLength = 0;
-    *num_items = 2;
-    uint32_t start = *(uint32_t *) &ctx->offset;
-    uint32_t part = 0;
+    INIT_PARSER;
 
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    ctx->offset += part;
+    PARSE_ITEM(0);
 
-    part = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    ctx->offset += part;
+    PARSE_ITEM(0);
 
     *num_items += 2;
 
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    *num_items += deploy_argLen;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part;
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
 
-        //value
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part + 1;
-    }
-
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
-    return parser_ok;
+    return parseTotalLength(ctx, start, totalLength);
 }
 
 parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    uint32_t start = *(uint32_t *) &ctx->offset;
-    uint32_t part = 0;
-    *num_items = 2;
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    *num_items += deploy_argLen;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part;
+    INIT_PARSER;
 
-        //value + type
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part + 1;
-    }
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
-    return parser_ok;
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
+    return parseTotalLength(ctx, start, totalLength);
 }
 
 parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    *totalLength = 0;
-    *num_items = 2;
-    uint32_t start = *(uint32_t *) &ctx->offset;
-    uint32_t part = 0;
+    INIT_PARSER;
 
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
     ctx->offset += part;
 
     *num_items += 1;
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    *num_items += deploy_argLen;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part;
-
-        //value + type
-        part = 0;
-        CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-        ctx->offset += part + 1;
-    }
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
-    return parser_ok;
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
+    return parseTotalLength(ctx, start, totalLength);
 }
 
 parser_error_t
