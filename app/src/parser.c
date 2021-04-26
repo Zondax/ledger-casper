@@ -156,7 +156,38 @@ parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem it
         return parser_no_data;
     }
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+}
 
+
+parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+                                                   uint8_t displayIdx,
+                                                   char *outKey, uint16_t outKeyLen,
+                                                   char *outVal, uint16_t outValLen,
+                                                   uint8_t pageIdx, uint8_t *pageCount){
+    if (displayIdx == 0) {
+        DISPLAY_TYPE(deployType, "ModuleBytes")
+    }
+    uint32_t dataLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if (displayIdx == 1) {
+        snprintf(outKey, outKeyLen, "Bytes");
+        return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), dataLen, outVal, outValLen, pageIdx, pageCount);
+    }
+    ctx->offset += dataLen;
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if(dataLen != item.num_items - 3){
+        return parser_unexepected_error;
+    }
+
+    if (displayIdx == 2) {
+        DISPLAY_U32("RuntimeArgs", dataLen)
+    }
+
+    uint8_t new_displayIdx = displayIdx - 3;
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items-3) {
+        return parser_no_data;
+    }
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
 parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
@@ -209,6 +240,9 @@ parser_error_t parser_getItemDeploy(char *deployType, ExecutableDeployItem item,
                               uint8_t pageIdx, uint8_t *pageCount){
     ctx->offset++;
     switch(item.type){
+        case ModuleBytes : {
+            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        }
         case StoredContractByName : {
             return parser_getItem_StoredContractByName(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         }
