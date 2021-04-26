@@ -41,6 +41,8 @@ parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
 
 parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 
+parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
+
 #ifdef __cplusplus
 }
 #endif
