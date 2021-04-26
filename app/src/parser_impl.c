@@ -59,6 +59,10 @@ uint16_t headerLength(parser_header_t header){
     return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result){
+    return _readUInt64(ctx, result);
+}
+
 parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result){
     uint32_t reader = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &reader));

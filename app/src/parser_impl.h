@@ -37,6 +37,7 @@ parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16
 uint16_t headerLength(parser_header_t header);
 parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result);
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 
 #ifdef __cplusplus
 }
