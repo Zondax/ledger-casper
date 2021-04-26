@@ -29,23 +29,23 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    parser_error_t err =  _read(ctx, &parser_tx_obj);
+    parser_error_t err = _read(ctx, &parser_tx_obj);
     return err;
 }
 
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
-                                  char *outVal, uint16_t outValLen,
-                                  uint8_t pageIdx, uint8_t *pageCount){
+                                 char *outVal, uint16_t outValLen,
+                                 uint8_t pageIdx, uint8_t *pageCount) {
     char buffer[300];
     MEMZERO(buffer, sizeof(buffer));
     array_to_hexstr(buffer, sizeof(buffer), bytes, byteLength);
-    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
     return parser_ok;
 }
 
 parser_error_t parser_printU64(uint64_t value, char *outVal,
-                                            uint16_t outValLen, uint8_t pageIdx,
-                                            uint8_t *pageCount){
+                               uint16_t outValLen, uint8_t pageIdx,
+                               uint8_t *pageCount) {
     char tmpBuffer[100];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
@@ -65,7 +65,9 @@ parser_error_t parser_validate(const parser_context_t *ctx) {
 
     for (uint8_t idx = 0; idx < numItems; idx++) {
         uint8_t pageCount = 0;
-        CHECK_PARSER_ERR(parser_getItem((parser_context_t *)ctx, idx, tmpKey, sizeof(tmpKey), tmpVal, sizeof(tmpVal), 0, &pageCount))
+        CHECK_PARSER_ERR(
+                parser_getItem((parser_context_t *) ctx, idx, tmpKey, sizeof(tmpKey), tmpVal, sizeof(tmpVal), 0,
+                               &pageCount))
     }
 
     return parser_ok;
@@ -102,11 +104,11 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
-                                          uint8_t pageIdx, uint8_t *pageCount){
+                                          uint8_t pageIdx, uint8_t *pageCount) {
     uint32_t dataLen = 0;
 
     //loop to the correct index
-    for(uint8_t index = 0; index < displayIdx; index++) {
+    for (uint8_t index = 0; index < displayIdx; index++) {
         readU32(ctx, &dataLen);
         ctx->offset += dataLen;
         readU32(ctx, &dataLen);
@@ -117,34 +119,34 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
     uint8_t *data = ctx->buffer + ctx->offset;
-    MEMCPY(buffer, (char *)(data),dataLen);
-    snprintf(outKey, outKeyLen, "%s",buffer);
+    MEMCPY(buffer, (char *) (data), dataLen);
+    snprintf(outKey, outKeyLen, "%s", buffer);
     ctx->offset += dataLen;
 
     //value
     readU32(ctx, &dataLen);
     uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
-    if(type == 0x01) {
+    if (type == 0x01) {
         readU32(ctx, &dataLen);
         uint64_t number = 0;
         MEMCPY(&number, &dataLen, 4);
         return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
-    }else {
+    } else {
         return parser_context_mismatch;
     }
 }
 
 parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                                                   uint8_t displayIdx,
-                                                   char *outKey, uint16_t outKeyLen,
-                                                   char *outVal, uint16_t outValLen,
-                                                   uint8_t pageIdx, uint8_t *pageCount) {
+                                       uint8_t displayIdx,
+                                       char *outKey, uint16_t outKeyLen,
+                                       char *outVal, uint16_t outValLen,
+                                       uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
         DISPLAY_TYPE(deployType, "Transfer")
     }
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if(dataLen != item.num_items - 2){
+    if (dataLen != item.num_items - 2) {
         return parser_unexepected_error;
     }
     if (displayIdx == 1) {
@@ -152,7 +154,7 @@ parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem it
     }
 
     uint8_t new_displayIdx = displayIdx - 2;
-    if (new_displayIdx < 0 || new_displayIdx > item.num_items-2) {
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items - 2) {
         return parser_no_data;
     }
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
@@ -160,10 +162,10 @@ parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem it
 
 
 parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                                                   uint8_t displayIdx,
-                                                   char *outKey, uint16_t outKeyLen,
-                                                   char *outVal, uint16_t outValLen,
-                                                   uint8_t pageIdx, uint8_t *pageCount){
+                                          uint8_t displayIdx,
+                                          char *outKey, uint16_t outKeyLen,
+                                          char *outVal, uint16_t outValLen,
+                                          uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
         DISPLAY_TYPE(deployType, "ModuleBytes")
     }
@@ -171,11 +173,12 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     if (displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Bytes");
-        return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), dataLen, outVal, outValLen, pageIdx, pageCount);
+        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), dataLen, outVal, outValLen, pageIdx,
+                                 pageCount);
     }
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if(dataLen != item.num_items - 3){
+    if (dataLen != item.num_items - 3) {
         return parser_unexepected_error;
     }
 
@@ -184,17 +187,17 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     }
 
     uint8_t new_displayIdx = displayIdx - 3;
-    if (new_displayIdx < 0 || new_displayIdx > item.num_items-3) {
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items - 3) {
         return parser_no_data;
     }
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
 parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                              uint8_t displayIdx,
-                              char *outKey, uint16_t outKeyLen,
-                              char *outVal, uint16_t outValLen,
-                              uint8_t pageIdx, uint8_t *pageCount){
+                                                   uint8_t displayIdx,
+                                                   char *outKey, uint16_t outKeyLen,
+                                                   char *outVal, uint16_t outValLen,
+                                                   uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
         DISPLAY_TYPE(deployType, "StoredContractByName")
     }
@@ -210,7 +213,7 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
     }
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if(dataLen != item.num_items - 4){
+    if (dataLen != item.num_items - 4) {
         return parser_unexepected_error;
     }
 
@@ -219,7 +222,7 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
     }
 
     uint8_t new_displayIdx = displayIdx - 4;
-    if (new_displayIdx < 0 || new_displayIdx > item.num_items-4) {
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items - 4) {
         return parser_no_data;
     }
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
@@ -234,27 +237,29 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
 }
 
 parser_error_t parser_getItemDeploy(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                              uint8_t displayIdx,
-                              char *outKey, uint16_t outKeyLen,
-                              char *outVal, uint16_t outValLen,
-                              uint8_t pageIdx, uint8_t *pageCount){
+                                    uint8_t displayIdx,
+                                    char *outKey, uint16_t outKeyLen,
+                                    char *outVal, uint16_t outValLen,
+                                    uint8_t pageIdx, uint8_t *pageCount) {
     ctx->offset++;
-    switch(item.type){
+    switch (item.type) {
         case ModuleBytes : {
-            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
+                                              pageIdx, pageCount);
         }
         case StoredContractByName : {
-            return parser_getItem_StoredContractByName(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            return parser_getItem_StoredContractByName(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
+                                                       outValLen, pageIdx, pageCount);
         }
         case Transfer : {
-            return parser_getItem_Transfer(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            return parser_getItem_Transfer(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
+                                           pageIdx, pageCount);
         }
         default : {
             return parser_context_mismatch;
         }
     }
 }
-
 
 
 parser_error_t parser_getItem(parser_context_t *ctx,
@@ -279,7 +284,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     if (displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Account");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
-        return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), SECP256K1_PK_LEN, outVal, outValLen, pageIdx, pageCount);
+        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), SECP256K1_PK_LEN, outVal, outValLen,
+                                 pageIdx, pageCount);
     }
 
     if (displayIdx == 1) {
@@ -301,15 +307,17 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     uint8_t new_displayIdx = displayIdx - 5;
     ctx->offset = headerLength(parser_tx_obj.header) + 32;
 
-    if(new_displayIdx < parser_tx_obj.payment.num_items){
-        return parser_getItemDeploy("Payment", parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    if (new_displayIdx < parser_tx_obj.payment.num_items) {
+        return parser_getItemDeploy("Payment", parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                    outValLen, pageIdx, pageCount);
     }
 
     new_displayIdx -= parser_tx_obj.payment.num_items;
     ctx->offset += parser_tx_obj.payment.totalLength;
 
-    if(new_displayIdx < parser_tx_obj.session.num_items) {
-        return parser_getItemDeploy("Session", parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    if (new_displayIdx < parser_tx_obj.session.num_items) {
+        return parser_getItemDeploy("Session", parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                    outValLen, pageIdx, pageCount);
     }
 
     return parser_no_data;

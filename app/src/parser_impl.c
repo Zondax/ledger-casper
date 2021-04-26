@@ -51,34 +51,34 @@ GEN_DEC_READFIX_UNSIGNED(64);
 //pub dependencies: Vec<DeployHash>,  //4 + len*32
 //pub chain_name: String,             //4+14 = 18
 
-uint16_t headerLength(parser_header_t header){
+uint16_t headerLength(parser_header_t header) {
     uint16_t pubkeyLen = 1 + (header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
     uint16_t fixedLen = 56;
-    uint16_t depsLen = 4 +  header.lenDependencies * 32;
+    uint16_t depsLen = 4 + header.lenDependencies * 32;
     uint16_t chainNameLen = 4 + header.lenChainName;
     return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
-parser_error_t readU64(parser_context_t *ctx, uint64_t *result){
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result) {
     return _readUInt64(ctx, result);
 }
 
-parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result){
+parser_error_t readintoU64(parser_context_t *ctx, uint64_t *result) {
     uint32_t reader = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &reader));
-    *result = *(uint64_t *)&reader;
+    *result = *(uint64_t *) &reader;
     return parser_ok;
 }
 
-parser_error_t readU32(parser_context_t *ctx, uint32_t *result){
+parser_error_t readU32(parser_context_t *ctx, uint32_t *result) {
     return _readUInt32(ctx, result);
 }
 
-parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index){
+parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index) {
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
     uint16_t deployHashLen = 4 + head.lenDependencies * 32;
-    switch (part){
+    switch (part) {
         case header_pubkey : {
             *index = 1;
             return parser_ok;
@@ -201,19 +201,19 @@ const char *parser_getErrorDescription(parser_error_t err) {
     }
 }
 
-parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype){
-    if (type > NUM_DEPLOY_TYPES){
+parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
+    if (type > NUM_DEPLOY_TYPES) {
         return parser_value_out_of_range;
-    }else{
+    } else {
         *deploytype = type;
         return parser_ok;
     }
 }
 
-parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
+parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
     *totalLength = 0;
     *num_items = 2;
-    uint32_t start = *(uint32_t *)&ctx->offset;
+    uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t part = 0;
 
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -228,7 +228,7 @@ parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_it
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     *num_items += deploy_argLen;
-    for(uint32_t i = 0; i < deploy_argLen; i++){
+    for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
         part = 0;
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -240,19 +240,19 @@ parser_error_t parseStoredContractByName(parser_context_t *ctx, uint32_t *num_it
         ctx->offset += part + 1;
     }
 
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *)&ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *)&ctx->offset - start) + 1;
+    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
+    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
     return parser_ok;
 }
 
-parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
-    uint32_t start = *(uint32_t *)&ctx->offset;
+parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t part = 0;
     *num_items = 2;
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     *num_items += deploy_argLen;
-    for(uint32_t i = 0; i < deploy_argLen; i++){
+    for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
         part = 0;
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -263,15 +263,15 @@ parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
         ctx->offset += part + 1;
     }
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *)&ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *)&ctx->offset - start) + 1;
+    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
+    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
     return parser_ok;
 }
 
-parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength){
+parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
     *totalLength = 0;
     *num_items = 2;
-    uint32_t start = *(uint32_t *)&ctx->offset;
+    uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t part = 0;
 
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -281,7 +281,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     *num_items += deploy_argLen;
-    for(uint32_t i = 0; i < deploy_argLen; i++){
+    for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
         part = 0;
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
@@ -292,23 +292,24 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint
         CHECK_PARSER_ERR(_readUInt32(ctx, &part));
         ctx->offset += part + 1;
     }
-    PARSER_ASSERT_OR_ERROR(*(uint32_t *)&ctx->offset > start, parser_unexepected_error);
-    *totalLength = (*(uint32_t *)&ctx->offset - start) + 1;
+    PARSER_ASSERT_OR_ERROR(*(uint32_t *) &ctx->offset > start, parser_unexepected_error);
+    *totalLength = (*(uint32_t *) &ctx->offset - start) + 1;
     return parser_ok;
 }
 
-parser_error_t parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength){
-    switch(deploytype){
+parser_error_t
+parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
+    switch (deploytype) {
         case ModuleBytes : {
-            return parseModuleBytes(ctx,num_items,totalLength);
+            return parseModuleBytes(ctx, num_items, totalLength);
         }
 
         case StoredContractByName : {
-            return parseStoredContractByName(ctx,num_items,totalLength);
+            return parseStoredContractByName(ctx, num_items, totalLength);
         }
 
         case Transfer : {
-            return parseTransfer(ctx,num_items,totalLength);
+            return parseTransfer(ctx, num_items, totalLength);
         }
         default : {
             return parser_context_mismatch;
@@ -317,7 +318,7 @@ parser_error_t parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, 
 }
 
 parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
-    PARSER_ASSERT_OR_ERROR( ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
+    PARSER_ASSERT_OR_ERROR(ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
     v->header.pubkeytype = ctx->buffer[0];
 
     CHECK_PARSER_ERR(index_headerpart(v->header, header_deps, &ctx->offset));
@@ -330,14 +331,14 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(parseDeployType(type, &v->payment.type));
-    PARSER_ASSERT_OR_ERROR( v->payment.type == StoredContractByName || type == 0x00, parser_context_unknown_prefix);
+    PARSER_ASSERT_OR_ERROR(v->payment.type == StoredContractByName || type == 0x00, parser_context_unknown_prefix);
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, v->payment.type, &v->payment.num_items, &v->payment.totalLength))
 
     type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
-    PARSER_ASSERT_OR_ERROR( v->session.type == 5, parser_context_unknown_prefix);
+    PARSER_ASSERT_OR_ERROR(v->session.type == 5, parser_context_unknown_prefix);
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, v->session.type, &v->session.num_items, &v->session.totalLength))
 
@@ -366,12 +367,16 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     return parser_ok;
 }
 #else
+
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     return parser_ok;
 }
+
 #endif
+
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     //uint8_t itemCount = 6 + v->header.lenDependencies;
-    uint8_t itemCount = 5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
+    uint8_t itemCount =
+            5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
     return itemCount;
 }

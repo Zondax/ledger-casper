@@ -150,7 +150,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
 }
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
-                          unsigned char *out) {
+                     unsigned char *out) {
     blake2b_state s;
     blake2b_init(&s, outLen);
     blake2b_update(&s, in, inLen);
@@ -243,7 +243,7 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     answer_t *const answer = (answer_t *) buffer;
 
     zxerr_t err = crypto_extractPublicKey(hdPath, answer->publicKey, sizeof_field(answer_t, publicKey));
-    if ( err != zxerr_ok ) {
+    if (err != zxerr_ok) {
         return err;
     }
 
