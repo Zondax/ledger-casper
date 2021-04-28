@@ -138,6 +138,26 @@ zxerr_t crypto_sign(uint8_t *signature,
     return zxerr_ok;
 }
 
+zxerr_t crypto_verify_secp256k1_signature(uint8_t *pubkey, uint8_t *signature){
+
+}
+
+bool crypto_verify_ed25519_signature(uint8_t *pubkey, uint8_t *signature, uint8_t *message_digest){
+
+    uint8_t pubkey_XY[65];
+    MEMCPY(pubkey_XY, pubkey, 33);
+    cx_edward_decompress_point(CX_CURVE_Ed25519, pubkey_XY, sizeof(pubkey_XY));
+
+    cx_ecfp_public_key_t cx_publicKey;
+    cx_ecfp_init_public_key(CX_CURVE_Ed25519, pubkey_XY, 65, &cx_publicKey);
+    zemu_log_stack("Decompressed key imported");
+
+    return cx_eddsa_verify(&cx_publicKey,
+                           0, CX_SHA512,
+                           message_digest, HASH_SIZE, NULL, 0,
+                           signature, 64) == 1;
+}
+
 #else
 
 #include <hexutils.h>
@@ -198,34 +218,6 @@ uint16_t crypto_sign(uint8_t *signature,
 }
 
 #endif
-
-uint8_t decompressLEB128(const uint8_t *input, uint16_t inputSize, uint64_t *v) {
-    unsigned int i = 0;
-
-    *v = 0;
-    uint16_t shift = 0;
-    while (i < 10u && i < inputSize) {
-        uint64_t b = input[i] & 0x7fu;
-
-        if (shift >= 63 && b > 1) {
-            // This will overflow uint64_t
-            break;
-        }
-
-        *v |= b << shift;
-
-        if (!(input[i] & 0x80u)) {
-            return 1;
-        }
-
-        shift += 7;
-        i++;
-    }
-
-    // exit because of overflowing outputSize
-    *v = 0;
-    return 0;
-}
 
 typedef struct {
     uint8_t publicKey[SECP256K1_PK_LEN];

@@ -377,6 +377,19 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     CHECK_PARSER_ERR(index_headerpart(v->header,header_bodyhash, &index));
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + index, BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
+    uint16_t index_signatures = headerLength(v->header) + 32 + v->payment.totalLength + v->session.totalLength;
+    c->offset = index_signatures;
+
+    uint32_t num_signatures = 0 ;
+    CHECK_PARSER_ERR(_readUInt32(c, &num_signatures));
+    uint8_t *digest = c->buffer + headerLength(v->header);
+    for(uint16_t i = 0; i < num_signatures; i++){
+        uint8_t *pubkey = c->buffer + index_signatures + i*(33+65);
+        uint8_t *signature = c->buffer + index_signatures + i*(33+65) + 33;
+        bool verify = crypto_verify_ed25519_signature(pubkey, signature, digest);
+        PARSER_ASSERT_OR_ERROR(verify, parser_context_mismatch);
+    }
+
     return parser_ok;
 }
 #else
