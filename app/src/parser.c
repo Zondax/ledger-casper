@@ -132,7 +132,9 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
         MEMCPY(&number, &dataLen, 4);
         return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
     } else {
-        return parser_context_mismatch;
+        //FIXME: support other types
+        snprintf(outVal, outValLen, "Type not supported");
+        return parser_ok;
     }
 }
 
