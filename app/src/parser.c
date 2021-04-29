@@ -193,6 +193,26 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
+#define HANDLE_VERSION(CTX) {         \
+    uint8_t type = 0xff;                        \
+    readU8(ctx, &type);                         \
+    if (type == 0x00) {                          \
+        if (displayIdx == 2) {                      \
+            snprintf(outKey, outKeyLen, "Version"); \
+            snprintf(outVal, outValLen, "Not set"); \
+            return parser_ok;                       \
+        }                                            \
+    } else if (type == 0x01) {                       \
+            uint32_t p = 0;                         \
+            readU32(ctx, &p);                       \
+            if (displayIdx == 2) {                  \
+                DISPLAY_U32("Version", p);  \
+            }                                       \
+    } else {                                        \
+        return parser_context_unknown_prefix;       \
+    }                                               \
+}
+
 parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
                                                    uint8_t displayIdx,
                                                    char *outKey, uint16_t outKeyLen,
@@ -214,23 +234,7 @@ parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableD
     ctx->offset += dataLen;
 
     if (item.type == StoredVersionedContractByHash) {
-        uint8_t type = 0xff;
-        readU8(ctx, &type);
-        if (type == 0x00) {
-            if (displayIdx == 2) {
-                snprintf(outKey, outKeyLen, "Version");
-                snprintf(outVal, outValLen, "Not set");
-                return parser_ok;
-            }
-        } else if (type == 0x01) {
-            uint32_t p = 0;
-            readU32(ctx, &p);
-            if (displayIdx == 2) {
-                DISPLAY_U32("Version", p);
-            }
-        } else {
-            return parser_context_unknown_prefix;
-        }
+        HANDLE_VERSION(ctx)
     }
 
     uint8_t skip = (item.type == StoredVersionedContractByHash) ? 1 : 0;
@@ -277,23 +281,7 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
     ctx->offset += dataLen;
 
     if (item.type == StoredVersionedContractByName) {
-        uint8_t type = 0xff;
-        readU8(ctx, &type);
-        if (type == 0x00) {
-            if (displayIdx == 2) {
-                snprintf(outKey, outKeyLen, "Version");
-                snprintf(outVal, outValLen, "Not set");
-                return parser_ok;
-            }
-        } else if (type == 0x01) {
-            uint32_t p = 0;
-            readU32(ctx, &p);
-            if (displayIdx == 2) {
-                DISPLAY_U32("Version", p);
-            }
-        } else {
-            return parser_context_unknown_prefix;
-        }
+        HANDLE_VERSION(ctx)
     }
 
     uint8_t skip = (item.type == StoredVersionedContractByName) ? 1 : 0;
