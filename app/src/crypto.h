@@ -56,6 +56,8 @@ zxerr_t crypto_sign(uint8_t *signature,
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out);
 
+bool crypto_verify_secp256k1_signature(uint8_t *pubkey, uint8_t *signature, uint8_t *message_digest);
+
 bool crypto_verify_ed25519_signature(uint8_t *pubkey, uint8_t *signature, uint8_t *message_digest);
 
 #ifdef __cplusplus

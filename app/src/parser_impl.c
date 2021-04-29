@@ -333,7 +333,7 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
 }
 
 parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
-    PARSER_ASSERT_OR_ERROR(ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
+    PARSER_ASSERT_OR_ERROR(ctx->buffer[0] == 0x02 || ctx->buffer[0] == 0x01, parser_context_unknown_prefix);
     v->header.pubkeytype = ctx->buffer[0];
 
     CHECK_PARSER_ERR(index_headerpart(v->header, header_deps, &ctx->offset));
@@ -359,7 +359,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 }
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX)
-parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
+parser_error_t _validateTx(parser_context_t *c, const parser_tx_t *v) {
     uint8_t hash[BLAKE2B_256_SIZE];
 
     //check headerhash
@@ -379,22 +379,36 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
     uint16_t index_signatures = headerLength(v->header) + 32 + v->payment.totalLength + v->session.totalLength;
     c->offset = index_signatures;
-
     uint32_t num_signatures = 0 ;
     CHECK_PARSER_ERR(_readUInt32(c, &num_signatures));
     uint8_t *digest = c->buffer + headerLength(v->header);
-    for(uint16_t i = 0; i < num_signatures; i++){
-        uint8_t *pubkey = c->buffer + index_signatures + i*(33+65);
-        uint8_t *signature = c->buffer + index_signatures + i*(33+65) + 33;
-        bool verify = crypto_verify_ed25519_signature(pubkey, signature, digest);
-        PARSER_ASSERT_OR_ERROR(verify, parser_context_mismatch);
+    for(uint16_t i = 0; i < num_signatures; i++, c->offset += 33 + 65){
+        uint8_t pubkeyType = 0;
+        CHECK_PARSER_ERR(_readUInt8(c, &pubkeyType));
+        uint8_t *pubkey = c->buffer + c->offset;
+        uint8_t *signature = c->buffer + c->offset + 33;
+        switch(pubkeyType) {
+            case 0x01: {
+                bool verify = crypto_verify_ed25519_signature(pubkey, signature, digest);
+                PARSER_ASSERT_OR_ERROR(verify, parser_context_mismatch);
+                break;
+            }
+            case 0x02: {
+                bool verify = crypto_verify_secp256k1_signature(pubkey, signature, digest);
+                PARSER_ASSERT_OR_ERROR(verify, parser_context_mismatch);
+                break;
+            }
+            default : {
+                return parser_no_data;
+            }
+        }
     }
 
     return parser_ok;
 }
 #else
 
-parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
+parser_error_t _validateTx(parser_context_t *c, const parser_tx_t *v) {
     return parser_ok;
 }
 

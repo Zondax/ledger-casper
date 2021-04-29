@@ -176,6 +176,53 @@ describe('Standard', function () {
 });
 
 describe('Deploytypes', function () {
+    test.each(models)('sign -- verify approvals (%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
+
+            const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
+            console.log(respAddr)
+
+            expect(respAddr.returnCode).toEqual(0x9000);
+            expect(respAddr.errorMessage).toEqual("No errors");
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+            expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
+
+            const txBlobStr = "01d9bf2148748a85c89da5aad8ee0b0fc2d105fd39d41a4c796536354f0ae2900ca856a4d37501000080ee36000000000001000000000000004811966d37fe5674a8af4001884ea0d9042d1c06668da0c963769c3a01ebd08f0100000001010101010101010101010101010101010101010101010101010101010101010e0000006361737065722d6578616d706c6501da3c604f71e0e7df83ff1ab4ef15bb04de64ca02e3d2b78de6950e8b5ee187020e0000006361737065722d6578616d706c65130000006578616d706c652d656e7472792d706f696e7401000000080000007175616e7469747904000000e803000001050100000006000000616d6f756e7404000000e8030000010100000001d9bf2148748a85c89da5aad8ee0b0fc2d105fd39d41a4c796536354f0ae2900c01d646993730f3742883c601b6297c6247978b43c696511c3d41be5bd69b96798091a40a57bfaee0ae38fbc091b2842d4e7a9f7e7cde7d410c71a7c1127738330f"
+
+            const txBlob = Buffer.from(txBlobStr, "hex");
+            const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
+
+            // Wait until we are not in the main menu
+            await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_basic_modulebytes`, model === "nanos" ? 14 : 15);
+
+            let signatureResponse = await respRequest;
+            console.log(signatureResponse);
+
+            expect(signatureResponse.returnCode).toEqual(0x9000);
+            expect(signatureResponse.errorMessage).toEqual("No errors");
+
+            let hash = txBlob.slice(144,176);
+
+            const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
+
+        } finally {
+            await sim.close();
+        }
+    });
+
     test.each(models)('sign basic normal -- Modulebytes(%s)', async function (_, {model, prefix, path}) {
         const sim = new Zemu(path);
         try {
