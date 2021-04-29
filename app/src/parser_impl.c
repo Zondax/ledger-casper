@@ -382,11 +382,20 @@ parser_error_t _validateTx(parser_context_t *c, const parser_tx_t *v) {
     uint32_t num_signatures = 0 ;
     CHECK_PARSER_ERR(_readUInt32(c, &num_signatures));
     uint8_t *digest = c->buffer + headerLength(v->header);
-    for(uint16_t i = 0; i < num_signatures; i++, c->offset += 33 + 65){
+    for(uint16_t i = 0; i < num_signatures; i++){
+        char buf[140];
+        array_to_hexstr(buf, sizeof(buf), (const uint8_t *)c->buffer + c->offset, 32);
+        zemu_log("offset  :"); zemu_log(buf); zemu_log("\n");
         uint8_t pubkeyType = 0;
         CHECK_PARSER_ERR(_readUInt8(c, &pubkeyType));
         uint8_t *pubkey = c->buffer + c->offset;
-        uint8_t *signature = c->buffer + c->offset + 33;
+        c->offset += (pubkeyType == 0x01) ? 32 : 33;
+        array_to_hexstr(buf, sizeof(buf), (const uint8_t *)c->buffer + c->offset, 32);
+        zemu_log("offset  :"); zemu_log(buf); zemu_log("\n");
+        uint8_t signType = 0;
+        CHECK_PARSER_ERR(_readUInt8(c, &signType));
+        PARSER_ASSERT_OR_ERROR(pubkeyType == signType, parser_context_mismatch);
+        uint8_t *signature = c->buffer + c->offset;
         switch(pubkeyType) {
             case 0x01: {
                 bool verify = crypto_verify_ed25519_signature(pubkey, signature, digest);
@@ -402,6 +411,7 @@ parser_error_t _validateTx(parser_context_t *c, const parser_tx_t *v) {
                 return parser_no_data;
             }
         }
+        c->offset += 64;
     }
 
     return parser_ok;

@@ -139,7 +139,20 @@ zxerr_t crypto_sign(uint8_t *signature,
 }
 
 bool crypto_verify_secp256k1_signature(uint8_t *pubkey, uint8_t *signature, uint8_t *message_digest){
-    return false;
+    uint8_t pubkey_XY[65];
+    pubkey_XY[0] = 0x02;
+    MEMCPY(pubkey_XY, pubkey + 1, SECP256K1_PK_LEN);
+    char buf[140];
+    array_to_hexstr(buf, sizeof(buf), (const uint8_t *) pubkey, SECP256K1_PK_LEN);
+    zemu_log("pk  :"); zemu_log(buf); zemu_log("\n");
+
+    cx_ecfp_public_key_t cx_publicKey;
+    cx_ecfp_init_public_key(CX_CURVE_256K1, pubkey, 65, &cx_publicKey);
+    zemu_log_stack("Decompressed key imported");
+    return cx_ecdsa_verify(&cx_publicKey,
+                           0, CX_SHA256,
+                           message_digest, 32,
+                           signature, 64) == 1;
 }
 
 bool crypto_verify_ed25519_signature(uint8_t *pubkey, uint8_t *signature, uint8_t *message_digest){
