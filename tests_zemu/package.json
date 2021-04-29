@@ -6,7 +6,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles"
+    "test": "jest --detectOpenHandles  -t 'Standard'",
+    "testDeploytypes": "jest --detectOpenHandles  -t 'Deploytypes'"
   },
   "repository": {
     "type": "git",

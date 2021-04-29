@@ -173,7 +173,9 @@ describe('Standard', function () {
             await sim.close();
         }
     });
+});
 
+describe('Deploytypes', function () {
     test.each(models)('sign basic normal -- Modulebytes(%s)', async function (_, {model, prefix, path}) {
         const sim = new Zemu(path);
         try {
