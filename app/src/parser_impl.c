@@ -208,12 +208,6 @@ parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
     }
 }
 
-#define INIT_PARSER      \
-    *totalLength = 0;               \
-    *num_items = 2;                 \
-    uint32_t start = *(uint32_t *) &ctx->offset;  \
-    uint32_t part = 0;               \
-
 #define PARSE_ITEM(SKIP) {         \
     part = 0;                       \
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));      \
@@ -242,12 +236,13 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
 }
 
 parser_error_t
-parseStoredContractByHash(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
-    INIT_PARSER;
+parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    uint32_t part = 0;
 
     ctx->offset += HASH_LENGTH;
 
-    if (deploytype == StoredVersionedContractByHash) {
+    if (item->type == StoredVersionedContractByHash) {
         uint8_t type = 0xff;
         _readUInt8(ctx, &type);
         if (type == 0x00) {
@@ -259,25 +254,25 @@ parseStoredContractByHash(parser_context_t *ctx, deploy_type_e deploytype, uint3
         } else {
             return parser_context_unknown_prefix;
         }
-        *num_items += 1;
+        item->num_items += 1;
     }
 
     PARSE_ITEM(0);
 
-    *num_items += 2;
+    item->num_items += 2;
 
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
-
-    return parseTotalLength(ctx, start, totalLength);
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    return parseTotalLength(ctx, start, &item->totalLength);
 }
 
 parser_error_t
-parseStoredContractByName(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
-    INIT_PARSER;
+parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    uint32_t part = 0;
 
     PARSE_ITEM(0);
 
-    if (deploytype == StoredVersionedContractByName) {
+    if (item->type == StoredVersionedContractByName) {
         uint8_t type = 0xff;
         _readUInt8(ctx, &type);
         if (type == 0x00) {
@@ -289,54 +284,56 @@ parseStoredContractByName(parser_context_t *ctx, deploy_type_e deploytype, uint3
         } else {
             return parser_context_unknown_prefix;
         }
-        *num_items += 1;
+        item->num_items += 1;
     }
 
     PARSE_ITEM(0);
 
-    *num_items += 2;
+    item->num_items += 2;
 
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
-
-    return parseTotalLength(ctx, start, totalLength);
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    return parseTotalLength(ctx, start, &item->totalLength);
 }
 
-parser_error_t parseTransfer(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    INIT_PARSER;
+parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
 
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
-    return parseTotalLength(ctx, start, totalLength);
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    return parseTotalLength(ctx, start, &item->totalLength);
 }
 
-parser_error_t parseModuleBytes(parser_context_t *ctx, uint32_t *num_items, uint32_t *totalLength) {
-    INIT_PARSER;
+parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    uint32_t part = 0;
 
     PARSE_ITEM(0);
 
-    *num_items += 1;
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, num_items));
-    return parseTotalLength(ctx, start, totalLength);
+    item->num_items += 1;
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    return parseTotalLength(ctx, start, &item->totalLength);
 }
 
 parser_error_t
-parseDeployItem(parser_context_t *ctx, deploy_type_e deploytype, uint32_t *num_items, uint32_t *totalLength) {
-    switch (deploytype) {
+parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
+    item->totalLength = 0;
+    item->num_items = 2;                                        //all have two fixed items: type & number of runtime args
+    switch (item->type) {
         case ModuleBytes : {
-            return parseModuleBytes(ctx, num_items, totalLength);
+            return parseModuleBytes(ctx, item);
         }
 
         case StoredVersionedContractByHash :
         case StoredContractByHash : {
-            return parseStoredContractByHash(ctx, deploytype, num_items, totalLength);
+            return parseStoredContractByHash(ctx, item);
         }
 
         case StoredVersionedContractByName :
         case StoredContractByName : {
-            return parseStoredContractByName(ctx, deploytype, num_items, totalLength);
+            return parseStoredContractByName(ctx, item);
         }
 
         case Transfer : {
-            return parseTransfer(ctx, num_items, totalLength);
+            return parseTransfer(ctx, item);
         }
         default : {
             return parser_context_mismatch;
@@ -354,18 +351,18 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(index_headerpart(v->header, header_chainname, &ctx->offset));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
-    ctx->offset = headerLength(v->header) + 32;
+    ctx->offset = headerLength(v->header) + BLAKE2B_256_SIZE;
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(parseDeployType(type, &v->payment.type));
 
-    CHECK_PARSER_ERR(parseDeployItem(ctx, v->payment.type, &v->payment.num_items, &v->payment.totalLength))
+    CHECK_PARSER_ERR(parseDeployItem(ctx, &v->payment));
 
     type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
 
-    CHECK_PARSER_ERR(parseDeployItem(ctx, v->session.type, &v->session.num_items, &v->session.totalLength))
+    CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
 
     return parser_ok;
 }
