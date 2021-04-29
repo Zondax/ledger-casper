@@ -235,6 +235,19 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
     return parser_ok;
 }
 
+#define PARSE_VERSION(CTX, ITEM) {         \
+    uint8_t type = 0xff;                    \
+    _readUInt8(CTX, &type);                 \
+    if (type == 0x00) {                     \
+    } else if (type == 0x01) {              \
+        uint32_t p = 0;                     \
+        _readUInt32(CTX, &p);               \
+    } else {                                \
+        return parser_context_unknown_prefix;   \
+    }                                       \
+    (ITEM)->num_items += 1;                 \
+}                                           \
+
 parser_error_t
 parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
@@ -243,18 +256,7 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     ctx->offset += HASH_LENGTH;
 
     if (item->type == StoredVersionedContractByHash) {
-        uint8_t type = 0xff;
-        _readUInt8(ctx, &type);
-        if (type == 0x00) {
-            //do nothing
-        } else if (type == 0x01) {
-            //parse uint32
-            uint32_t p = 0;
-            _readUInt32(ctx, &p);
-        } else {
-            return parser_context_unknown_prefix;
-        }
-        item->num_items += 1;
+        PARSE_VERSION(ctx, item)
     }
 
     PARSE_ITEM(0);
@@ -273,18 +275,7 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
     PARSE_ITEM(0);
 
     if (item->type == StoredVersionedContractByName) {
-        uint8_t type = 0xff;
-        _readUInt8(ctx, &type);
-        if (type == 0x00) {
-            //do nothing
-        } else if (type == 0x01) {
-            //parse uint32
-            uint32_t p = 0;
-            _readUInt32(ctx, &p);
-        } else {
-            return parser_context_unknown_prefix;
-        }
-        item->num_items += 1;
+        PARSE_VERSION(ctx, item)
     }
 
     PARSE_ITEM(0);

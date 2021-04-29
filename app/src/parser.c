@@ -195,7 +195,7 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
 
 #define HANDLE_VERSION(CTX) {         \
     uint8_t type = 0xff;                        \
-    readU8(ctx, &type);                         \
+    readU8(CTX, &type);                         \
     if (type == 0x00) {                          \
         if (displayIdx == 2) {                      \
             snprintf(outKey, outKeyLen, "Version"); \
@@ -204,7 +204,7 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
         }                                            \
     } else if (type == 0x01) {                       \
             uint32_t p = 0;                         \
-            readU32(ctx, &p);                       \
+            readU32(CTX, &p);                       \
             if (displayIdx == 2) {                  \
                 DISPLAY_U32("Version", p);  \
             }                                       \
