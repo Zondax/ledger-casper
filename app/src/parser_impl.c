@@ -208,10 +208,24 @@ parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
     }
 }
 
-#define PARSE_ITEM(SKIP) {         \
+parser_error_t check_runtime_type(uint8_t cl_type) {
+    if (cl_type > NUM_RUNTIME_TYPES) {
+        return parser_context_unknown_prefix;
+    } else {
+        return parser_ok;
+    }
+}
+
+#define PARSE_ITEM(CTX) {         \
     part = 0;                       \
-    CHECK_PARSER_ERR(_readUInt32(ctx, &part));      \
-    ctx->offset += part + (SKIP);                            \
+    CHECK_PARSER_ERR(_readUInt32(CTX, &part));      \
+    (CTX)->offset += part;                            \
+}
+
+#define PARSE_TYPE(CTX) {         \
+    type = 0;                       \
+    CHECK_PARSER_ERR(_readUInt8(CTX, &type));      \
+    CHECK_PARSER_ERR(check_runtime_type(type));                       \
 }
 
 parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t *totalLength) {
@@ -225,12 +239,16 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     *num_items += deploy_argLen;
+    uint8_t type = 0;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
-        PARSE_ITEM(0);
+        PARSE_ITEM(ctx);
 
         //value
-        PARSE_ITEM(1);
+        PARSE_ITEM(ctx);
+
+        PARSE_TYPE(ctx);
+
     }
     return parser_ok;
 }
@@ -248,6 +266,7 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
     (ITEM)->num_items += 1;                 \
 }                                           \
 
+
 parser_error_t
 parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
@@ -259,7 +278,7 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
         PARSE_VERSION(ctx, item)
     }
 
-    PARSE_ITEM(0);
+    PARSE_ITEM(ctx);
 
     item->num_items += 2;
 
@@ -272,13 +291,13 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t part = 0;
 
-    PARSE_ITEM(0);
+    PARSE_ITEM(ctx);
 
     if (item->type == StoredVersionedContractByName) {
         PARSE_VERSION(ctx, item)
     }
 
-    PARSE_ITEM(0);
+    PARSE_ITEM(ctx);
 
     item->num_items += 2;
 
@@ -297,7 +316,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
     uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t part = 0;
 
-    PARSE_ITEM(0);
+    PARSE_ITEM(ctx);
 
     item->num_items += 1;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
