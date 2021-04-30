@@ -100,6 +100,62 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;   \
 }
 
+#define DISPLAY_RUNTIMEARG_BOOLEAN(CTX){                                        \
+    uint8_t value = 0;                                                     \
+    readU8(ctx, &value);                                                   \
+    if (value == 0x00) {                                             \
+        snprintf(outVal, outValLen, "True");                \
+    }else{                                                           \
+        snprintf(outVal, outValLen, "False");                      \
+    }                                                               \
+    return parser_ok;                                                \
+}
+
+
+#define DISPLAY_RUNTIMEARG_I32(CTX){                                        \
+    uint8_t buf[4];                                                     \
+    MEMZERO(buf, 4);                                                        \
+    uint8_t *ptr = (CTX)->buffer + (CTX)->offset;                       \
+    int32_t signedvalue = *((int32_t *)ptr);                              \
+    char tmpBuffer[100];                                                \
+    int32_to_str(tmpBuffer, sizeof(tmpBuffer), signedvalue);            \
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);       \
+    return parser_ok;                                                   \
+}
+
+#define DISPLAY_RUNTIMEARG_I64(CTX){                                        \
+    uint64_t value = 0;                                                     \
+    readU64(CTX, &value);                                                   \
+    int64_t signedvalue = *(int64_t *)&value;                              \
+    char tmpBuffer[100];                                                \
+    int64_to_str(tmpBuffer, sizeof(tmpBuffer), signedvalue);            \
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);       \
+    return parser_ok;                                                   \
+}
+
+#define DISPLAY_RUNTIMEARG_U8(CTX){                                        \
+    uint8_t value = 0;                                                     \
+    readU8(CTX, &value);                                                   \
+    uint64_t number = 0;                                                    \
+    MEMCPY(&number, &value, 1);                                             \
+    return parser_printU64(number, outVal, outValLen, pageIdx, pageCount); \
+}
+
+#define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
+    uint32_t value = 0;                                                     \
+    readU32(CTX, &value);                                                   \
+    uint64_t number = 0;                                                    \
+    MEMCPY(&number, &value, 4);                                             \
+    return parser_printU64(number, outVal, outValLen, pageIdx, pageCount); \
+}
+
+#define DISPLAY_RUNTIMEARG_U64(CTX){                                        \
+    uint64_t value = 0;                                                     \
+    readU64(CTX, &value);                                                   \
+    return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
+}
+
+
 parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
                                           char *outKey, uint16_t outKeyLen,
@@ -126,15 +182,31 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     //value
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
-    if (type == 0x01) {
-        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-        uint64_t number = 0;
-        MEMCPY(&number, &dataLen, 4);
-        return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
-    } else {
-        //FIXME: support other types
-        snprintf(outVal, outValLen, "Type not supported");
-        return parser_ok;
+    switch (type) {
+        case 0x00: {
+            DISPLAY_RUNTIMEARG_BOOLEAN(ctx)
+        }
+        case 0x01: {
+            DISPLAY_RUNTIMEARG_I32(ctx)
+        }
+        case 0x02: {
+            DISPLAY_RUNTIMEARG_I64(ctx)
+        }
+        case 0x03: {
+            DISPLAY_RUNTIMEARG_U8(ctx)
+        }
+        case 0x04: {
+            DISPLAY_RUNTIMEARG_U32(ctx)
+        }
+        case 0x05: {
+            DISPLAY_RUNTIMEARG_U64(ctx)
+        }
+
+        default : {
+            //FIXME: support other types
+            snprintf(outVal, outValLen, "Type not supported");
+            return parser_ok;
+        }
     }
 }
 
@@ -159,7 +231,8 @@ parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem it
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 2) {
         return parser_no_data;
     }
-    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                      pageCount);
 }
 
 
@@ -192,7 +265,8 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 3) {
         return parser_no_data;
     }
-    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                      pageCount);
 }
 
 #define HANDLE_VERSION(CTX) {         \
@@ -215,11 +289,12 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     }                                               \
 }
 
-parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                                                   uint8_t displayIdx,
-                                                   char *outKey, uint16_t outKeyLen,
-                                                   char *outVal, uint16_t outValLen,
-                                                   uint8_t pageIdx, uint8_t *pageCount) {
+parser_error_t
+parser_getItem_StoredContractByHash(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+                                    uint8_t displayIdx,
+                                    char *outKey, uint16_t outKeyLen,
+                                    char *outVal, uint16_t outValLen,
+                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
         if (item.type == StoredVersionedContractByHash) {
             DISPLAY_TYPE(deployType, "StoredVersionedContractByHash")
@@ -260,14 +335,16 @@ parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableD
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 4 - skip) {
         return parser_unexepected_error;
     }
-    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                      pageCount);
 }
 
-parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
-                                                   uint8_t displayIdx,
-                                                   char *outKey, uint16_t outKeyLen,
-                                                   char *outVal, uint16_t outValLen,
-                                                   uint8_t pageIdx, uint8_t *pageCount) {
+parser_error_t
+parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+                                    uint8_t displayIdx,
+                                    char *outKey, uint16_t outKeyLen,
+                                    char *outVal, uint16_t outValLen,
+                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
         if (item.type == StoredVersionedContractByName) {
             DISPLAY_TYPE(deployType, "StoredVersionedContractByName")
@@ -307,7 +384,8 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 4 - skip) {
         return skip;
     }
-    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                      pageCount);
 }
 
 #define DISPLAY_HEADER_U64(KEYNAME, HEADERPART) {         \
@@ -326,7 +404,8 @@ parser_error_t parser_getItemDeploy(char *deployType, ExecutableDeployItem item,
     ctx->offset++;
     switch (item.type) {
         case ModuleBytes : {
-            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
+            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
+                                              outValLen,
                                               pageIdx, pageCount);
         }
 
@@ -398,7 +477,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     ctx->offset = headerLength(parser_tx_obj.header) + 32;
 
     if (new_displayIdx < parser_tx_obj.payment.num_items) {
-        return parser_getItemDeploy("Payment", parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_getItemDeploy("Payment", parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen,
+                                    outVal,
                                     outValLen, pageIdx, pageCount);
     }
 
@@ -406,7 +486,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     ctx->offset += parser_tx_obj.payment.totalLength;
 
     if (new_displayIdx < parser_tx_obj.session.num_items) {
-        return parser_getItemDeploy("Session", parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_getItemDeploy("Session", parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen,
+                                    outVal,
                                     outValLen, pageIdx, pageCount);
     }
 
