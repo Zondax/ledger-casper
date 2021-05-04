@@ -155,6 +155,18 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
+#define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
+    return parser_printBytes((const uint8_t *) ((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx,        \
+    pageCount);                                                                                                         \
+}
+
+#define DISPLAY_RUNTIMEARG_STRING(CTX, LEN){                                        \
+    MEMZERO(buffer, sizeof(buffer));                                                \
+    uint8_t *str = (CTX)->buffer + (CTX)->offset;                                       \
+    MEMCPY(buffer, (char *) (str), LEN);                                           \
+    snprintf(outVal, outValLen, "%s", buffer);                                          \
+    return parser_ok;                                                                     \
+}
 
 parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
@@ -200,6 +212,32 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
         }
         case 0x05: {
             DISPLAY_RUNTIMEARG_U64(ctx)
+        }
+
+        case 0x06: {
+            DISPLAY_RUNTIMEARG_BYTES(ctx,16)
+        }
+
+        case 0x07: {
+            DISPLAY_RUNTIMEARG_BYTES(ctx,32)
+        }
+
+        case 0x08: {
+            DISPLAY_RUNTIMEARG_BYTES(ctx,64)
+        }
+
+        case 0x09: {
+            //FIXME: TYPE UNIT??
+            snprintf(outVal, outValLen, "Type not supported");
+            return parser_ok;
+        }
+
+        case 0x0a: {
+            DISPLAY_RUNTIMEARG_STRING(ctx, dataLen)
+        }
+
+        case 0x0b: {
+            DISPLAY_RUNTIMEARG_STRING(ctx, dataLen)
         }
 
         default : {
