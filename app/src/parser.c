@@ -118,7 +118,7 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
-    uint8_t *data = ctx->buffer + ctx->offset;
+    uint8_t *data = (uint8_t *)ctx->buffer + ctx->offset;
     MEMCPY(buffer, (char *) (data), dataLen);
     snprintf(outKey, outKeyLen, "%s", buffer);
     ctx->offset += dataLen;

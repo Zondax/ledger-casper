@@ -256,7 +256,8 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
 #define PARSE_VERSION(CTX, ITEM) {         \
     uint8_t type = 0xff;                    \
     CHECK_PARSER_ERR(_readUInt8(CTX, &type));  \
-    if (type == 0x00) {                     \
+    if (type == 0x00) {                    \
+    /*nothing to do : empty version */      \
     } else if (type == 0x01) {              \
         uint32_t p = 0;                     \
         CHECK_PARSER_ERR(_readUInt32(CTX, &p));               \
