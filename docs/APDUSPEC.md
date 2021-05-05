@@ -76,7 +76,7 @@ The general structure of commands and responses is as follows:
 | P2         | byte (1)       | Parameter 2            | ignored           |
 | L          | byte (1)       | Bytes in payload       | (depends)         |
 | Path[0]    | byte (4)       | Derivation Path Data   | 0x80000000 | 44   |
-| Path[1]    | byte (4)       | Derivation Path Data   | 0x80000000 | 461' |
+| Path[1]    | byte (4)       | Derivation Path Data   | 0x80000000 | 506  |
 | Path[2]    | byte (4)       | Derivation Path Data   | ?                 |
 | Path[3]    | byte (4)       | Derivation Path Data   | ?                 |
 | Path[4]    | byte (4)       | Derivation Path Data   | ?                 |
@@ -85,12 +85,7 @@ The general structure of commands and responses is as follows:
 
 | Field   | Type      | Content               | Note                     |
 | ------- | --------- | --------------------- | ------------------------ |
-| PK      | byte (65) | Public Key            |                          |
-| ADDR_B_LEN | byte (1)| ADDR_B Length    | |
-| ADDR_B   | byte (??) | Address as Bytes               |  |
-| ADDR_S_LEN | byte (1)| ADDR_S Len    ||
-| ADDR_S    | byte (??) | Address as String               |  |
-| SW1-SW2 | byte (2)  | Return code           | see list of return codes |
+| PK      | byte (33) | Public Key            |                          |
 
 ### INS_SIGN_SECP256K1
 
@@ -115,7 +110,7 @@ All other packets/chunks contain data chunks that are described below
 | Field      | Type     | Content                | Expected  |
 | ---------- | -------- | ---------------------- | --------- |
 | Path[0]    | byte (4) | Derivation Path Data   | 44        |
-| Path[1]    | byte (4) | Derivation Path Data   | 461       |
+| Path[1]    | byte (4) | Derivation Path Data   | 506       |
 | Path[2]    | byte (4) | Derivation Path Data   | ?         |
 | Path[3]    | byte (4) | Derivation Path Data   | ?         |
 | Path[4]    | byte (4) | Derivation Path Data   | ?         |
@@ -130,7 +125,7 @@ Data is defined as:
 
 | Field   | Type     | Content         | Expected |
 | ------- | -------- | --------------- | -------- |
-| Message | bytes..  | CBOR data to sign   |      |
+| Message | bytes..  | Casper Serialized data to sign   |      |
 
 #### Response
 
@@ -138,8 +133,6 @@ Data is defined as:
 | ------- | --------- | ----------- | ------------------------ |
 | secp256k1 R     | byte (32) | Signature   |           |
 | secp256k1 S     | byte (32) | Signature   |           |
-| secp256k1 V     | byte (1) | Signature   |           |
-| SIG     | byte (varible) | Signature   | DER format          |
 | SW1-SW2 | byte (2)  | Return code | see list of return codes |
 
 --------------

@@ -41,7 +41,7 @@ zxerr_t addr_getItem(int8_t displayIdx,
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "Pubkey");
-            pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
             return zxerr_ok;
         case 1: {
             if (!app_mode_expert()) {
