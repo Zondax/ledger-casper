@@ -109,13 +109,13 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
 
     //loop to the correct index
     for (uint8_t index = 0; index < displayIdx; index++) {
-        readU32(ctx, &dataLen);
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
         ctx->offset += dataLen;
-        readU32(ctx, &dataLen);
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
         ctx->offset += dataLen + 1; //data + type
     }
     //key
-    readU32(ctx, &dataLen);
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
     uint8_t *data = ctx->buffer + ctx->offset;
@@ -124,10 +124,10 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     ctx->offset += dataLen;
 
     //value
-    readU32(ctx, &dataLen);
+    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
     if (type == 0x01) {
-        readU32(ctx, &dataLen);
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
         uint64_t number = 0;
         MEMCPY(&number, &dataLen, 4);
         return parser_printU64(number, outVal, outValLen, pageIdx, pageCount);
@@ -197,7 +197,7 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
 
 #define HANDLE_VERSION(CTX) {         \
     uint8_t type = 0xff;                        \
-    readU8(CTX, &type);                         \
+    CHECK_PARSER_ERR(readU8(CTX, &type));       \
     if (type == 0x00) {                          \
         if (displayIdx == 2) {                      \
             snprintf(outKey, outKeyLen, "Version"); \
@@ -206,7 +206,7 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
         }                                            \
     } else if (type == 0x01) {                       \
             uint32_t p = 0;                         \
-            readU32(CTX, &p);                       \
+            CHECK_PARSER_ERR(readU32(CTX, &p));     \
             if (displayIdx == 2) {                  \
                 DISPLAY_U32("Version", p);  \
             }                                       \

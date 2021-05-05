@@ -255,11 +255,11 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
 
 #define PARSE_VERSION(CTX, ITEM) {         \
     uint8_t type = 0xff;                    \
-    _readUInt8(CTX, &type);                 \
+    CHECK_PARSER_ERR(_readUInt8(CTX, &type));  \
     if (type == 0x00) {                     \
     } else if (type == 0x01) {              \
         uint32_t p = 0;                     \
-        _readUInt32(CTX, &p);               \
+        CHECK_PARSER_ERR(_readUInt32(CTX, &p));               \
     } else {                                \
         return parser_context_unknown_prefix;   \
     }                                       \
