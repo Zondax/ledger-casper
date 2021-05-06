@@ -242,23 +242,50 @@ const CL_TYPE_TAG_ANY: u8 = 21;
 const CL_TYPE_TAG_PUBLIC_KEY: u8 = 22;
  */
 
-
-bool has_internal_type(uint8_t type) {
-    switch(type) {
-        case 13 : {
-            return true;
-        }
-        default : {
-            return false;
-        }
-    }
-}
-
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type) {
-    switch(type) {
+    switch (type) {
+        case 13 :
+        case 14 : {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            return parse_additional_typebytes(ctx, inner_type);
+        }
+
         case 15 : {
             uint32_t num_bytes = 0;
-            return _readUInt32(ctx,&num_bytes);
+            return _readUInt32(ctx, &num_bytes);
+        }
+        case 16:
+        case 17 : {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            return _readUInt8(ctx, &inner_type);
+        }
+
+        case 18: {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            return parse_additional_typebytes(ctx, inner_type);
+        }
+
+        case 19: {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            CHECK_PARSER_ERR(parse_additional_typebytes(ctx, inner_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            CHECK_PARSER_ERR(parse_additional_typebytes(ctx, inner_type));
+            return parser_ok;
+        }
+
+        case 20: {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            CHECK_PARSER_ERR(parse_additional_typebytes(ctx, inner_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            CHECK_PARSER_ERR(parse_additional_typebytes(ctx, inner_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            CHECK_PARSER_ERR(parse_additional_typebytes(ctx, inner_type));
+            return parser_ok;
         }
 
         default : {
@@ -279,11 +306,6 @@ parser_error_t parse_type(parser_context_t *ctx) {
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(check_runtime_type(type));
     CHECK_PARSER_ERR(parse_additional_typebytes(ctx, type));
-    while(has_internal_type(type)){
-        CHECK_PARSER_ERR(_readUInt8(ctx, &type));
-        CHECK_PARSER_ERR(check_runtime_type(type));
-        CHECK_PARSER_ERR(parse_additional_typebytes(ctx, type));
-    }
     return parser_ok;
 }
 
@@ -299,12 +321,12 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
     *num_items += deploy_argLen;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
-        parse_item(ctx);
+        CHECK_PARSER_ERR(parse_item(ctx));
 
         //value
-        parse_item(ctx);
+        CHECK_PARSER_ERR(parse_item(ctx));
 
-        parse_type(ctx);
+        CHECK_PARSER_ERR(parse_type(ctx));
 
     }
     return parser_ok;
@@ -335,7 +357,7 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
         PARSE_VERSION(ctx, item)
     }
 
-    parse_item(ctx);
+    CHECK_PARSER_ERR(parse_item(ctx));
 
     item->num_items += 2;
 
@@ -347,13 +369,13 @@ parser_error_t
 parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
 
-    parse_item(ctx);
+    CHECK_PARSER_ERR(parse_item(ctx));
 
     if (item->type == StoredVersionedContractByName) {
         PARSE_VERSION(ctx, item)
     }
 
-    parse_item(ctx);
+    CHECK_PARSER_ERR(parse_item(ctx));
 
     item->num_items += 2;
 
@@ -371,7 +393,7 @@ parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) 
 parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
 
-    parse_item(ctx);
+    CHECK_PARSER_ERR(parse_item(ctx));
 
     item->num_items += 1;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));

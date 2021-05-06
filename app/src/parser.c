@@ -187,7 +187,7 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
-    uint8_t *data = (uint8_t *)ctx->buffer + ctx->offset;
+    uint8_t *data = (uint8_t *) ctx->buffer + ctx->offset;
     MEMCPY(buffer, (char *) (data), dataLen);
     snprintf(outKey, outKeyLen, "%s", buffer);
     ctx->offset += dataLen;
@@ -216,15 +216,15 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
         }
 
         case 0x06: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx,16)
+            DISPLAY_RUNTIMEARG_BYTES(ctx, 16)
         }
 
         case 0x07: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx,32)
+            DISPLAY_RUNTIMEARG_BYTES(ctx, 32)
         }
 
         case 0x08: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx,64)
+            DISPLAY_RUNTIMEARG_BYTES(ctx, 64)
         }
 
         default : {
