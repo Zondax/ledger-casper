@@ -226,20 +226,6 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
             DISPLAY_RUNTIMEARG_BYTES(ctx,64)
         }
 
-        case 0x09: {
-            //FIXME: TYPE UNIT??
-            snprintf(outVal, outValLen, "Type not supported");
-            return parser_ok;
-        }
-
-        case 0x0a: {
-            DISPLAY_RUNTIMEARG_STRING(ctx, dataLen)
-        }
-
-        case 0x0b: {
-            DISPLAY_RUNTIMEARG_STRING(ctx, dataLen)
-        }
-
         default : {
             //FIXME: support other types
             snprintf(outVal, outValLen, "Type not supported");

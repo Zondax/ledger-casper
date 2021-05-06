@@ -222,10 +222,67 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
     (CTX)->offset += part;                            \
 }
 
+/*
+ * const CL_TYPE_TAG_BOOL: u8 = 0;
+const CL_TYPE_TAG_I32: u8 = 1;
+const CL_TYPE_TAG_I64: u8 = 2;
+const CL_TYPE_TAG_U8: u8 = 3;
+const CL_TYPE_TAG_U32: u8 = 4;
+const CL_TYPE_TAG_U64: u8 = 5;
+const CL_TYPE_TAG_U128: u8 = 6;
+const CL_TYPE_TAG_U256: u8 = 7;
+const CL_TYPE_TAG_U512: u8 = 8;
+const CL_TYPE_TAG_UNIT: u8 = 9;
+const CL_TYPE_TAG_STRING: u8 = 10;
+const CL_TYPE_TAG_KEY: u8 = 11;
+const CL_TYPE_TAG_UREF: u8 = 12;
+const CL_TYPE_TAG_OPTION: u8 = 13;
+const CL_TYPE_TAG_LIST: u8 = 14;
+const CL_TYPE_TAG_BYTE_ARRAY: u8 = 15;
+const CL_TYPE_TAG_RESULT: u8 = 16;
+const CL_TYPE_TAG_MAP: u8 = 17;
+const CL_TYPE_TAG_TUPLE1: u8 = 18;
+const CL_TYPE_TAG_TUPLE2: u8 = 19;
+const CL_TYPE_TAG_TUPLE3: u8 = 20;
+const CL_TYPE_TAG_ANY: u8 = 21;
+const CL_TYPE_TAG_PUBLIC_KEY: u8 = 22;
+ */
+
+
+bool has_internal_type(uint8_t type) {
+    switch(type) {
+        case 13 : {
+            return true;
+        }
+        default : {
+            return false;
+        }
+    }
+}
+
+parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type) {
+    switch(type) {
+        case 15 : {
+            uint32_t num_bytes = 0;
+            return _readUInt32(ctx,&num_bytes);
+        }
+
+        default : {
+            return parser_ok;
+        }
+    }
+}
+
 #define PARSE_TYPE(CTX) {         \
     type = 0;                       \
-    CHECK_PARSER_ERR(_readUInt8(CTX, &type));      \
-    CHECK_PARSER_ERR(check_runtime_type(type));                       \
+    CHECK_PARSER_ERR(_readUInt8(CTX, &type)); \
+    CHECK_PARSER_ERR(check_runtime_type(type)); \
+    CHECK_PARSER_ERR(parse_additional_typebytes(CTX, type));       \
+    while(has_internal_type(type)){  \
+        CHECK_PARSER_ERR(_readUInt8(CTX, &type));                   \
+        CHECK_PARSER_ERR(check_runtime_type(type));                           \
+        CHECK_PARSER_ERR(parse_additional_typebytes(CTX, type));      \
+    }                              \
 }
 
 parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t *totalLength) {
