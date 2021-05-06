@@ -244,7 +244,9 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
         }
 
         case 10 : {
-            DISPLAY_RUNTIMEARG_STRING(ctx, dataLen)
+            uint32_t stringLen = 0;
+            CHECK_PARSER_ERR(readU32(ctx, &stringLen))
+            DISPLAY_RUNTIMEARG_STRING(ctx, stringLen)
         }
 
         case 11 : {
