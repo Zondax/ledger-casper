@@ -177,10 +177,11 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
 
     //loop to the correct index
     for (uint8_t index = 0; index < displayIdx; index++) {
-        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-        ctx->offset += dataLen;
-        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-        ctx->offset += dataLen + 1; //data + type
+        parse_item(ctx);
+
+        parse_item(ctx);
+
+        parse_type(ctx);
     }
     //key
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
