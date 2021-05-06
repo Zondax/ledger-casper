@@ -182,8 +182,8 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     MEMZERO(buffer, sizeof(buffer));                         \
     MEMCPY(buffer, (char *)"uref-", 5);                                                         \
     array_to_hexstr(buffer + 5, sizeof(buffer)-5, (CTX)->buffer + (CTX)->offset, (LEN)-1);      \
-    MEMCPY(buffer + 4 + (LEN), (char *)"-0", 2); \
-    MEMCPY(buffer + 6 + (LEN), (CTX)->buffer + (CTX)->offset + (LEN), 1);       \
+    MEMCPY(buffer + 4 + (LEN), (char *)"-0", 2);            \
+    array_to_hexstr(buffer + 6 + (LEN), sizeof(buffer)-(6 + (LEN)), (CTX)->buffer + (CTX)->offset + (LEN), 1);      \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount); \
     return parser_ok;                              \
 }
@@ -215,6 +215,7 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     //value
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
+    displayRuntimeArgs:
     switch (type) {
         case 0: {
             DISPLAY_RUNTIMEARG_BOOLEAN(ctx)
@@ -235,24 +236,9 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
             DISPLAY_RUNTIMEARG_U64(ctx)
         }
 
-        case 6: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
-        }
-
-        case 7: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
-        }
-
-        case 8: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
-        }
-/*
- * const CL_TYPE_TAG_UNIT: u8 = 9;
-const CL_TYPE_TAG_STRING: u8 = 10;
-const CL_TYPE_TAG_KEY: u8 = 11;
-const CL_TYPE_TAG_UREF: u8 = 12;
-const CL_TYPE_TAG_OPTION: u8 = 13;
- */
+        case 6:
+        case 7:
+        case 8:
         case 9: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
@@ -301,6 +287,24 @@ const CL_TYPE_TAG_OPTION: u8 = 13;
         case 12 : {
             DISPLAY_RUNTIMEARG_UREF(ctx, dataLen);
         }
+
+        case 13 : {
+            uint8_t optiontype = 0;
+            CHECK_PARSER_ERR(readU8(ctx, &optiontype));
+            if(optiontype == 0x00) {
+                snprintf(outVal, outValLen, "None");
+                return parser_ok;
+            }else {
+                type = *(ctx->buffer + ctx->offset + dataLen + 1);
+                dataLen -= 1;
+                goto displayRuntimeArgs;
+            }
+        }
+
+        case 15 : {
+            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
+        }
+
 
         default : {
             //FIXME: support other types
