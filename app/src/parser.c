@@ -188,6 +188,18 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;                              \
 }
 
+#define DISPLAY_RUNTIMEARG_MAP_METADATA(LEN, KEYTYPE, VALUETYPE){     \
+    char buffer[300];                                       \
+    MEMZERO(buffer, sizeof(buffer));                         \
+    MEMCPY(buffer, (char *)"uref-", 5);                                                         \
+    array_to_hexstr(buffer + 5, sizeof(buffer)-5, (CTX)->buffer + (CTX)->offset, (LEN)-1);      \
+    MEMCPY(buffer + 4 + (LEN), (char *)"-0", 2);            \
+    array_to_hexstr(buffer + 6 + (LEN), sizeof(buffer)-(6 + (LEN)), (CTX)->buffer + (CTX)->offset + (LEN), 1);      \
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount); \
+    return parser_ok;                              \
+}
+
+
 parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
                                           char *outKey, uint16_t outKeyLen,
@@ -297,7 +309,7 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                 snprintf(outVal, outValLen, "None");
                 return parser_ok;
             }else {
-                type = *(ctx->buffer + ctx->offset + dataLen + 1);
+                type = *(ctx->buffer + ctx->offset + dataLen);
                 dataLen -= 1;
                 goto displayRuntimeArgs;
             }
@@ -305,6 +317,24 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
 
         case 15 : {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
+        }
+
+        case 16 : {
+            uint8_t optiontype = 0;
+            CHECK_PARSER_ERR(readU8(ctx, &optiontype));
+            type = *(ctx->buffer + ctx->offset + dataLen + (1-optiontype));
+            dataLen -= 1;
+            goto displayRuntimeArgs;
+        }
+
+        case 17 : {
+
+        }
+
+        case 22 : {
+            uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
+            uint32_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
+            DISPLAY_RUNTIMEARG_BYTES(ctx, pubkeyLen)
         }
 
 
