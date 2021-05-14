@@ -118,7 +118,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     uint64_t bigvalue = 0;                                                  \
     MEMCPY(&bigvalue, &value , 4);                                         \
     int64_t signedvalue = *(int64_t *)&bigvalue;                            \
-    if (signedvalue & 0x0000000080000000 > 0){                          \
+    if ( (value >> 31) > 0 ){                          \
         signedvalue ^= 0xffffffff00000000;                              \
     }                                                                   \
     char tmpBuffer[100];                                                \
