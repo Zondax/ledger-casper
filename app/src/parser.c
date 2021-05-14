@@ -113,12 +113,16 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 
 
 #define DISPLAY_RUNTIMEARG_I32(CTX){                                        \
-    uint8_t buf[4];                                                     \
-    MEMZERO(buf, 4);                                                        \
-    uint8_t *ptr = (CTX)->buffer + (CTX)->offset;                       \
-    int32_t signedvalue = *((int32_t *)ptr);                              \
+    uint32_t value = 0;                                                     \
+    readU32(CTX, &value);                                                   \
+    uint64_t bigvalue = 0;                                                  \
+    MEMCPY(&bigvalue, &value , 4);                                         \
+    int64_t signedvalue = *(int64_t *)&bigvalue;                            \
+    if (signedvalue & 0x0000000080000000 > 0){                          \
+        signedvalue ^= 0xffffffff00000000;                              \
+    }                                                                   \
     char tmpBuffer[100];                                                \
-    int32_to_str(tmpBuffer, sizeof(tmpBuffer), signedvalue);            \
+    int64_to_str(tmpBuffer, sizeof(tmpBuffer), signedvalue);            \
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);       \
     return parser_ok;                                                   \
 }
