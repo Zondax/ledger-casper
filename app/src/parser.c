@@ -331,17 +331,12 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
             goto displayRuntimeArgs;
         }
 
-        case 17 : {
-
-        }
-
         case 22 : {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint32_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
             DISPLAY_RUNTIMEARG_BYTES(ctx, pubkeyLen)
         }
-
-
+        
         default : {
             //FIXME: support other types
             snprintf(outVal, outValLen, "Type not supported");
