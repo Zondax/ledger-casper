@@ -87,6 +87,7 @@ zxerr_t crypto_sign(uint8_t *signature,
                     const uint8_t *message,
                     uint16_t messageLen,
                     uint16_t *sigSize) {
+    UNUSED(messageLen);
 
     MEMZERO(signature, signatureMaxlen);
 
