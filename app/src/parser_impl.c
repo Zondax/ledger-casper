@@ -408,6 +408,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 #endif
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
+    UNUSED(c);
     uint8_t itemCount =
             5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
     return itemCount;

@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
@@ -88,16 +88,56 @@ jobs:
             make
       - run: /home/zondax/go/bin/ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $(/home/zondax/project/app/pkg/installer_s.sh version) /home/zondax/project/app/pkg/installer_s.sh
 
+  publish_npm_package:
+    docker:
+      - image: circleci/node:lts
+    steps:
+      - checkout
+      - run:
+          name: Build package
+          command: |
+            cd js
+            yarn install
+            yarn build
+      - run:
+          name: Prepare authentication config
+          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > /home/circleci/.npmrc
+      - run:
+          name: Set package version
+          command: |
+            cd js
+            export NPM_VERSION=$(echo $CIRCLE_TAG | cut -c5-)
+            echo Publishing as "$NPM_VERSION"
+            npm --no-git-tag-version version "$NPM_VERSION"
+      - run:
+          name: Publish package
+          command: cd js && npm publish
+
+no-tags: &no-tags
+  filters:
+    tags:
+      ignore: /.*/
+
+only-npm-tags: &only-npm-tags
+  filters:
+    tags:
+      only: /^npm_v[0-9]+(\.[0-9]+)*/
+    branches:
+      ignore: /.*/
 
 workflows:
   version: 2
 
   default:
     jobs:
-      - build
-      - build_ledger
-      - test_zemu
+      - build:
+          <<: *no-tags
+      - build_ledger:
+          <<: *no-tags
+      - test_zemu:
+          <<: *no-tags
       - build_package:
+          <<: *no-tags
           requires:
             - build
             - build_ledger
@@ -106,3 +146,8 @@ workflows:
             branches:
               only:
                 - master
+
+  release_npm:
+    jobs:
+      - publish_npm_package:
+          <<: *only-npm-tags

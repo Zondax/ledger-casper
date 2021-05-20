@@ -40,7 +40,7 @@ $(info EXAMPLE_VUE_DIR       : $(EXAMPLE_VUE_DIR))
 $(info TESTS_JS_DIR          : $(TESTS_JS_DIR))
 $(info TESTS_JS_PACKAGE      : $(TESTS_JS_PACKAGE))
 
-DOCKER_IMAGE=zondax/builder-bolos@sha256:0e0097c01ef3c6c964fea8d8b6e3a584f4ff209a04ec68b6b2b4aeab64379c23
+DOCKER_IMAGE=zondax/builder-bolos@sha256:e43b2ece1e42ca09cb9ccf90466982d95d3f1842e1b9aac18cd8d5762b308eeb
 
 ifdef INTERACTIVE
 INTERACTIVE_SETTING:="-i"
@@ -282,7 +282,7 @@ cpp_test:
 
 .PHONY: fuzz_build
 fuzz_build:
-	cmake -B build -DCMAKE_C_COMPILER=clang-10 -DCMAKE_CXX_COMPILER=clang++-10 -DCMAKE_BUILD_TYPE=Debug -DENABLE_FUZZING=1 -DENABLE_SANITIZERS=1 .
+	cmake -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_BUILD_TYPE=Debug -DENABLE_FUZZING=1 -DENABLE_SANITIZERS=1 .
 	make -C build
 
 .PHONY: fuzz
