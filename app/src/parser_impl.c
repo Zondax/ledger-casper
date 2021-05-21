@@ -78,7 +78,7 @@ parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16
     uint16_t deployHashLen = 4 + head.lenDependencies * 32;
     switch (part) {
         case header_pubkey : {
-            *index = 1;
+            *index = 0;
             return parser_ok;
         }
         case header_timestamp : {
@@ -386,7 +386,13 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
     item->num_items += 1;
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    if(app_mode_expert()){
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    }else{
+        uint32_t dummy = 0;
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &dummy));
+        item->num_items += 1; //amount only
+    }
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
@@ -400,7 +406,13 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
     } else {
         item->num_items += 2;
     }
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    if(app_mode_expert()){
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
+    }else{
+        uint32_t dummy = 0;
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &dummy));
+        item->num_items += 1; //amount only
+    }
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 

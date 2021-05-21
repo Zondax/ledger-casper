@@ -21,6 +21,7 @@
 #include "coin.h"
 #include "app_mode.h"
 #include "bignum.h"
+#include "crypto.h"
 
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
@@ -401,9 +402,6 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
     }
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if (dataLen != item.num_items - 1) {
-        return parser_unexepected_error;
-    }
 
     uint8_t new_displayIdx = displayIdx - 1;
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 1) {
@@ -444,14 +442,9 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
-
-    if (dataLen != item.num_items - skip_items) {
-        return parser_unexepected_error;
-    }
-
     uint8_t new_displayIdx = displayIdx - skip_items;
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - skip_items) {
-        return 2;
+        return parser_no_data;
     }
     if (!app_mode_expert()) {
         snprintf(outKey, outKeyLen, "Amount");
@@ -641,7 +634,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     CHECK_APP_CANARY()
 
     if (displayIdx < 0 || displayIdx >= numItems) {
-        return 5;
+        return parser_no_data;
     }
 
     if (displayIdx == 0) {
@@ -662,7 +655,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     if (displayIdx == 2) {
         snprintf(outKey, outKeyLen, "From");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
-        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), SECP256K1_PK_LEN, outVal, outValLen,
+        uint8_t hash[32];
+        zxerr_t err = pubkey_to_hash((const uint8_t *) (ctx->buffer + ctx->offset),  1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN), hash);
+        if(err != zxerr_ok){
+            return parser_unexepected_error;
+        }
+        return parser_printBytes((const uint8_t *) hash, 32, outVal, outValLen,
                                  pageIdx, pageCount);
     }
 
@@ -707,5 +705,5 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                                     outValLen, pageIdx, pageCount);
     }
 
-    return 4;
+    return parser_no_data;
 }
