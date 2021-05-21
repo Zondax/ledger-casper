@@ -204,7 +204,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_expert_transfer`, model === "nanos" ? 14 : 15);
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_expert_transfer`, model === "nanos" ? 19 : 19);
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);

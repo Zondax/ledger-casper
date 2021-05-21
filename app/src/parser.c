@@ -613,12 +613,12 @@ parser_error_t parser_getItem_StoredContractByName(ExecutableDeployItem item, pa
     CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, HEADERPART, &ctx->offset));     \
     uint64_t value = 0;                                                                         \
     CHECK_PARSER_ERR(readU64(ctx,&value));                      \
+    value /= 1000;                                                            \
     char buffer[300];                                           \
     MEMZERO(buffer,sizeof(buffer));                             \
     zxerr_t err = printTime(buffer, sizeof(buffer), value);     \
     if(err != zxerr_ok){                                        \
-        snprintf(outVal, outValLen, "%d", err);                                 \
-        return parser_ok;                                   \
+        return parser_unexepected_error;                                   \
     }                                                            \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
     return parser_ok;                                                                \
@@ -719,7 +719,13 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx,&value));
             value /= 60000;
-            snprintf(outVal, outValLen, "%lu m", value);
+            char tmpBuffer[100];
+            fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
+            snprintf(outVal, outValLen, "%sm", tmpBuffer);
+            return parser_ok;
+
+
+            snprintf(outVal, outValLen, "%llu m", value);
             return parser_ok;
         }
 
@@ -732,8 +738,25 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
             snprintf(outKey, outKeyLen, "Txn deps");
-            return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), 32, outVal, outValLen,
-                                     pageIdx, pageCount);
+
+            char buffer[400];
+            MEMZERO(buffer, sizeof(buffer));
+            MEMCPY(buffer,(char *)"[", 1);
+            uint8_t num_deps = numdeps <= 5 ? numdeps : 5;
+            uint16_t write = 1;
+            uint8_t index = 0;
+            while(index < num_deps - 1){
+                array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
+                write += 64;
+                MEMCPY(buffer + write, (char *)",",1);
+                write += 1;
+                index += 1;
+            }
+            array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
+            write += 64;
+            MEMCPY(buffer + write,(char *)"]", 1);
+            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+            return parser_ok;
         }
     }
     uint8_t new_displayIdx = displayIdx - 3;
