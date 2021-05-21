@@ -204,6 +204,40 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;                              \
 }
 
+parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items, parser_context_t *ctx,
+                                          uint8_t displayIdx,
+                                          char *outKey, uint16_t outKeyLen,
+                                          char *outVal, uint16_t outValLen,
+                                          uint8_t pageIdx, uint8_t *pageCount) {
+    uint32_t dataLen = 0;
+    char buffer[300];
+    //loop to the correct index
+    for (uint8_t index = 0; index < num_items; index++) {
+        uint32_t part = 0;
+        CHECK_PARSER_ERR(readU32(ctx, &part));
+        MEMZERO(buffer, sizeof(buffer));
+        MEMCPY(buffer, (char *)(ctx->buffer + ctx->offset), part);
+        if(strcmp(buffer, keystr) == 0) {
+            //value
+            ctx->offset += part;
+            CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+            uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
+            if(type != 0x08) {
+                return parser_unexpected_type;
+            }
+            DISPLAY_RUNTIMEARG_U64(ctx)         //fixme
+        }
+        ctx->offset += part;
+
+        parse_item(ctx);
+
+        parse_type(ctx);
+    }
+
+    return parser_no_data;
+}
+
+
 
 parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
@@ -352,8 +386,8 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
                                        char *outVal, uint16_t outValLen,
                                        uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
-        char *deployType = item.phase == Payment ? "Payment" : "Session";
-        DISPLAY_TYPE(deployType, "Transfer")
+        snprintf(outKey, outKeyLen, "%s", "native transfer");
+        return parser_ok;
     }
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
@@ -366,7 +400,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
     uint8_t new_displayIdx = displayIdx - 2;
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 2) {
-        return parser_no_data;
+        return 3;
     }
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
                                       pageCount);
@@ -382,19 +416,17 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     if (displayIdx == 0) {
         if (item.phase == Payment && dataLen == 0) {
             snprintf(outVal, outValLen, "system");
-            return parser_ok;
         } else {
             snprintf(outVal, outValLen, "contract");
-            return parser_ok;
         }
+        return parser_ok;
     }
     if (displayIdx == 1 && dataLen != 0) {
         snprintf(outKey, outKeyLen, "Cntrct hash");
         return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), dataLen, outVal, outValLen, pageIdx,
                                  pageCount);
     }
-    uint8_t skip_items = dataLen != 0 ? 1 : 0;
-    skip_items++;
+    uint8_t skip_items = dataLen != 0 ? 2 : 1;
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
@@ -405,10 +437,12 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
 
     uint8_t new_displayIdx = displayIdx - skip_items;
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - skip_items) {
-        return parser_no_data;
+        return 2;
     }
     if(!app_mode_expert()) {
-
+        snprintf(outKey, outKeyLen, "Amount");
+        return parser_runtimeargs_tokentransfer("amount", dataLen,ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                                pageCount);
     }else {
         return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
                                           pageCount);
@@ -441,12 +475,8 @@ parser_error_t parser_getItem_StoredContractByHash(ExecutableDeployItem item, pa
                                                    char *outVal, uint16_t outValLen,
                                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
-        char *deployType = item.phase == Payment ? "Payment" : "Session";
-        if (item.type == StoredVersionedContractByHash) {
-            DISPLAY_TYPE(deployType, "StoredVersionedContractByHash")
-        } else {
-            DISPLAY_TYPE(deployType, "StoredContractByHash")
-        }
+        snprintf(outKey, outKeyLen, "%s", "by-hash");
+        return parser_ok;
     }
     uint32_t dataLen = HASH_LENGTH;
     if (displayIdx == 1) {
@@ -491,12 +521,12 @@ parser_error_t parser_getItem_StoredContractByName(ExecutableDeployItem item, pa
                                                    char *outVal, uint16_t outValLen,
                                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
-        char *deployType = item.phase == Payment ? "Payment" : "Session";
         if (item.type == StoredVersionedContractByName) {
-            DISPLAY_TYPE(deployType, "StoredVersionedContractByName")
+            snprintf(outKey, outKeyLen, "%s", "by-name");
         } else {
-            DISPLAY_TYPE(deployType, "StoredContractByName")
+            snprintf(outKey, outKeyLen, "%s", "by-name-versioned");
         }
+        return parser_ok;
     }
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
@@ -548,7 +578,7 @@ parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t 
                                     char *outVal, uint16_t outValLen,
                                     uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
-        char *deployPhase = item.phase == Payment ? "Payment" : "Session";
+        char *deployPhase = item.phase == Payment ? "Payment" : "Execution";
         snprintf(outKey, outKeyLen, "%s", deployPhase);
     }
     ctx->offset++;
@@ -596,7 +626,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     CHECK_APP_CANARY()
 
     if (displayIdx < 0 || displayIdx >= numItems) {
-        return parser_no_data;
+        return 5;
     }
 
     if (displayIdx == 0) {
@@ -606,6 +636,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         }else{
             snprintf(outVal, outValLen, "Contract");
         }
+        return parser_ok;
     }
 
     if (displayIdx == 1) {
@@ -643,7 +674,9 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         }
     }
     uint8_t new_displayIdx = displayIdx - 3;
-    new_displayIdx -= app_mode_expert() ? 4 : 0;
+    if(app_mode_expert()){
+        new_displayIdx -= 4;
+    }
     ctx->offset = headerLength(parser_tx_obj.header) + 32;
 
     if (new_displayIdx < parser_tx_obj.payment.num_items) {
@@ -659,5 +692,5 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                                     outValLen, pageIdx, pageCount);
     }
 
-    return parser_no_data;
+    return 4;
 }

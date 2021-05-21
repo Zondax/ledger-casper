@@ -350,7 +350,7 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
 parser_error_t
 parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-
+    item->num_items += 2;
     ctx->offset += HASH_LENGTH;
 
     if (item->type == StoredVersionedContractByHash) {
@@ -368,7 +368,7 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
 parser_error_t
 parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-
+    item->num_items += 2;
     CHECK_PARSER_ERR(parse_item(ctx));
 
     if (item->type == StoredVersionedContractByName) {
@@ -385,7 +385,7 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
 
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-
+    item->num_items += 2;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -393,8 +393,13 @@ parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) 
 parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
 
+    uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
-
+    if(ctx->offset - index == 4) {                          //this means the bytes are empty
+        item->num_items += 1;
+    }else{
+        item->num_items += 2;
+    }
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -486,7 +491,8 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
+    uint8_t basicnum = app_mode_expert() ? 7 : 3;
     uint8_t itemCount =
-            5 + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
+            basicnum + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
     return itemCount;
 }
