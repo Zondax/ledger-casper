@@ -22,6 +22,7 @@
 #include "app_mode.h"
 #include "bignum.h"
 #include "crypto.h"
+#include "timeutils.h"
 
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
@@ -206,6 +207,20 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;                              \
 }
 
+#define DISPLAY_RUNTIMEARG_U512(CTX, LEN){                                        \
+    uint8_t bcdOut[64];                                                     \
+    MEMZERO(bcdOut, sizeof(bcdOut));                                         \
+    uint16_t bcdOutLen = sizeof(bcdOut);                                      \
+    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
+    MEMZERO(buffer, sizeof(buffer));    \
+    bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
+    if(!ok) {           \
+        return parser_unexepected_error;        \
+    }       \
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
+    return parser_ok;                                                       \
+}
+
 parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items, parser_context_t *ctx,
                                                 uint8_t displayIdx,
                                                 char *outKey, uint16_t outKeyLen,
@@ -224,20 +239,20 @@ parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items,
             ctx->offset += part;
             CHECK_PARSER_ERR(readU32(ctx, &dataLen));
             uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
-            if (type != 0x08) {
-                return parser_unexpected_type;
+            switch(type) {
+                case 8 : {
+                    DISPLAY_RUNTIMEARG_U512(ctx, dataLen);
+                }
+
+                case 15 : {
+                    DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
+                }
+
+                default : {
+                    return parser_unexpected_type;
+                }
             }
-            uint8_t bcdOut[64];
-            MEMZERO(bcdOut, sizeof(bcdOut));
-            uint16_t bcdOutLen = sizeof(bcdOut);
-            bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, ctx->buffer + ctx->offset + 1, dataLen - 1);
-            MEMZERO(buffer, sizeof(buffer));
-            bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);
-            if(!ok) {
-                return parser_unexepected_error;
-            }
-            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
-            return parser_ok;
+
         }
         ctx->offset += part;
 
@@ -267,7 +282,7 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     }
     //key
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    char buffer[100];
+    char buffer[300];
     MEMZERO(buffer, sizeof(buffer));
     uint8_t *data = (uint8_t *) ctx->buffer + ctx->offset;
     MEMCPY(buffer, (char *) (data), dataLen);
@@ -300,7 +315,10 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
 
         case 6:
         case 7:
-        case 8:
+        case 8: {
+            DISPLAY_RUNTIMEARG_U512(ctx, dataLen)
+        }
+
         case 9: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
@@ -408,10 +426,20 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         return parser_no_data;
     }
     if (!app_mode_expert()) {
-        snprintf(outKey, outKeyLen, "Amount");
-        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                                outValLen, pageIdx,
-                                                pageCount);
+        if(new_displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            return parser_runtimeargs_tokentransfer("target", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                    outValLen, pageIdx,
+                                                    pageCount);
+        }
+
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                    outValLen, pageIdx,
+                                                    pageCount);
+        }
+
     } else {
         return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
                                           pageCount);
@@ -580,6 +608,22 @@ parser_error_t parser_getItem_StoredContractByName(ExecutableDeployItem item, pa
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                   \
 }
 
+#define DISPLAY_HEADER_TIMESTAMP(KEYNAME, HEADERPART) {         \
+    snprintf(outKey, outKeyLen, KEYNAME);                                                             \
+    CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, HEADERPART, &ctx->offset));     \
+    uint64_t value = 0;                                                                         \
+    CHECK_PARSER_ERR(readU64(ctx,&value));                      \
+    char buffer[300];                                           \
+    MEMZERO(buffer,sizeof(buffer));                             \
+    zxerr_t err = printTime(buffer, sizeof(buffer), value);     \
+    if(err != zxerr_ok){                                        \
+        snprintf(outVal, outValLen, "%d", err);                                 \
+        return parser_ok;                                   \
+    }                                                            \
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
+    return parser_ok;                                                                \
+}
+
 parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t *ctx,
                                     uint8_t displayIdx,
                                     char *outKey, uint16_t outKeyLen,
@@ -666,11 +710,17 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
     if (app_mode_expert()) {
         if (displayIdx == 3) {
-            DISPLAY_HEADER_U64("Timestamp", header_timestamp)
+            DISPLAY_HEADER_TIMESTAMP("Timestamp", header_timestamp)
         }
 
         if (displayIdx == 4) {
-            DISPLAY_HEADER_U64("TTL", header_ttl)
+            snprintf(outKey, outKeyLen, "Ttl");
+            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
+            uint64_t value = 0;
+            CHECK_PARSER_ERR(readU64(ctx,&value));
+            value /= 60000;
+            snprintf(outVal, outValLen, "%lu m", value);
+            return parser_ok;
         }
 
         if (displayIdx == 5) {

@@ -391,7 +391,7 @@ parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) 
     }else{
         uint32_t dummy = 0;
         CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &dummy));
-        item->num_items += 1; //amount only
+        item->num_items += 2; //amount and target only
     }
     return parseTotalLength(ctx, start, &item->totalLength);
 }
