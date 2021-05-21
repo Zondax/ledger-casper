@@ -318,8 +318,11 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
     uint32_t part = 0;
 
     PARSE_ITEM(ctx);
-
     item->num_items += 1;
+    if(part != 0){
+        item->num_items += 1;
+    }
+
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -327,7 +330,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 parser_error_t
 parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->totalLength = 0;
-    item->num_items = 2;                                        //all have two fixed items: type & number of runtime args
+    item->num_items = 0;                                        //all have two fixed items: type & number of runtime args
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
@@ -365,12 +368,14 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     ctx->offset = headerLength(v->header) + BLAKE2B_256_SIZE;
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    v->payment.phase = Payment;
     CHECK_PARSER_ERR(parseDeployType(type, &v->payment.type));
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->payment));
 
     type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    v->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));

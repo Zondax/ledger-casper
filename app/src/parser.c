@@ -19,6 +19,7 @@
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
+#include "app_mode.h"
 
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
@@ -138,12 +139,13 @@ parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
     }
 }
 
-parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context_t *ctx,
                                        uint8_t displayIdx,
                                        char *outKey, uint16_t outKeyLen,
                                        char *outVal, uint16_t outValLen,
                                        uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
+        char *deployType = item.phase == Payment ? "Payment" : "Session";
         DISPLAY_TYPE(deployType, "Transfer")
     }
     uint32_t dataLen = 0;
@@ -162,37 +164,47 @@ parser_error_t parser_getItem_Transfer(char *deployType, ExecutableDeployItem it
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
-
-parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_context_t *ctx,
                                           uint8_t displayIdx,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
-    if (displayIdx == 0) {
-        DISPLAY_TYPE(deployType, "ModuleBytes")
-    }
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if (displayIdx == 1) {
-        snprintf(outKey, outKeyLen, "Bytes");
+    if (displayIdx == 0) {
+        if (item.phase == Payment && dataLen == 0) {
+            snprintf(outVal, outValLen, "system");
+            return parser_ok;
+        } else {
+            snprintf(outVal, outValLen, "contract");
+            return parser_ok;
+        }
+    }
+    if (displayIdx == 1 && dataLen != 0) {
+        snprintf(outKey, outKeyLen, "Cntrct hash");
         return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), dataLen, outVal, outValLen, pageIdx,
                                  pageCount);
     }
+    uint8_t skip_items = dataLen != 0 ? 1 : 0;
+    skip_items++;
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if (dataLen != item.num_items - 3) {
+
+
+    if (dataLen != item.num_items - skip_items) {
         return parser_unexepected_error;
     }
 
-    if (displayIdx == 2) {
-        DISPLAY_U32("RuntimeArgs", dataLen)
-    }
-
-    uint8_t new_displayIdx = displayIdx - 3;
-    if (new_displayIdx < 0 || new_displayIdx > item.num_items - 3) {
+    uint8_t new_displayIdx = displayIdx - skip_items;
+    if (new_displayIdx < 0 || new_displayIdx > item.num_items - skip_items) {
         return parser_no_data;
     }
-    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    if(!app_mode_expert()) {
+
+    }else {
+        return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                          pageCount);
+    }
 }
 
 #define HANDLE_VERSION(CTX) {         \
@@ -215,12 +227,13 @@ parser_error_t parser_getItem_ModuleBytes(char *deployType, ExecutableDeployItem
     }                                               \
 }
 
-parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t parser_getItem_StoredContractByHash(ExecutableDeployItem item, parser_context_t *ctx,
                                                    uint8_t displayIdx,
                                                    char *outKey, uint16_t outKeyLen,
                                                    char *outVal, uint16_t outValLen,
                                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
+        char *deployType = item.phase == Payment ? "Payment" : "Session";
         if (item.type == StoredVersionedContractByHash) {
             DISPLAY_TYPE(deployType, "StoredVersionedContractByHash")
         } else {
@@ -263,12 +276,13 @@ parser_error_t parser_getItem_StoredContractByHash(char *deployType, ExecutableD
     return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
 }
 
-parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t parser_getItem_StoredContractByName(ExecutableDeployItem item, parser_context_t *ctx,
                                                    uint8_t displayIdx,
                                                    char *outKey, uint16_t outKeyLen,
                                                    char *outVal, uint16_t outValLen,
                                                    uint8_t pageIdx, uint8_t *pageCount) {
     if (displayIdx == 0) {
+        char *deployType = item.phase == Payment ? "Payment" : "Session";
         if (item.type == StoredVersionedContractByName) {
             DISPLAY_TYPE(deployType, "StoredVersionedContractByName")
         } else {
@@ -318,31 +332,35 @@ parser_error_t parser_getItem_StoredContractByName(char *deployType, ExecutableD
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                   \
 }
 
-parser_error_t parser_getItemDeploy(char *deployType, ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t *ctx,
                                     uint8_t displayIdx,
                                     char *outKey, uint16_t outKeyLen,
                                     char *outVal, uint16_t outValLen,
                                     uint8_t pageIdx, uint8_t *pageCount) {
+    if (displayIdx == 0) {
+        char *deployPhase = item.phase == Payment ? "Payment" : "Session";
+        snprintf(outKey, outKeyLen, "%s", deployPhase);
+    }
     ctx->offset++;
     switch (item.type) {
         case ModuleBytes : {
-            return parser_getItem_ModuleBytes(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
+            return parser_getItem_ModuleBytes(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
                                               pageIdx, pageCount);
         }
 
         case StoredVersionedContractByHash :
         case StoredContractByHash : {
-            return parser_getItem_StoredContractByHash(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
+            return parser_getItem_StoredContractByHash(item, ctx, displayIdx, outKey, outKeyLen, outVal,
                                                        outValLen, pageIdx, pageCount);
         }
 
         case StoredVersionedContractByName :
         case StoredContractByName : {
-            return parser_getItem_StoredContractByName(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal,
+            return parser_getItem_StoredContractByName(item, ctx, displayIdx, outKey, outKeyLen, outVal,
                                                        outValLen, pageIdx, pageCount);
         }
         case Transfer : {
-            return parser_getItem_Transfer(deployType, item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
+            return parser_getItem_Transfer(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
                                            pageIdx, pageCount);
         }
         default : {
@@ -372,33 +390,54 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     }
 
     if (displayIdx == 0) {
-        snprintf(outKey, outKeyLen, "Account");
+        snprintf(outKey, outKeyLen, "Type");
+        if(parser_tx_obj.session.type == Transfer){
+            snprintf(outVal, outValLen, "Transfer");
+        }else{
+            snprintf(outVal, outValLen, "Contract");
+        }
+    }
+
+    if (displayIdx == 1) {
+        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &ctx->offset));
+        DISPLAY_STRING("Chain ID", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
+    }
+
+    if (displayIdx == 2) {
+        snprintf(outKey, outKeyLen, "From");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
         return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), SECP256K1_PK_LEN, outVal, outValLen,
                                  pageIdx, pageCount);
     }
 
-    if (displayIdx == 1) {
-        DISPLAY_HEADER_U64("Timestamp", header_timestamp)
-    }
+    if (app_mode_expert()) {
+        if (displayIdx == 3) {
+            DISPLAY_HEADER_U64("Timestamp", header_timestamp)
+        }
 
-    if (displayIdx == 2) {
-        DISPLAY_HEADER_U64("TTL", header_ttl)
-    }
+        if (displayIdx == 4) {
+            DISPLAY_HEADER_U64("TTL", header_ttl)
+        }
 
-    if (displayIdx == 3) {
-        DISPLAY_HEADER_U64("Gas price", header_gasprice)
-    }
+        if (displayIdx == 5) {
+            DISPLAY_HEADER_U64("Gas price", header_gasprice)
+        }
 
-    if (displayIdx == 4) {
-        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &ctx->offset));
-        DISPLAY_STRING("Chain name", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
+        if (displayIdx == 6) {
+            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
+            uint32_t numdeps = 0;
+            CHECK_PARSER_ERR(readU32(ctx, &numdeps));
+            snprintf(outKey, outKeyLen, "Txn deps");
+            return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), 32, outVal, outValLen,
+                                     pageIdx, pageCount);
+        }
     }
-    uint8_t new_displayIdx = displayIdx - 5;
+    uint8_t new_displayIdx = displayIdx - 3;
+    new_displayIdx -= app_mode_expert() ? 4 : 0;
     ctx->offset = headerLength(parser_tx_obj.header) + 32;
 
     if (new_displayIdx < parser_tx_obj.payment.num_items) {
-        return parser_getItemDeploy("Payment", parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_getItemDeploy(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
                                     outValLen, pageIdx, pageCount);
     }
 
@@ -406,7 +445,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     ctx->offset += parser_tx_obj.payment.totalLength;
 
     if (new_displayIdx < parser_tx_obj.session.num_items) {
-        return parser_getItemDeploy("Session", parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_getItemDeploy(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,
                                     outValLen, pageIdx, pageCount);
     }
 
