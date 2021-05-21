@@ -385,7 +385,7 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
 
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-    item->num_items += 2;
+    item->num_items += 1;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -395,9 +395,9 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
-    if(ctx->offset - index == 4) {                          //this means the bytes are empty
+    if (ctx->offset - index == 4) {                          //this means the bytes are empty
         item->num_items += 1;
-    }else{
+    } else {
         item->num_items += 2;
     }
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
