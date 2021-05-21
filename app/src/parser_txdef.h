@@ -32,7 +32,7 @@ typedef struct {
     uint32_t lenChainName;
 } parser_header_t;
 
-#define NUM_RUNTIME_TYPES 21
+#define NUM_RUNTIME_TYPES 22
 
 #define NUM_DEPLOY_TYPES 6
 typedef enum {
