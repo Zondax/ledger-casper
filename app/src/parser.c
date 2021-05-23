@@ -82,19 +82,6 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;
 }
 
-#define DISPLAY_TYPE(KEYNAME, TYPE) { \
-    snprintf(outKey, outKeyLen, "%s Type", KEYNAME);     \
-    snprintf(outVal, outValLen, TYPE);                \
-    return parser_ok;                                       \
-}
-
-#define DISPLAY_U32(KEYNAME, VALUE) {         \
-    snprintf(outKey, outKeyLen, KEYNAME);     \
-    uint64_t number = 0;                      \
-    MEMCPY(&number, &VALUE, 4);  \
-    return parser_printU64(number, outVal, outValLen, pageIdx, pageCount); \
-}
-
 #define DISPLAY_STRING(KEYNAME, VALUE, VALUELEN) {         \
     snprintf(outKey, outKeyLen, KEYNAME);            \
     char buffer[100];                               \
