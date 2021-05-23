@@ -294,7 +294,39 @@ parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t 
     return parser_ok;
 }
 
-parser_error_t parseRuntimeArgs_transfer(parser_context_t *ctx, uint32_t *num_items) {
+#define CHECK_TRANSFER(VAR,STR) { \
+    (VAR) = strcmp("amount", (STR)) != 0 &&                \
+    strcmp("id", (STR)) != 0 &&                    \
+    strcmp("target", (STR)) != 0; \
+}
+
+#define CHECK_MODULEBYTES(VAR,STR) { \
+    (VAR) = strcmp("amount", (STR)) != 0; \
+}
+
+parser_error_t check_fixed_items(deploy_type_e type, char *buffer, bool *result){
+    bool optional = false;
+    switch(type){
+        case Transfer : {
+            CHECK_TRANSFER(optional, buffer)
+            break;
+        }
+
+        case ModuleBytes : {
+            CHECK_MODULEBYTES(optional, buffer)
+            break;
+        }
+
+        default :{
+            return parser_unexpected_method;
+        }
+    }
+    *result = optional;
+    return parser_ok;
+}
+
+
+parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items, deploy_type_e type) {
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     char buffer[300];
@@ -304,35 +336,9 @@ parser_error_t parseRuntimeArgs_transfer(parser_context_t *ctx, uint32_t *num_it
         CHECK_PARSER_ERR(readU32(ctx, &part));              //if it is amount, id or target, we dont need to add it
         MEMZERO(buffer, sizeof(buffer));
         MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
-        if (strcmp("amount", buffer) != 0 &&
-            strcmp("id", buffer) != 0 &&
-            strcmp("target", buffer) != 0
-                ) {
-            *num_items += 2;
-        }
-        ctx->offset += part;
-
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        CHECK_PARSER_ERR(parse_type(ctx));
-
-    }
-    return parser_ok;
-}
-
-parser_error_t parseRuntimeArgs_modulebytes(parser_context_t *ctx, uint32_t *num_items) {
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-
-    char buffer[300];
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        uint32_t part = 0;
-        CHECK_PARSER_ERR(readU32(ctx, &part));              //if it is amount, we dont need to add it
-        MEMZERO(buffer, sizeof(buffer));
-        MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
-        if (strcmp("amount", buffer) != 0) {
+        bool optional = false;
+        CHECK_PARSER_ERR(check_fixed_items(type, buffer, &optional));
+        if (optional) {
             *num_items += 2;
         }
         ctx->offset += part;
@@ -373,17 +379,17 @@ parser_error_t parseRuntimeArgs_forcedArgs(char *argstr, parser_context_t *ctx) 
 
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-    item->num_items += 1;               //type of transfer
+    item->fixed_items += 1;               //type of transfer
     CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("amount", ctx));
     CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("id", ctx));
     CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("target", ctx));
     if(app_mode_expert()){
-        item->num_items += 3;
-        CHECK_PARSER_ERR(parseRuntimeArgs_transfer(ctx, &item->num_items));
+        item->runtime_items += 3;
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->runtime_items, item->type));
     }else{
         uint32_t dummy = 0;
-        CHECK_PARSER_ERR(parseRuntimeArgs_transfer(ctx, &dummy)); //check that there are valid runtime args but don't update num_items
-        item->num_items += 2; //amount and target only
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &dummy, item->type)); //check that there are valid runtime args but don't update num_items
+        item->runtime_items += 2; //amount and target only
     }
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -394,17 +400,17 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
     if (ctx->offset - index == 4) {                          //this means the bytes are empty
-        item->num_items += 1;
+        item->fixed_items += 1;
     } else {
-        item->num_items += 2;
+        item->fixed_items += 2;
     }
     CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("amount", ctx));
-    item->num_items += 1; //amount only
+    item->runtime_items += 1; //amount only
     if(app_mode_expert()){
-        CHECK_PARSER_ERR(parseRuntimeArgs_modulebytes(ctx, &item->num_items));
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->runtime_items, item->type));
     }else{
         uint32_t dummy = 0;
-        CHECK_PARSER_ERR(parseRuntimeArgs_modulebytes(ctx, &dummy));
+        CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &dummy, item->type));
     }
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -412,7 +418,8 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 parser_error_t
 parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->totalLength = 0;
-    item->num_items = 0;                                        //all have two fixed items: type & number of runtime args
+    item->fixed_items = 0;                                        //all have two fixed items: type & number of runtime args
+    item->runtime_items = 0;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
@@ -498,6 +505,6 @@ uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
     uint8_t basicnum = app_mode_expert() ? 7 : 3;
     uint8_t itemCount =
-            basicnum + v->payment.num_items + v->session.num_items; //header + payment + session v->session.num_items
+            basicnum + v->payment.fixed_items + v->payment.runtime_items + v->session.fixed_items + v->session.runtime_items; //header + payment + session v->session.num_items
     return itemCount;
 }

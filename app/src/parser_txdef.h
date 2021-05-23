@@ -52,7 +52,8 @@ typedef enum {
 typedef struct {
     phase_type_e phase;
     deploy_type_e type;
-    uint32_t num_items;
+    uint32_t fixed_items;
+    uint32_t runtime_items;
     uint32_t totalLength;
 } ExecutableDeployItem;
 
