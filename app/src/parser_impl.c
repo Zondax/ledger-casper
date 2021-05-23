@@ -312,6 +312,7 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t *num_items) {
 }
 
 parser_error_t parseRuntimeArgs_forcedArgs(char *argstr, parser_context_t *ctx) {
+    uint16_t start = ctx->offset;
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     char buffer[300];
@@ -322,8 +323,10 @@ parser_error_t parseRuntimeArgs_forcedArgs(char *argstr, parser_context_t *ctx) 
         MEMZERO(buffer, sizeof(buffer));
         MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
         if (strcmp(buffer, argstr) == 0) {
+            ctx->offset = start;
             return parser_ok;
         }
+        ctx->offset += part;
         //value
         CHECK_PARSER_ERR(parse_item(ctx));
 
@@ -336,6 +339,9 @@ parser_error_t parseRuntimeArgs_forcedArgs(char *argstr, parser_context_t *ctx) 
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
     item->num_items += 1;
+    CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("amount", ctx));
+    CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("id", ctx));
+    CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("target", ctx));
     if(app_mode_expert()){
         CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     }else{
@@ -356,6 +362,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
     } else {
         item->num_items += 2;
     }
+    CHECK_PARSER_ERR(parseRuntimeArgs_forcedArgs("amount", ctx));
     if(app_mode_expert()){
         CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
     }else{
