@@ -70,7 +70,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     return zxerr_ok;
 }
 
-zxerr_t pubkey_to_hash(uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
+zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
     uint8_t preimage[100];
     uint16_t preimageLen = 0;
     MEMZERO(preimage, sizeof(preimage));
@@ -179,7 +179,7 @@ zxerr_t crypto_sign(uint8_t *signature,
 
 #include <hexutils.h>
 
-zxerr_t pubkey_to_hash(uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
+zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
     return zxerr_ok;
 }
 

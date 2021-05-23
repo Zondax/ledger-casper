@@ -117,13 +117,12 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 
 #define DISPLAY_RUNTIMEARG_STRING(CTX, LEN){                                        \
     MEMZERO(buffer, sizeof(buffer));                                                \
-    uint8_t *str = (CTX)->buffer + (CTX)->offset;                                       \
-    MEMCPY(buffer, (char *) (str), LEN);                                           \
+    MEMCPY(buffer, (char *) ((CTX)->buffer + (CTX)->offset), LEN);                    \
     snprintf(outVal, outValLen, "%s", buffer);                                          \
     return parser_ok;                                                                     \
 }
 
-parser_error_t find_end_of_number(uint8_t *buffer, uint16_t bufferSize, uint16_t *output){
+parser_error_t find_end_of_number(char *buffer, uint16_t bufferSize, uint16_t *output){
     uint16_t index = 0;
     *output = 0;
     while(index < bufferSize) {
@@ -171,8 +170,6 @@ parser_error_t find_end_of_number(uint8_t *buffer, uint16_t bufferSize, uint16_t
 }
 
 parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items, parser_context_t *ctx,
-                                                uint8_t displayIdx,
-                                                char *outKey, uint16_t outKeyLen,
                                                 char *outVal, uint16_t outValLen,
                                                 uint8_t pageIdx, uint8_t *pageCount) {
     uint32_t dataLen = 0;
@@ -345,14 +342,14 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Target");
-        return parser_runtimeargs_tokentransfer("target", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_runtimeargs_tokentransfer("target", dataLen, ctx, outVal,
                                                 outValLen, pageIdx,
                                                 pageCount);
     }
 
     if(new_displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Amount");
-        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, outVal,
                                                 outValLen, pageIdx,
                                                 pageCount);
     }
@@ -363,7 +360,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
     if(new_displayIdx == 2) {
         snprintf(outKey, outKeyLen, "Id");
-        return parser_runtimeargs_tokentransfer("id", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_runtimeargs_tokentransfer("id", dataLen, ctx, outVal,
                                                 outValLen, pageIdx,
                                                 pageCount);
     }
@@ -401,7 +398,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     }
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Amount");
-        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, outVal,
                                                 outValLen, pageIdx,
                                                 pageCount);
     }
