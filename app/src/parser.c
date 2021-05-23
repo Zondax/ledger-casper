@@ -188,12 +188,30 @@ parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items,
             ctx->offset += part;
             CHECK_PARSER_ERR(readU32(ctx, &dataLen));
             uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
+            displayRuntimeArgs:
             switch(type) {
+                case 5: {
+                    DISPLAY_RUNTIMEARG_U64(ctx)
+                }
+
                 case 8 : {
                     if(strcmp(keystr, "amount") == 0){
                         DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
                     }else {
                         DISPLAY_RUNTIMEARG_U512(ctx, dataLen);
+                    }
+                }
+
+                case 13 : {
+                    uint8_t optiontype = 0;
+                    CHECK_PARSER_ERR(readU8(ctx, &optiontype));
+                    if (optiontype == 0x00) {
+                        snprintf(outVal, outValLen, "None");
+                        return parser_ok;
+                    } else {
+                        type = *(ctx->buffer + ctx->offset + dataLen);
+                        dataLen -= 1;
+                        goto displayRuntimeArgs;
                     }
                 }
 
@@ -220,67 +238,100 @@ parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items,
 
 parser_error_t parser_getItem_RuntimeArgs(parser_context_t *ctx,
                                           uint8_t displayIdx,
+                                          uint8_t fixed_items,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
-    uint32_t dataLen = 0;
+    if(!app_mode_expert()){
+        return parser_no_data;
+    }
 
-    //loop to the correct index
-    for (uint8_t index = 0; index < displayIdx; index++) {
+    uint32_t dataLen = 0;
+    char buffer[300];
+    MEMZERO(buffer, sizeof(buffer));
+
+    uint8_t index = 0;
+    while(index < fixed_items){
+        uint32_t part = 0;
+        CHECK_PARSER_ERR(readU32(ctx, &part));              //if it is amount, id or target, we dont need to add it
+        MEMZERO(buffer, sizeof(buffer));
+        MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
+        if (strcmp("amount",buffer) != 0 &&
+            strcmp("id", buffer) != 0 &&
+            strcmp("target", buffer) != 0
+                ) {
+            return parser_unexepected_error;
+        }
+        ctx->offset += part;
+
+        parse_item(ctx);
+
+        parse_type(ctx);
+        index++;
+    }
+
+    index = 0;
+    while(index < displayIdx/2){
         parse_item(ctx);
 
         parse_item(ctx);
 
         parse_type(ctx);
+        index++;
     }
-    //key
-    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    char buffer[300];
+
     MEMZERO(buffer, sizeof(buffer));
-    uint8_t *data = (uint8_t *) ctx->buffer + ctx->offset;
-    MEMCPY(buffer, (char *) (data), dataLen);
-    snprintf(outKey, outKeyLen, "%s", buffer);
-    ctx->offset += dataLen;
-
-    //value
-    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
-    displayRuntimeArgs:
-    switch (type) {
-        case 5: {
-            DISPLAY_RUNTIMEARG_U64(ctx)
-        }
-
-        case 8: {
-            DISPLAY_RUNTIMEARG_U512(ctx, dataLen)
-        }
-
-        case 10 : {
-            uint32_t stringLen = 0;
-            CHECK_PARSER_ERR(readU32(ctx, &stringLen))
-            DISPLAY_RUNTIMEARG_STRING(ctx, stringLen)
-        }
-
-        case 13 : {
-            uint8_t optiontype = 0;
-            CHECK_PARSER_ERR(readU8(ctx, &optiontype));
-            if (optiontype == 0x00) {
-                snprintf(outVal, outValLen, "None");
-                return parser_ok;
-            } else {
-                type = *(ctx->buffer + ctx->offset + dataLen);
-                dataLen -= 1;
-                goto displayRuntimeArgs;
+    if(displayIdx % 2 == 0) {
+        //display key
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+        uint8_t *data = (uint8_t *) ctx->buffer + ctx->offset;
+        MEMCPY(buffer, (char *) (data), dataLen);
+        snprintf(outKey, outKeyLen, "Arg-%d-name", (uint32_t)(displayIdx / 2));
+        pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+        return parser_ok;
+    }else {
+        //display value
+        snprintf(outKey, outKeyLen, "Arg-%d-val", (uint32_t)(displayIdx / 2));
+        parse_item(ctx);
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+        uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
+        displayRuntimeArgs:
+        switch (type) {
+            case 5: {
+                DISPLAY_RUNTIMEARG_U64(ctx)
             }
-        }
 
-        case 15 : {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
-        }
+            case 8: {
+                DISPLAY_RUNTIMEARG_U512(ctx, dataLen)
+            }
 
-        default : {
-            //TYPE NOT SUPPORTED
-            return parser_unexpected_type;
+            case 10 : {
+                uint32_t stringLen = 0;
+                CHECK_PARSER_ERR(readU32(ctx, &stringLen))
+                DISPLAY_RUNTIMEARG_STRING(ctx, stringLen)
+            }
+
+            case 13 : {
+                uint8_t optiontype = 0;
+                CHECK_PARSER_ERR(readU8(ctx, &optiontype));
+                if (optiontype == 0x00) {
+                    snprintf(outVal, outValLen, "None");
+                    return parser_ok;
+                } else {
+                    type = *(ctx->buffer + ctx->offset + dataLen);
+                    dataLen -= 1;
+                    goto displayRuntimeArgs;
+                }
+            }
+
+            case 15 : {
+                DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
+            }
+
+            default : {
+                //TYPE NOT SUPPORTED
+                return parser_unexpected_type;
+            }
         }
     }
 }
@@ -301,25 +352,34 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - 1) {
         return parser_no_data;
     }
-    if (!app_mode_expert()) {
-        if(new_displayIdx == 0) {
-            snprintf(outKey, outKeyLen, "Target");
-            return parser_runtimeargs_tokentransfer("target", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                                    outValLen, pageIdx,
-                                                    pageCount);
-        }
 
-        if(new_displayIdx == 1) {
-            snprintf(outKey, outKeyLen, "Amount");
-            return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                                    outValLen, pageIdx,
-                                                    pageCount);
-        }
-
-    } else {
-        return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
-                                          pageCount);
+    if(new_displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Target");
+        return parser_runtimeargs_tokentransfer("target", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                outValLen, pageIdx,
+                                                pageCount);
     }
+
+    if(new_displayIdx == 1) {
+        snprintf(outKey, outKeyLen, "Amount");
+        return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                outValLen, pageIdx,
+                                                pageCount);
+    }
+
+    if(!app_mode_expert()){
+        return parser_no_data;
+    }
+
+    if(new_displayIdx == 2) {
+        snprintf(outKey, outKeyLen, "Id");
+        return parser_runtimeargs_tokentransfer("id", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                outValLen, pageIdx,
+                                                pageCount);
+    }
+    new_displayIdx-=3;
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, 3, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                          pageCount);
 }
 
 parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_context_t *ctx,
@@ -350,15 +410,15 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     if (new_displayIdx < 0 || new_displayIdx > item.num_items - skip_items) {
         return parser_no_data;
     }
-    if (!app_mode_expert()) {
+    if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Amount");
         return parser_runtimeargs_tokentransfer("amount", dataLen, ctx, new_displayIdx, outKey, outKeyLen, outVal,
                                                 outValLen, pageIdx,
                                                 pageCount);
-    } else {
-        return parser_getItem_RuntimeArgs(ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
-                                          pageCount);
     }
+    new_displayIdx-=1;
+    return parser_getItem_RuntimeArgs(ctx, new_displayIdx, 1, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                          pageCount);
 }
 
 #define DISPLAY_HEADER_U64(KEYNAME, HEADERPART) {         \

@@ -187,14 +187,14 @@ describe('Standard', function () {
             await sim.clickBoth();
             await sim.clickLeft();
 
-            const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
-            console.log(respAddr)
-
-            expect(respAddr.returnCode).toEqual(0x9000);
-            expect(respAddr.errorMessage).toEqual("No errors");
-
-            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
-            expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
+            // const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
+            // console.log(respAddr)
+            //
+            // expect(respAddr.returnCode).toEqual(0x9000);
+            // expect(respAddr.errorMessage).toEqual("No errors");
+            //
+            // const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+            // expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
 
             const txBlobStr = "017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c0377901000040771b00000000000200000000000000f2e0782bba4a0a9663cafc7d707fd4a74421bc5bfef4e368b7e8f38dfab87db8020000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1010101010101010101010101010101010101010101010101010101010101010070000006d61696e6e6574d7a68bbe656a883d04bba9f26aa340dbe3f8ec99b2adb63b628f2bc92043199800000000000100000006000000616d6f756e74050000000400ca9a3b08050400000006000000616d6f756e740600000005005550b40508060000007461726765742000000001010101010101010101010101010101010101010101010101010101010101010f200000000200000069640900000001e7030000000000000d050f0000006164646974696f6e616c5f696e666f140000001000000074686973206973207472616e736665720a01000000017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce55370195a68b1a05731b7014e580b4c67a506e0339a7fffeaded9f24eb2e7f78b96bdd900b9be8ca33e4552a9a619dc4fc5e4e3a9f74a4b0537c14a5a8007d62a5dc06"
 
@@ -204,7 +204,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_expert_transfer`, model === "nanos" ? 19 : 19);
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_expert_transfer`, model === "nanos" ? 20 : 20);
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
