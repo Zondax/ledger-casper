@@ -123,6 +123,19 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     return parser_ok;                                                                     \
 }
 
+parser_error_t find_end_of_number(uint8_t *buffer, uint16_t bufferSize, uint16_t *output){
+    uint16_t index = 0;
+    *output = 0;
+    while(index < bufferSize) {
+        if(buffer[index] == 0 && index != 0) {
+            *output = index;
+            return parser_ok;
+        }
+        index++;
+    }
+    return parser_unexpected_buffer_end;
+}
+
 #define DISPLAY_RUNTIMEARG_U512(CTX, LEN){                                        \
     uint8_t bcdOut[64];                                                     \
     MEMZERO(bcdOut, sizeof(bcdOut));                                         \
@@ -130,9 +143,29 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
     MEMZERO(buffer, sizeof(buffer));    \
     bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
-    if(!ok) {           \
-        return parser_unexepected_error;        \
-    }       \
+    if(!ok) {                                               \
+        return parser_unexepected_error;                    \
+    }                                                                       \
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
+    return parser_ok;                                                       \
+}
+
+#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){                                        \
+    uint8_t bcdOut[64];                                                     \
+    MEMZERO(bcdOut, sizeof(bcdOut));                                         \
+    uint16_t bcdOutLen = sizeof(bcdOut);                                      \
+    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
+    MEMZERO(buffer, sizeof(buffer));    \
+    bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
+    if(!ok) {                                               \
+        return parser_unexepected_error;                    \
+    }                                                                       \
+    uint16_t index = 0;                                                           \
+    CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &index))          \
+    if(index + 6 >= sizeof(buffer)){                                               \
+        return parser_unexpected_buffer_end;\
+    }\
+    MEMCPY(buffer + index, (char *)" motes", 6);                                        \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
     return parser_ok;                                                       \
 }
@@ -157,7 +190,11 @@ parser_error_t parser_runtimeargs_tokentransfer(char *keystr, uint8_t num_items,
             uint8_t type = *(ctx->buffer + ctx->offset + dataLen);
             switch(type) {
                 case 8 : {
-                    DISPLAY_RUNTIMEARG_U512(ctx, dataLen);
+                    if(strcmp(keystr, "amount") == 0){
+                        DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
+                    }else {
+                        DISPLAY_RUNTIMEARG_U512(ctx, dataLen);
+                    }
                 }
 
                 case 15 : {
