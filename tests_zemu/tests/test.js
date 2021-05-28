@@ -127,6 +127,53 @@ describe('Standard', function () {
         }
     });
 
+    test.each(models)('sign confirm issue #31 (%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
+
+            const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
+            console.log(respAddr)
+
+            expect(respAddr.returnCode).toEqual(0x9000);
+            expect(respAddr.errorMessage).toEqual("No errors");
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+            expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
+
+            const txBlobStr = "02024ef1def792992eeed81b2c55c42420236700b9c0eb55229cfd31a5e1ef437ac42e02d7b27901000040771b00000000000100000000000000bd9d1c2c579f2c32e99009d757b74013577a59dc8928468383df8f7baff9579e000000000b0000006361737065722d74657374f2d78997f74246576c0923fc3d56c85f3ca1fab3ed4a6cc792e3b6b0a87fef2200000000000100000006000000616d6f756e74070000000600a0724e180908050300000006000000616d6f756e74060000000500f2052a01080600000074617267657420000000e5d30118dc4e254d29250296f0cbcfbae17263a3c7f745b55aabee62f5f06eb10f200000000200000069640900000001ffdbd6b2790100000d0500000000"
+
+            const txBlob = Buffer.from(txBlobStr, "hex");
+            const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
+
+            // Wait until we are not in the main menu
+            await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
+            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_basic_normal`, model === "nanos" ? 10 : 11);
+
+            let signatureResponse = await respRequest;
+            console.log(signatureResponse);
+
+            expect(signatureResponse.returnCode).toEqual(0x9000);
+            expect(signatureResponse.errorMessage).toEqual("No errors");
+
+            // let hash = txBlob.slice(144,176);
+            //
+            // const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
+            // expect(pk.byteLength).toEqual(33);
+            // const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
+            // const signature = Uint8Array.from(signatureResponse.signatureRS);
+            // expect(signature.byteLength).toEqual(64);
+            //
+            // const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            // expect(signatureOk).toEqual(true);
+
+        } finally {
+            await sim.close();
+        }
+    });
+
     test.each(models)('sign basic normal (%s)', async function (_, {model, prefix, path}) {
         const sim = new Zemu(path);
         try {
@@ -173,7 +220,6 @@ describe('Standard', function () {
             await sim.close();
         }
     });
-
 
     test.each(models)('sign expert transfer(%s)', async function (_, {model, prefix, path}) {
         const sim = new Zemu(path);
