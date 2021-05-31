@@ -32,7 +32,7 @@ typedef struct {
     uint32_t lenChainName;
 } parser_header_t;
 
-#define NUM_RUNTIME_TYPES 21
+#define NUM_RUNTIME_TYPES 22
 
 #define NUM_DEPLOY_TYPES 6
 typedef enum {
@@ -44,10 +44,16 @@ typedef enum {
     Transfer = 5,
 } deploy_type_e;
 
+typedef enum {
+    Payment = 0,
+    Session = 1,
+} phase_type_e;
 
 typedef struct {
+    phase_type_e phase;
     deploy_type_e type;
-    uint32_t num_items;
+    uint32_t fixed_items;
+    uint32_t runtime_items;
     uint32_t totalLength;
 } ExecutableDeployItem;
 

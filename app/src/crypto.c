@@ -70,6 +70,42 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     return zxerr_ok;
 }
 
+zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
+    uint8_t preimage[100];
+    uint16_t preimageLen = 0;
+    MEMZERO(preimage, sizeof(preimage));
+    uint8_t type = pubkey[0];
+    switch(type){
+        case 0x00 :{
+            MEMCPY(preimage, (uint8_t *)"system", 6);
+            preimageLen+=6;
+            break;
+        }
+        case 0x01 : {
+            MEMCPY(preimage, (uint8_t *)"ed25519", 7);
+            preimageLen += 7;
+            break;
+        }
+        case 0x02 : {
+            MEMCPY(preimage, (uint8_t *)"secp256k1", 9);
+            preimageLen += 9;
+            break;
+        }
+        default : {
+            return zxerr_unknown;
+        }
+    }
+
+    preimage[preimageLen++] = 0;
+    MEMCPY(preimage + preimageLen, pubkey+1, pubkeyLen-1);
+    preimageLen += pubkeyLen-1;
+    blake2b_hash(preimage, preimageLen,
+                 out);
+    return zxerr_ok;
+}
+
+
+
 typedef struct {
     uint8_t r[32];
     uint8_t s[32];
@@ -137,65 +173,6 @@ zxerr_t crypto_sign(uint8_t *signature,
     *sigSize = SIG_RS_LEN;
 
     return zxerr_ok;
-}
-
-#else
-
-#include <hexutils.h>
-#include "blake2.h"
-
-char *crypto_testPubKey;
-
-zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
-    return zxerr_ok;
-}
-
-zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
-                     unsigned char *out) {
-    blake2b_state s;
-    blake2b_init(&s, outLen);
-    blake2b_update(&s, in, inLen);
-    blake2b_final(&s, out, outLen);
-    return zxerr_ok;
-}
-
-__Z_INLINE int blake_hash_cid(const unsigned char *in, unsigned int inLen,
-                              unsigned char *out, unsigned int outLen) {
-
-    uint8_t prefix[] = PREFIX;
-
-    blake2b_state s;
-    blake2b_init(&s, outLen);
-    blake2b_update(&s, prefix, sizeof(prefix));
-    blake2b_update(&s, in, inLen);
-    blake2b_final(&s, out, outLen);
-
-    return 0;
-}
-
-int prepareDigestToSign(const unsigned char *in, unsigned int inLen,
-                        unsigned char *out, unsigned int outLen) {
-
-    uint8_t tmp[BLAKE2B_256_SIZE];
-
-    blake_hash(in, inLen, tmp, BLAKE2B_256_SIZE);
-    blake_hash_cid(tmp, BLAKE2B_256_SIZE, out, outLen);
-
-    return 0;
-}
-
-uint16_t crypto_sign(uint8_t *signature,
-                     uint16_t signatureMaxlen,
-                     const uint8_t *message,
-                     uint16_t messageLen) {
-    // Empty version for non-Ledger devices
-    uint8_t tmp[BLAKE2B_256_SIZE];
-    uint8_t message_digest[BLAKE2B_256_SIZE];
-
-    blake_hash(message, messageLen, tmp, BLAKE2B_256_SIZE);
-    blake_hash_cid(tmp, BLAKE2B_256_SIZE, message_digest, BLAKE2B_256_SIZE);
-
-    return 0;
 }
 
 #endif
