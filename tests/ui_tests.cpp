@@ -125,7 +125,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
         return;
     }
 
-    auto output = dumpUI(&ctx, 40, 40);
+    auto output = dumpUI(&ctx, 40, 35);
 
     std::cout << std::endl;
     for (const auto &i : output) {

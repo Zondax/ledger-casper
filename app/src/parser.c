@@ -536,8 +536,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             while(index < num_deps - 1){
                 array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
                 write += 64;
-                MEMCPY(buffer + write, (char *)",",1);
-                write += 1;
+                MEMCPY(buffer + write, (char *)", ",2);
+                write += 2;
                 index += 1;
             }
             array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
