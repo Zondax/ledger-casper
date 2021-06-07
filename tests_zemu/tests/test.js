@@ -142,7 +142,7 @@ describe('Standard', function () {
             const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
             expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
 
-            const txBlobStr = "017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c0377901000040771b00000000000200000000000000f2e0782bba4a0a9663cafc7d707fd4a74421bc5bfef4e368b7e8f38dfab87db8020000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1010101010101010101010101010101010101010101010101010101010101010070000006d61696e6e6574d7a68bbe656a883d04bba9f26aa340dbe3f8ec99b2adb63b628f2bc92043199800000000000100000006000000616d6f756e74050000000400ca9a3b08050400000006000000616d6f756e740600000005005550b40508060000007461726765742000000001010101010101010101010101010101010101010101010101010101010101010f200000000200000069640900000001e7030000000000000d050f0000006164646974696f6e616c5f696e666f140000001000000074686973206973207472616e736665720a01000000017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce55370195a68b1a05731b7014e580b4c67a506e0339a7fffeaded9f24eb2e7f78b96bdd900b9be8ca33e4552a9a619dc4fc5e4e3a9f74a4b0537c14a5a8007d62a5dc06"
+            const txBlobStr = "017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c0377901000040771b000000000002000000000000002da6c76f011f893c38c1d0ac1927c4417e0a38ff6aacf27d156562cb4642ab30020000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1010101010101010101010101010101010101010101010101010101010101010070000006d61696e6e65745efa31877daaba4cb9ce55934fd83d4ec305418f1d25ba3d0bd25630c8d862e500000000000100000006000000616d6f756e74050000000400ca9a3b08050400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f7572636522000000010202020202020202020202020202020202020202020202020202020202020202010d0c060000007461726765742000000001010101010101010101010101010101010101010101010101010101010101010f2000000001000000017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce553701a8cad8443504610e51a1f2448c8ab142a8fb32963f7701802c1cf1cf96d345031ec12e30ee513e9d969f94712edaff121b6f7023b086c96571efd477b8752b0d"
 
             const txBlob = Buffer.from(txBlobStr, "hex");
             const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
@@ -158,16 +158,18 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            // let hash = txBlob.slice(144,176);
-            //
-            // const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
-            // expect(pk.byteLength).toEqual(33);
-            // const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
-            // const signature = Uint8Array.from(signatureResponse.signatureRS);
-            // expect(signature.byteLength).toEqual(64);
-            //
-            // const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
-            // expect(signatureOk).toEqual(true);
+            let hash = txBlob.slice(168,200);
+            let expected_hash = "5efa31877daaba4cb9ce55934fd83d4ec305418f1d25ba3d0bd25630c8d862e5";
+            expect(hash.toString('hex')).toEqual(expected_hash);
+
+            const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
 
         } finally {
             await sim.close();
@@ -187,16 +189,9 @@ describe('Standard', function () {
             await sim.clickBoth();
             await sim.clickLeft();
 
-            // const respAddr = await app.getAddressAndPubKey("m/44'/506'/0'/0/0");
-            // console.log(respAddr)
-            //
-            // expect(respAddr.returnCode).toEqual(0x9000);
-            // expect(respAddr.errorMessage).toEqual("No errors");
-            //
-            // const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
-            // expect(respAddr.publicKey.toString('hex')).toEqual(expected_pk);
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
 
-            const txBlobStr = "017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c0377901000040771b00000000000200000000000000f2e0782bba4a0a9663cafc7d707fd4a74421bc5bfef4e368b7e8f38dfab87db8020000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1010101010101010101010101010101010101010101010101010101010101010070000006d61696e6e6574d7a68bbe656a883d04bba9f26aa340dbe3f8ec99b2adb63b628f2bc92043199800000000000100000006000000616d6f756e74050000000400ca9a3b08050400000006000000616d6f756e740600000005005550b40508060000007461726765742000000001010101010101010101010101010101010101010101010101010101010101010f200000000200000069640900000001e7030000000000000d050f0000006164646974696f6e616c5f696e666f140000001000000074686973206973207472616e736665720a01000000017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce55370195a68b1a05731b7014e580b4c67a506e0339a7fffeaded9f24eb2e7f78b96bdd900b9be8ca33e4552a9a619dc4fc5e4e3a9f74a4b0537c14a5a8007d62a5dc06"
+            const txBlobStr = "017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c0377901000040771b000000000002000000000000002da6c76f011f893c38c1d0ac1927c4417e0a38ff6aacf27d156562cb4642ab30020000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1010101010101010101010101010101010101010101010101010101010101010070000006d61696e6e65745efa31877daaba4cb9ce55934fd83d4ec305418f1d25ba3d0bd25630c8d862e500000000000100000006000000616d6f756e74050000000400ca9a3b08050400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f7572636522000000010202020202020202020202020202020202020202020202020202020202020202010d0c060000007461726765742000000001010101010101010101010101010101010101010101010101010101010101010f2000000001000000017f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce553701a8cad8443504610e51a1f2448c8ab142a8fb32963f7701802c1cf1cf96d345031ec12e30ee513e9d969f94712edaff121b6f7023b086c96571efd477b8752b0d"
 
             const txBlob = Buffer.from(txBlobStr, "hex");
             const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
@@ -212,16 +207,16 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            // let hash = txBlob.slice(144,176);
-            //
-            // const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
-            // expect(pk.byteLength).toEqual(33);
-            // const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
-            // const signature = Uint8Array.from(signatureResponse.signatureRS);
-            // expect(signature.byteLength).toEqual(64);
-            //
-            // const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
-            // expect(signatureOk).toEqual(true);
+            let hash = txBlob.slice(168,200);
+
+            const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
 
         } finally {
             await sim.close();

@@ -63,14 +63,6 @@ typedef struct {
     ExecutableDeployItem session;
 } parser_tx_t;
 
-//let payment_args = runtime_args! {
-//"quantity" => 1000
-//};
-//let payment = ExecutableDeployItem::StoredContractByName {
-//        name: String::from("casper-example"),
-//        entry_point: String::from("example-entry-point"),
-//        args: payment_args,
-//};
 #ifdef __cplusplus
 }
 #endif
