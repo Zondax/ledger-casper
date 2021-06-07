@@ -257,6 +257,10 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return parser_ok;
         }
 
+        case 12 : {
+            return parser_ok;
+        }
+
         //option with U64 inside for ID
         case 13: {
             uint8_t inner_type = 0;

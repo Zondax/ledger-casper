@@ -125,7 +125,7 @@ parser_error_t find_end_of_number(char *buffer, uint16_t bufferSize, uint16_t *o
 zxerr_t inplace_insert_char(char *s, uint16_t sMaxLen, uint16_t pos, char separator) {
     const size_t len = strlen(s);
     if (len >= sMaxLen) {
-        return pos;
+        return zxerr_buffer_too_small;
     }
 
     if (pos > len) {
@@ -157,22 +157,8 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
-#define DISPLAY_RUNTIMEARG_U512(CTX, LEN){                                        \
-    uint8_t bcdOut[64];                                                     \
-    MEMZERO(bcdOut, sizeof(bcdOut));                                         \
-    uint16_t bcdOutLen = sizeof(bcdOut);                                      \
-    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
-    MEMZERO(buffer, sizeof(buffer));    \
-    bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
-    if(!ok) {                                               \
-        return parser_unexepected_error;                    \
-    }                                                                       \
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
-    return parser_ok;                                                       \
-}
-
 #define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){                                        \
-    uint8_t bcdOut[64];                                                     \
+    uint8_t bcdOut[128];                                                     \
     MEMZERO(bcdOut, sizeof(bcdOut));                                         \
     uint16_t bcdOutLen = sizeof(bcdOut);                                      \
     bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
@@ -192,32 +178,10 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;                                                       \
 }
 
-#define DISPLAY_RUNTIMEARG_KEY(CTX, TYPE, LEN){     \
-    char buffer[300];                                       \
-    MEMZERO(buffer, sizeof(buffer));                         \
-    uint16_t typelen = sizeof((TYPE)) - 1;			\
-    MEMCPY(buffer, (TYPE), typelen);                                                         \
-    array_to_hexstr(buffer + typelen, sizeof(buffer)-typelen, (CTX)->buffer + (CTX)->offset + 1, LEN); \
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount); \
-    return parser_ok;                              \
-}
-
-
-#define DISPLAY_RUNTIMEARG_UREF(CTX, LEN){     \
-    char buffer[300];                                       \
-    MEMZERO(buffer, sizeof(buffer));                         \
-    MEMCPY(buffer, (char *)"uref-", 5);                                                         \
-    array_to_hexstr(buffer + 5, sizeof(buffer)-5, (CTX)->buffer + (CTX)->offset, (LEN)-1);      \
-    MEMCPY(buffer + 4 + (LEN), (char *)"-0", 2);            \
-    array_to_hexstr(buffer + 6 + (LEN), sizeof(buffer)-(6 + (LEN)), (CTX)->buffer + (CTX)->offset + (LEN), 1);      \
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount); \
-    return parser_ok;                              \
-}
-
 parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
-    char buffer[300];
+    char buffer[400];
     MEMZERO(buffer, sizeof(buffer));
     switch(type) {
         case 8 : {
@@ -230,7 +194,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         }
 
         case 12 : {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen);
+            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-1);
         }
 
         case 13 : {
