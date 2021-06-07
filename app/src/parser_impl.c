@@ -254,16 +254,7 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
 
         //only account_hash for "source" supported
         case 11 : {
-            uint8_t keytype = 0;
-            CHECK_PARSER_ERR(readU8(ctx, &keytype));
-            switch (keytype) {
-                case 0x00 : {
-                    return parser_ok;
-                }
-                default : {
-                    return parser_unexpected_type;
-                }
-            }
+            return parser_ok;
         }
 
         //option with U64 inside for ID

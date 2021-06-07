@@ -225,16 +225,8 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         }
 
         case 11 : {
-            uint8_t keytype = 0;
-            CHECK_PARSER_ERR(readU8(ctx, &keytype));
-            switch (keytype) {
-                case 0x00 : {
-                    DISPLAY_RUNTIMEARG_KEY(ctx, "account-hash-", dataLen - 1);
-                }
-                default : {
-                    return parser_unexpected_type;
-                }
-            }
+            ctx->offset++;                              //skip internal type for key
+            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
         }
 
         case 12 : {
@@ -331,6 +323,64 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
     }
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
+
+    if(!app_mode_expert()){
+        if(new_displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
+
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        return parser_no_data;
+    }else{
+        if(new_displayIdx == 0 && item.runtime_items == 4) {
+            snprintf(outKey, outKeyLen, "Source");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(!app_mode_expert()){
+            return parser_no_data;
+        }
+
+        if(new_displayIdx == 2) {
+            snprintf(outKey, outKeyLen, "Id");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(item.runtime_items == 4 && new_displayIdx == 3){
+            snprintf(outKey, outKeyLen, "Source");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+    }
+
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Target");
         CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
