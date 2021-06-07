@@ -159,6 +159,8 @@ describe('Standard', function () {
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
             let hash = txBlob.slice(168,200);
+            let expected_hash = "5efa31877daaba4cb9ce55934fd83d4ec305418f1d25ba3d0bd25630c8d862e5";
+            expect(hash.toString('hex')).toEqual(expected_hash);
 
             const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
             expect(pk.byteLength).toEqual(33);
