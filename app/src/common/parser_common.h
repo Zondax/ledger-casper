@@ -59,6 +59,8 @@ typedef enum {
     // Required fields
     parser_required_nonce,
     parser_required_method,
+    //Casper specific
+    parser_runtimearg_notfound,
 } parser_error_t;
 
 typedef struct {

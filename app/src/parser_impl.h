@@ -45,7 +45,7 @@ parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
 
 parser_error_t parse_item(parser_context_t *ctx);
 
-parser_error_t parse_type(parser_context_t *ctx);
+parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type, uint8_t *option_type);
 
 parser_error_t check_fixed_items(deploy_type_e type, char *buffer, bool *result);
 
