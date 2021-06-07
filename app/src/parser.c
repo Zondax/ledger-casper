@@ -115,20 +115,20 @@ parser_error_t find_end_of_number(char *buffer, uint16_t bufferSize, uint16_t *o
     return parser_unexpected_buffer_end;
 }
 
-zxerr_t inplace_insert_char(char *s, uint16_t sMaxLen, uint16_t pos, char separator) {
+parser_error_t inplace_insert_char(char *s, uint16_t sMaxLen, uint16_t pos, char separator) {
     const size_t len = strlen(s);
     if (len >= sMaxLen) {
-        return zxerr_buffer_too_small;
+        return parser_unexpected_buffer_end;
     }
 
     if (pos > len) {
-        return zxerr_out_of_bounds;
+        return parser_value_out_of_range;
     }
 
     MEMMOVE(s + pos + 1, s + pos, len - pos + 1);  // len-pos+1 because we copy zero terminator
     s[pos] = separator;
 
-    return zxerr_ok;
+    return parser_ok;
 }
 
 parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint16_t *numsize){
@@ -138,7 +138,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     MEMZERO(buffer + *numsize, bufferSize - *numsize);
     while(index > 0) {
         if(step % 3 == 0) {
-            CHECK_ZXERR(inplace_insert_char(buffer, bufferSize, index, ' '))
+            CHECK_PARSER_ERR(inplace_insert_char(buffer, bufferSize, index, ' '))
             step = 1;
             new_size++;
         }else {
