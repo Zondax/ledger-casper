@@ -252,7 +252,7 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return parser_ok;
         }
 
-        //only account_hash for "source" supported
+        //only account_hash for "from" supported
         case 11 : {
             return parser_ok;
         }

@@ -102,13 +102,6 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     pageCount);                                                                                                         \
 }
 
-#define DISPLAY_RUNTIMEARG_STRING(CTX, LEN){                                        \
-    MEMZERO(buffer, sizeof(buffer));                                                \
-    MEMCPY(buffer, (char *) ((CTX)->buffer + (CTX)->offset), LEN);                    \
-    snprintf(outVal, outValLen, "%s", buffer);                                          \
-    return parser_ok;                                                                     \
-}
-
 parser_error_t find_end_of_number(char *buffer, uint16_t bufferSize, uint16_t *output){
     uint16_t index = 0;
     *output = 0;
