@@ -490,16 +490,13 @@ zxerr_t printTime(char *out, uint16_t outLen, uint64_t t) {
     }
     tm_mon++;
 
-    const char *monthName = getMonth(tm_mon);
-
     // YYYYmmdd HH:MM:SS
-    snprintf(out, outLen, "%02d%s%04d %02d:%02d:%02dUTC",
-             tm_day,
-             monthName,
+    snprintf(out, outLen, "%d-%02d-%02dT%02d:%02d:%02dZ",
              tm_year,
+             tm_mon,
+             tm_day,
              tm_hour, tm_min, tm_sec
     );
-
     return zxerr_ok;
 }
 
