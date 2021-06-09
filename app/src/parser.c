@@ -516,30 +516,11 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
-            snprintf(outKey, outKeyLen, "Txn deps");
-            if(numdeps == 0){
-                snprintf(outVal, outValLen, "[]");
-                return parser_ok;
-            }
+            snprintf(outKey, outKeyLen, "Deps #");
+            uint64_t value = 0;
+            MEMCPY(&value, &numdeps, 4);
+            return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
 
-            char buffer[1200];
-            MEMZERO(buffer, sizeof(buffer));
-            MEMCPY(buffer,(char *)"[", 1);
-            uint8_t num_deps = numdeps <= 10 ? numdeps : 10;
-            uint16_t write = 1;
-            uint8_t index = 0;
-            while(index < num_deps - 1){
-                array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
-                write += 64;
-                MEMCPY(buffer + write, (char *)", ",2);
-                write += 2;
-                index += 1;
-            }
-            array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
-            write += 64;
-            MEMCPY(buffer + write,(char *)"]", 1);
-            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
-            return parser_ok;
         }
     }
     uint8_t new_displayIdx = displayIdx - 3;
