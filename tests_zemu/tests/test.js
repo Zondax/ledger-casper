@@ -19,6 +19,8 @@ import Zemu from "@zondax/zemu";
 import CasperApp from "@zondax/ledger-casper";
 import * as secp256k1 from "secp256k1";
 
+const sha256 = require('js-sha256')
+
 const Resolve = require("path").resolve;
 const APP_PATH_S = Resolve("../app/output/app_s.elf");
 const APP_PATH_X = Resolve("../app/output/app_x.elf");
@@ -158,18 +160,17 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            // let hash = txBlob.slice(168,200);
-            // let expected_hash = "5efa31877daaba4cb9ce55934fd83d4ec305418f1d25ba3d0bd25630c8d862e5";
-            // expect(hash.toString('hex')).toEqual(expected_hash);
-            //
-            // const pk = Uint8Array.from(Buffer.from(respAddr.publicKey.toString('hex'), 'hex'))
-            // expect(pk.byteLength).toEqual(33);
-            // const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
-            // const signature = Uint8Array.from(signatureResponse.signatureRS);
-            // expect(signature.byteLength).toEqual(64);
-            //
-            // const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
-            // expect(signatureOk).toEqual(true);
+            let headerhash = txBlob.slice(168,200);
+            let hash = sha256.hex(headerhash).toString('hex');
+
+            const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
 
         } finally {
             await sim.close();
@@ -207,16 +208,17 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            // let hash = txBlob.slice(168,200);
-            //
-            // const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
-            // expect(pk.byteLength).toEqual(33);
-            // const digest = Uint8Array.from(Buffer.from(hash.toString('hex'), 'hex'));
-            // const signature = Uint8Array.from(signatureResponse.signatureRS);
-            // expect(signature.byteLength).toEqual(64);
-            //
-            // const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
-            // expect(signatureOk).toEqual(true);
+            let headerhash = txBlob.slice(168,200);
+            let hash = sha256.hex(headerhash).toString('hex');
+
+            const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
 
         } finally {
             await sim.close();
