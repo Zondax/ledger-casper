@@ -491,6 +491,18 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(readU64(ctx,&value));
             value /= 60000;
             char tmpBuffer[100];
+            if(value >= 60){
+                uint64_t hours = value/60;
+                if(hours >= 24){
+                    uint64_t days = hours/24;
+                    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), days, 0);
+                    snprintf(outVal, outValLen, "%sday", tmpBuffer);
+                    return parser_ok;
+                }
+                fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), hours, 0);
+                snprintf(outVal, outValLen, "%sh", tmpBuffer);
+                return parser_ok;
+            }
             fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
             snprintf(outVal, outValLen, "%sm", tmpBuffer);
             return parser_ok;
@@ -505,11 +517,15 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
             snprintf(outKey, outKeyLen, "Txn deps");
+            if(numdeps == 0){
+                snprintf(outVal, outValLen, "[]");
+                return parser_ok;
+            }
 
-            char buffer[400];
+            char buffer[1200];
             MEMZERO(buffer, sizeof(buffer));
             MEMCPY(buffer,(char *)"[", 1);
-            uint8_t num_deps = numdeps <= 5 ? numdeps : 5;
+            uint8_t num_deps = numdeps <= 10 ? numdeps : 10;
             uint16_t write = 1;
             uint8_t index = 0;
             while(index < num_deps - 1){
