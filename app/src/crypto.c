@@ -129,6 +129,10 @@ zxerr_t crypto_sign(uint8_t *signature,
 
     const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
 
+    uint8_t hash[CX_SHA256_SIZE];
+    MEMCPY(hash, message_digest, CX_SHA256_SIZE);
+    cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
+
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];
     unsigned int info = 0;
@@ -151,8 +155,8 @@ zxerr_t crypto_sign(uint8_t *signature,
             cx_ecdsa_sign(&cx_privateKey,
                                             CX_RND_RFC6979 | CX_LAST,
                                             CX_SHA256,
-                                            message_digest,
-                                            BLAKE2B_256_SIZE,
+                                            hash,
+                                            CX_SHA256_SIZE,
                                             signature_object->der_signature,
                                             sizeof_field(signature_t, der_signature),
                                             &info);

@@ -491,6 +491,18 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(readU64(ctx,&value));
             value /= 60000;
             char tmpBuffer[100];
+            if(value >= 60){
+                uint64_t hours = value/60;
+                if(hours >= 24){
+                    uint64_t days = hours/24;
+                    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), days, 0);
+                    snprintf(outVal, outValLen, "%sday", tmpBuffer);
+                    return parser_ok;
+                }
+                fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), hours, 0);
+                snprintf(outVal, outValLen, "%sh", tmpBuffer);
+                return parser_ok;
+            }
             fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
             snprintf(outVal, outValLen, "%sm", tmpBuffer);
             return parser_ok;
@@ -504,26 +516,11 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
-            snprintf(outKey, outKeyLen, "Txn deps");
+            snprintf(outKey, outKeyLen, "Deps #");
+            uint64_t value = 0;
+            MEMCPY(&value, &numdeps, 4);
+            return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
 
-            char buffer[400];
-            MEMZERO(buffer, sizeof(buffer));
-            MEMCPY(buffer,(char *)"[", 1);
-            uint8_t num_deps = numdeps <= 5 ? numdeps : 5;
-            uint16_t write = 1;
-            uint8_t index = 0;
-            while(index < num_deps - 1){
-                array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
-                write += 64;
-                MEMCPY(buffer + write, (char *)", ",2);
-                write += 2;
-                index += 1;
-            }
-            array_to_hexstr(buffer + write, sizeof(buffer) - write, (ctx->buffer + ctx->offset + index * 32), 32);
-            write += 64;
-            MEMCPY(buffer + write,(char *)"]", 1);
-            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
-            return parser_ok;
         }
     }
     uint8_t new_displayIdx = displayIdx - 3;
