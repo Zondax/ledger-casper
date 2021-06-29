@@ -489,22 +489,61 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx,&value));
-            value /= 60000;
-            char tmpBuffer[100];
-            if(value >= 60){
-                uint64_t hours = value/60;
-                if(hours >= 24){
-                    uint64_t days = hours/24;
-                    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), days, 0);
-                    snprintf(outVal, outValLen, "%sday", tmpBuffer);
-                    return parser_ok;
-                }
-                fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), hours, 0);
-                snprintf(outVal, outValLen, "%sh", tmpBuffer);
-                return parser_ok;
+            value /= 1000;
+            char buffer[100];
+            MEMZERO(buffer,sizeof(buffer));
+            uint16_t index = 0;
+            uint64_t days = value / (60*60*24);
+            if(days > 28){
+                return parser_unexpected_value;
+            };
+            if(days == 1){
+                MEMCPY(buffer + index, (char *)"1day", 4);
+                index += 4;
+            }else if (days > 1){
+                index += fpuint64_to_str(buffer, sizeof(buffer), days, 0);
+                MEMCPY(buffer + index, (char *)"days", 4);
+                index += 4;
             }
-            fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
-            snprintf(outVal, outValLen, "%sm", tmpBuffer);
+            value %= (60*60*24);
+
+            uint64_t hours = value / (60 * 60);
+            value %= (60 * 60);
+            uint64_t minutes = value / (60);
+            value %= 60;
+            uint64_t seconds = value;
+            if (hours > 0){
+                //add space if index > 0
+                if(index > 0) {
+                    MEMCPY(buffer + index, (char *) " ", 1);
+                    index += 1;
+                }
+                index += fpuint64_to_str(buffer + index, sizeof(buffer) - index, hours, 0);
+                MEMCPY(buffer + index, (char *)"h", 1);
+                index += 1;
+            }
+            if (minutes > 0){
+                //add space if index > 0
+                if(index > 0) {
+                    MEMCPY(buffer + index, (char *) " ", 1);
+                    index += 1;
+                }
+                index += fpuint64_to_str(buffer + index, sizeof(buffer) - index, minutes, 0);
+                MEMCPY(buffer + index, (char *)"m", 1);
+                index += 1;
+            }
+            if (seconds > 0){
+                //add space if index > 0
+                if(index > 0) {
+                    MEMCPY(buffer + index, (char *) " ", 1);
+                    index += 1;
+                }
+                index += fpuint64_to_str(buffer + index, sizeof(buffer) - index, seconds, 0);
+                MEMCPY(buffer + index, (char *)"s", 1);
+                index += 1;
+            }
+            buffer[index] = 0;
+            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
             return parser_ok;
         }
 
