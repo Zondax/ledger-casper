@@ -33,8 +33,7 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    parser_error_t err = _read(ctx, &parser_tx_obj);
-    return err;
+    return _read(ctx, &parser_tx_obj);
 }
 
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
@@ -93,7 +92,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 
 #define DISPLAY_RUNTIMEARG_U64(CTX){                                        \
     uint64_t value = 0;                                                     \
-    readU64(CTX, &value);                                                   \
+    CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
@@ -249,9 +248,9 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
         }
         ctx->offset += part;
 
-        parse_item(ctx);
+        CHECK_PARSER_ERR(parse_item(ctx));
 
-        get_type(ctx, &dummyType, &dummyInternal);
+        CHECK_PARSER_ERR(get_type(ctx, &dummyType, &dummyInternal));
     }
 
     return parser_no_data;

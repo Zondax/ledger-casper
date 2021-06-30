@@ -434,8 +434,8 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
 }
 
 parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
-    //PARSER_ASSERT_OR_ERROR(ctx->buffer[0] == 0x02, parser_context_unknown_prefix);
     v->header.pubkeytype = ctx->buffer[0];
+    PARSER_ASSERT_OR_ERROR(v->header.pubkeytype == 0x01 || v->header.pubkeytype == 0x02, parser_context_unknown_prefix);
 
     CHECK_PARSER_ERR(index_headerpart(v->header, header_deps, &ctx->offset));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenDependencies));
