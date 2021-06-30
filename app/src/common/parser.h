@@ -40,6 +40,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                               char *outVal, uint16_t outValLen,
                               uint8_t pageIdx, uint8_t *pageCount);
 
+parser_error_t parse_TTL(uint64_t value, char *buffer, uint16_t bufferSize);
+
 #ifdef __cplusplus
 }
 #endif
