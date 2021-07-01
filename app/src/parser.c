@@ -456,6 +456,9 @@ parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t 
 
 parser_error_t parse_TTL(uint64_t value, char *buffer, uint16_t bufferSize){
     MEMZERO(buffer,bufferSize);
+    if(bufferSize < 23){                //size needed for: "28days 23hours 59m 59s\0"
+        return parser_unexpected_buffer_end;
+    }
     uint16_t index = 0;
     uint64_t days = value / (60*60*24);
     if(days > 28){
