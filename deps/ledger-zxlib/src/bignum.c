@@ -14,6 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 #include "zxtypes.h"
+#include "zxerror.h"
 #include "bignum.h"
 
 bool_t bignumLittleEndian_bcdprint(char *outBuffer, uint16_t outBufferLen,
@@ -50,7 +51,7 @@ bool_t bignumLittleEndian_bcdprint(char *outBuffer, uint16_t outBufferLen,
     return bool_true;
 }
 
-void bignumLittleEndian_to_bcd(uint8_t *bcdOut, uint16_t bcdOutLen,
+zxerr_t bignumLittleEndian_to_bcd(uint8_t *bcdOut, uint16_t bcdOutLen,
                                const uint8_t *binValue, uint16_t binValueLen) {
     MEMZERO(bcdOut, bcdOutLen);
 
@@ -69,6 +70,9 @@ void bignumLittleEndian_to_bcd(uint8_t *bcdOut, uint16_t bcdOutLen,
         // get bit
         const uint16_t byteIdx = bitIdx >> 3u;
         const uint8_t mask = 0x80u >> (bitIdx & 0x7u);
+        if(byteIdx + 1 >= binValueLen){
+            return zxerr_unknown;
+        }
         carry = (uint8_t) ((binValue[binValueLen - byteIdx - 1] & mask) > 0);
 
         // Shift bcd

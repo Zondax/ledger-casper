@@ -155,11 +155,14 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
-#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){                                        \
+#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){ \
     uint8_t bcdOut[128];                                                     \
-    MEMZERO(bcdOut, sizeof(bcdOut));                                         \
-    uint16_t bcdOutLen = sizeof(bcdOut);                                      \
-    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
+    MEMZERO(bcdOut, sizeof(bcdOut));         \
+    uint16_t bcdOutLen = sizeof(bcdOut);                                            \
+    zxerr_t err = bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
+    if(err != zxerr_ok){                     \
+        return parser_unexepected_error;                \
+    }                                         \
     MEMZERO(buffer, sizeof(buffer));    \
     bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
     if(!ok) {                                               \
@@ -181,6 +184,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                                          uint8_t pageIdx, uint8_t *pageCount){
     char buffer[400];
     MEMZERO(buffer, sizeof(buffer));
+    if(ctx->offset + dataLen >= ctx->bufferLen || dataLen == 0){
+        return parser_unexpected_buffer_end;
+    }
     switch(type) {
         case 8 : {
             DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
@@ -202,6 +208,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                 snprintf(outVal, outValLen, "None");
                 return parser_ok;
             } else {
+                if(ctx->offset + dataLen >= ctx->bufferLen){
+                    return parser_unexpected_buffer_end;
+                }
                 type = *(ctx->buffer + ctx->offset + dataLen);
                 if(type == 5){
                     DISPLAY_RUNTIMEARG_U64(ctx)
