@@ -84,7 +84,10 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 #define DISPLAY_STRING(KEYNAME, VALUE, VALUELEN) {         \
     snprintf(outKey, outKeyLen, KEYNAME);            \
     char buffer[100];                               \
-    MEMZERO(buffer, sizeof(buffer));              \
+    MEMZERO(buffer, sizeof(buffer));                       \
+    if ((VALUELEN) > sizeof(buffer)){                      \
+        return parser_unexpected_buffer_end;                             \
+    }                                   \
     MEMCPY(buffer, (char *)(VALUE),VALUELEN);         \
     pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount); \
     return parser_ok;   \
