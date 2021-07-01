@@ -33,8 +33,7 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    parser_error_t err = _read(ctx, &parser_tx_obj);
-    return err;
+    return _read(ctx, &parser_tx_obj);
 }
 
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
@@ -85,7 +84,10 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 #define DISPLAY_STRING(KEYNAME, VALUE, VALUELEN) {         \
     snprintf(outKey, outKeyLen, KEYNAME);            \
     char buffer[100];                               \
-    MEMZERO(buffer, sizeof(buffer));              \
+    MEMZERO(buffer, sizeof(buffer));                       \
+    if ((VALUELEN) > sizeof(buffer)){                      \
+        return parser_unexpected_buffer_end;                             \
+    }                                   \
     MEMCPY(buffer, (char *)(VALUE),VALUELEN);         \
     pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount); \
     return parser_ok;   \
@@ -93,7 +95,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 
 #define DISPLAY_RUNTIMEARG_U64(CTX){                                        \
     uint64_t value = 0;                                                     \
-    readU64(CTX, &value);                                                   \
+    CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
@@ -135,6 +137,9 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     uint16_t new_size = *numsize;
     uint16_t index = *numsize-1;
     uint16_t step = 1;
+    if(*numsize >= bufferSize) {
+        return parser_unexpected_buffer_end;
+    }
     MEMZERO(buffer + *numsize, bufferSize - *numsize);
     while(index > 0) {
         if(step % 3 == 0) {
@@ -150,10 +155,10 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
-#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){                                        \
+#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){ \
     uint8_t bcdOut[128];                                                     \
-    MEMZERO(bcdOut, sizeof(bcdOut));                                         \
-    uint16_t bcdOutLen = sizeof(bcdOut);                                      \
+    MEMZERO(bcdOut, sizeof(bcdOut));         \
+    uint16_t bcdOutLen = sizeof(bcdOut);                                            \
     bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
     MEMZERO(buffer, sizeof(buffer));    \
     bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
@@ -176,8 +181,14 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                                          uint8_t pageIdx, uint8_t *pageCount){
     char buffer[400];
     MEMZERO(buffer, sizeof(buffer));
+    if(ctx->offset + dataLen >= ctx->bufferLen){
+        return parser_unexpected_buffer_end;
+    }
     switch(type) {
         case 8 : {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
             DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
         }
 
@@ -197,6 +208,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                 snprintf(outVal, outValLen, "None");
                 return parser_ok;
             } else {
+                if(ctx->offset + dataLen >= ctx->bufferLen){
+                    return parser_unexpected_buffer_end;
+                }
                 type = *(ctx->buffer + ctx->offset + dataLen);
                 if(type == 5){
                     DISPLAY_RUNTIMEARG_U64(ctx)
@@ -228,6 +242,9 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
     for (uint8_t index = 0; index < num_items; index++) {
         uint32_t part = 0;
         CHECK_PARSER_ERR(readU32(ctx, &part));
+        if(part > sizeof(buffer) || part > ctx->bufferLen - ctx->offset){
+            return parser_unexpected_buffer_end;
+        }
         MEMZERO(buffer, sizeof(buffer));
         MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
         if (strcmp(buffer, keystr) == 0) {
@@ -235,6 +252,9 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
             ctx->offset += part;
             //read value length
             CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+            if(dataLen > ctx->bufferLen - ctx->offset){
+                return parser_unexpected_buffer_end;
+            }
 
             //remember start of data
             start_data = ctx->offset;
@@ -249,9 +269,13 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
         }
         ctx->offset += part;
 
-        parse_item(ctx);
+        if (parse_item(ctx) != parser_ok){
+            return parser_unexepected_error;
+        };
 
-        get_type(ctx, &dummyType, &dummyInternal);
+        if(get_type(ctx, &dummyType, &dummyInternal) != parser_ok){
+            return parser_unexepected_error;
+        };
     }
 
     return parser_no_data;
@@ -349,6 +373,9 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
                                           uint8_t pageIdx, uint8_t *pageCount) {
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if(dataLen > ctx->bufferLen - ctx->offset){
+        return parser_unexpected_buffer_end;
+    }
     if (displayIdx == 0) {
         if (item.phase == Payment && dataLen == 0) {
             snprintf(outVal, outValLen, "system");
@@ -436,6 +463,64 @@ parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t 
     }
 }
 
+parser_error_t parse_TTL(uint64_t value, char *buffer, uint16_t bufferSize){
+    MEMZERO(buffer,bufferSize);
+    if(bufferSize < 23){                //size needed for: "28days 23hours 59m 59s\0"
+        return parser_unexpected_buffer_end;
+    }
+    uint16_t index = 0;
+    uint64_t days = value / (60*60*24);
+    if(days > 28){
+        return parser_unexpected_value;
+    };
+    if(days == 1){
+        MEMCPY(buffer + index, (char *)"1day", 4);
+        index += 4;
+    }else if (days > 1){
+        index += fpuint64_to_str(buffer, bufferSize, days, 0);
+        MEMCPY(buffer + index, (char *)"days", 4);
+        index += 4;
+    }
+    value %= (60*60*24);
+
+    uint64_t hours = value / (60 * 60);
+    value %= (60 * 60);
+    uint64_t minutes = value / (60);
+    value %= 60;
+    uint64_t seconds = value;
+    if (hours > 0){
+        //add space if index > 0
+        if(index > 0) {
+            MEMCPY(buffer + index, (char *) " ", 1);
+            index += 1;
+        }
+        index += fpuint64_to_str(buffer + index, bufferSize - index, hours, 0);
+        MEMCPY(buffer + index, (char *)"h", 1);
+        index += 1;
+    }
+    if (minutes > 0){
+        //add space if index > 0
+        if(index > 0) {
+            MEMCPY(buffer + index, (char *) " ", 1);
+            index += 1;
+        }
+        index += fpuint64_to_str(buffer + index, bufferSize - index, minutes, 0);
+        MEMCPY(buffer + index, (char *)"m", 1);
+        index += 1;
+    }
+    if (seconds > 0){
+        //add space if index > 0
+        if(index > 0) {
+            MEMCPY(buffer + index, (char *) " ", 1);
+            index += 1;
+        }
+        index += fpuint64_to_str(buffer + index, bufferSize - index, seconds, 0);
+        MEMCPY(buffer + index, (char *)"s", 1);
+        index += 1;
+    }
+    buffer[index] = 0;
+    return parser_ok;
+}
 
 parser_error_t parser_getItem(parser_context_t *ctx,
                               uint8_t displayIdx,
@@ -489,22 +574,10 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx,&value));
-            value /= 60000;
-            char tmpBuffer[100];
-            if(value >= 60){
-                uint64_t hours = value/60;
-                if(hours >= 24){
-                    uint64_t days = hours/24;
-                    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), days, 0);
-                    snprintf(outVal, outValLen, "%sday", tmpBuffer);
-                    return parser_ok;
-                }
-                fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), hours, 0);
-                snprintf(outVal, outValLen, "%sh", tmpBuffer);
-                return parser_ok;
-            }
-            fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
-            snprintf(outVal, outValLen, "%sm", tmpBuffer);
+            value /= 1000;
+            char buffer[100];
+            CHECK_PARSER_ERR(parse_TTL(value, buffer, sizeof(buffer)));
+            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
             return parser_ok;
         }
 

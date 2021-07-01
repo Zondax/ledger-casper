@@ -24,6 +24,38 @@
 // Basic CBOR test cases generated with http://cbor.me/
 
 namespace {
+    TEST(DeployUI, TTL) {
+        uint64_t minute = 60;
+        uint64_t hour = 60 * minute;
+        uint64_t day = 24 * hour;
+        uint64_t week = 7*day;
+
+        char buffer[100];
+        auto err = parse_TTL(minute, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "1m");
+
+        err = parse_TTL(minute + 20, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "1m 20s");
+
+        err = parse_TTL(hour + minute + 20, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "1h 1m 20s");
+
+        err = parse_TTL(day, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "1day");
+
+        err = parse_TTL(day + hour + minute + 20, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "1day 1h 1m 20s");
+
+        err = parse_TTL(week + day + hour + minute + 20, buffer, sizeof(buffer));
+        EXPECT_EQ(err, parser_ok);
+        EXPECT_STREQ(buffer, "8days 1h 1m 20s");
+
+    }
 
     TEST(DeployGen, tokentransfer) {
         uint8_t inBuffer[1000];

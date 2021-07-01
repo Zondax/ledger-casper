@@ -104,8 +104,6 @@ zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
     return zxerr_ok;
 }
 
-
-
 typedef struct {
     uint8_t r[32];
     uint8_t s[32];
@@ -180,34 +178,6 @@ zxerr_t crypto_sign(uint8_t *signature,
 }
 
 #endif
-
-uint8_t decompressLEB128(const uint8_t *input, uint16_t inputSize, uint64_t *v) {
-    unsigned int i = 0;
-
-    *v = 0;
-    uint16_t shift = 0;
-    while (i < 10u && i < inputSize) {
-        uint64_t b = input[i] & 0x7fu;
-
-        if (shift >= 63 && b > 1) {
-            // This will overflow uint64_t
-            break;
-        }
-
-        *v |= b << shift;
-
-        if (!(input[i] & 0x80u)) {
-            return 1;
-        }
-
-        shift += 7;
-        i++;
-    }
-
-    // exit because of overflowing outputSize
-    *v = 0;
-    return 0;
-}
 
 typedef struct {
     uint8_t publicKey[SECP256K1_PK_LEN];
