@@ -159,10 +159,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     uint8_t bcdOut[128];                                                     \
     MEMZERO(bcdOut, sizeof(bcdOut));         \
     uint16_t bcdOutLen = sizeof(bcdOut);                                            \
-    zxerr_t err = bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
-    if(err != zxerr_ok){                     \
-        return parser_unexepected_error;                \
-    }                                         \
+    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
     MEMZERO(buffer, sizeof(buffer));    \
     bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);   \
     if(!ok) {                                               \
@@ -184,11 +181,14 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                                          uint8_t pageIdx, uint8_t *pageCount){
     char buffer[400];
     MEMZERO(buffer, sizeof(buffer));
-    if(ctx->offset + dataLen >= ctx->bufferLen || dataLen == 0){
+    if(ctx->offset + dataLen >= ctx->bufferLen){
         return parser_unexpected_buffer_end;
     }
     switch(type) {
         case 8 : {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
             DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
         }
 
