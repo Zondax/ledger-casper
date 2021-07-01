@@ -134,6 +134,9 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     uint16_t new_size = *numsize;
     uint16_t index = *numsize-1;
     uint16_t step = 1;
+    if(*numsize >= bufferSize) {
+        return parser_unexpected_buffer_end;
+    }
     MEMZERO(buffer + *numsize, bufferSize - *numsize);
     while(index > 0) {
         if(step % 3 == 0) {
@@ -227,6 +230,9 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
     for (uint8_t index = 0; index < num_items; index++) {
         uint32_t part = 0;
         CHECK_PARSER_ERR(readU32(ctx, &part));
+        if(part > sizeof(buffer) || part > ctx->bufferLen - ctx->offset){
+            return parser_unexpected_buffer_end;
+        }
         MEMZERO(buffer, sizeof(buffer));
         MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
         if (strcmp(buffer, keystr) == 0) {
@@ -234,6 +240,9 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
             ctx->offset += part;
             //read value length
             CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+            if(dataLen > ctx->bufferLen - ctx->offset){
+                return parser_unexpected_buffer_end;
+            }
 
             //remember start of data
             start_data = ctx->offset;
@@ -248,9 +257,13 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
         }
         ctx->offset += part;
 
-        CHECK_PARSER_ERR(parse_item(ctx));
+        if (parse_item(ctx) != parser_ok){
+            return parser_unexepected_error;
+        };
 
-        CHECK_PARSER_ERR(get_type(ctx, &dummyType, &dummyInternal));
+        if(get_type(ctx, &dummyType, &dummyInternal) != parser_ok){
+            return parser_unexepected_error;
+        };
     }
 
     return parser_no_data;
@@ -348,6 +361,9 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
                                           uint8_t pageIdx, uint8_t *pageCount) {
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    if(dataLen > ctx->bufferLen - ctx->offset){
+        return parser_unexpected_buffer_end;
+    }
     if (displayIdx == 0) {
         if (item.phase == Payment && dataLen == 0) {
             snprintf(outVal, outValLen, "system");

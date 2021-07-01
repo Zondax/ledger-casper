@@ -287,6 +287,9 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
 parser_error_t parse_item(parser_context_t *ctx) {
     uint32_t part = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
+    if(part >= ctx->bufferLen - ctx->offset){
+        return parser_unexpected_buffer_end;
+    }
     ctx->offset += part;
     return parser_ok;
 }
@@ -331,6 +334,9 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
         //key
         uint32_t part = 0;
         CHECK_PARSER_ERR(readU32(ctx, &part));
+        if(part >= sizeof(buffer) || part >= ctx->bufferLen - ctx->offset){
+            return parser_unexpected_buffer_end;
+        }
         MEMZERO(buffer, sizeof(buffer));
         MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
         if (strcmp(buffer, argstr) == 0) {
@@ -388,18 +394,19 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
-    if (ctx->offset - index == 4) {                          //this means the module bytes are empty
+    if (ctx->offset > index && ctx->offset - index == 4) {                          //this means the module bytes are empty
         item->fixed_items += 1;
     } else {
         return parser_unexpected_method; //only system payments support
     }
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+    PARSER_ASSERT_OR_ERROR(deploy_argLen == 1, parser_unexpected_number_items);
+
     uint8_t type = 255;
     uint8_t internal_type = 0;
     CHECK_RUNTIME_ARGTYPE("amount", type == 8);
     item->runtime_items += 1; //amount only
-    PARSER_ASSERT_OR_ERROR(deploy_argLen == 1, parser_unexpected_number_items);
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
