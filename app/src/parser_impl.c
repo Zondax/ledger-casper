@@ -481,7 +481,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     //check headerhash
     MEMZERO(hash, sizeof(hash));
     if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
-        return parser_unexpected_error;
+        return parser_unexepected_error;
     };
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
@@ -490,7 +490,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     uint16_t index = headerLength(v->header) + BLAKE2B_256_SIZE;
     uint32_t size = v->payment.totalLength + v->session.totalLength;
     if (blake2b_hash(c->buffer + index,size,hash) != zxerr_ok){
-        return parser_unexpected_error;
+        return parser_unexepected_error;
     };
 
     index = 0;
