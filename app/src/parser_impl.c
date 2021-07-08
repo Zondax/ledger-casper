@@ -368,7 +368,6 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-    item->fixed_items += 1;               //type of transfer
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
     PARSER_ASSERT_OR_ERROR(3 <= deploy_argLen && deploy_argLen <= 4, parser_unexpected_number_items);
@@ -394,9 +393,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
-    if (ctx->offset > index && ctx->offset - index == 4) {                          //this means the module bytes are empty
-        item->fixed_items += 1;
-    } else {
+    if (!(ctx->offset > index && ctx->offset - index == 4)) {                          //this means the module bytes are empty
         return parser_unexpected_method; //only system payments support
     }
     uint32_t deploy_argLen = 0;
@@ -509,7 +506,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
-    uint8_t basicnum = app_mode_expert() ? 7 : 3;
+    uint8_t basicnum = app_mode_expert() ? 8 : 4;
     uint8_t itemCount = 1 +
             basicnum + v->payment.fixed_items + v->payment.runtime_items + v->session.fixed_items + v->session.runtime_items; //header + payment + session v->session.num_items
     return itemCount;

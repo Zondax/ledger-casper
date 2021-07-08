@@ -286,10 +286,6 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
                                        char *outKey, uint16_t outKeyLen,
                                        char *outVal, uint16_t outValLen,
                                        uint8_t pageIdx, uint8_t *pageCount) {
-    if (displayIdx == 0) {
-        snprintf(outVal, outValLen, "%s", "native transfer");
-        return parser_ok;
-    }
     uint32_t num_items = 0;
     CHECK_PARSER_ERR(readU32(ctx, &num_items));
 
@@ -326,7 +322,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         return parser_no_data;
     }else{
         if(new_displayIdx == 0 && item.runtime_items == 4) {
-            snprintf(outKey, outKeyLen, "Source");
+            snprintf(outKey, outKeyLen, "From");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx,
                                              outVal, outValLen,
@@ -355,7 +351,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         }
 
         if(new_displayIdx == 2) {
-            snprintf(outKey, outKeyLen, "Id");
+            snprintf(outKey, outKeyLen, "ID");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx,
                                              outVal, outValLen,
@@ -376,14 +372,6 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     if(dataLen > ctx->bufferLen - ctx->offset){
         return parser_unexpected_buffer_end;
     }
-    if (displayIdx == 0) {
-        if (item.phase == Payment && dataLen == 0) {
-            snprintf(outVal, outValLen, "system");
-        } else {
-            return parser_unexpected_method; //only system payment support
-        }
-        return parser_ok;
-    }
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
@@ -394,7 +382,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
     if(new_displayIdx == 0) {
-        snprintf(outKey, outKeyLen, "Amount");
+        snprintf(outKey, outKeyLen, "Fee");
         CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.runtime_items, ctx))
         return parser_display_runtimeArg(datatype, dataLength, ctx,
                                          outVal, outValLen,
@@ -542,22 +530,29 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     }
 
     if (displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Txn hash");
+        ctx->offset = headerLength(parser_tx_obj.header);
+        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), 32, outVal, outValLen,
+                                 pageIdx, pageCount);
+    }
+
+    if (displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Type");
         if (parser_tx_obj.session.type == Transfer) {
-            snprintf(outVal, outValLen, "Transfer");
+            snprintf(outVal, outValLen, "Token transfer");
         } else {
             snprintf(outVal, outValLen, "Contract");
         }
         return parser_ok;
     }
 
-    if (displayIdx == 1) {
+    if (displayIdx == 2) {
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &ctx->offset));
         DISPLAY_STRING("Chain ID", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
     }
 
-    if (displayIdx == 2) {
-        snprintf(outKey, outKeyLen, "From");
+    if (displayIdx == 3) {
+        snprintf(outKey, outKeyLen, "Account");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
         uint16_t pubkeyLen = 1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
         return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
@@ -565,11 +560,11 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     }
 
     if (app_mode_expert()) {
-        if (displayIdx == 3) {
+        if (displayIdx == 4) {
             DISPLAY_HEADER_TIMESTAMP("Timestamp", header_timestamp)
         }
 
-        if (displayIdx == 4) {
+        if (displayIdx == 5) {
             snprintf(outKey, outKeyLen, "Ttl");
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
             uint64_t value = 0;
@@ -581,11 +576,11 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             return parser_ok;
         }
 
-        if (displayIdx == 5) {
+        if (displayIdx == 6) {
             DISPLAY_HEADER_U64("Gas price", header_gasprice)
         }
 
-        if (displayIdx == 6) {
+        if (displayIdx == 7) {
             CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
@@ -596,7 +591,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
         }
     }
-    uint8_t new_displayIdx = displayIdx - 3;
+    uint8_t new_displayIdx = displayIdx - 4;
     if (app_mode_expert()) {
         new_displayIdx -= 4;
     }
