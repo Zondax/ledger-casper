@@ -277,6 +277,10 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return _readUInt32(ctx, &num_bytes);
         }
 
+        case 22: {
+            return parser_ok;
+        }
+
         default : {
             return parser_unexpected_type;
         }
@@ -366,29 +370,30 @@ parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) 
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
-
-#define PARSE_VERSION(CTX, ITEM) {         \
-    uint8_t type = 0xff;                    \
-    CHECK_PARSER_ERR(_readUInt8(CTX, &type));  \
-    if (type == 0x00) {                    \
-    /*nothing to do : empty version */      \
-    } else if (type == 0x01) {              \
-        uint32_t p = 0;                     \
-        CHECK_PARSER_ERR(_readUInt32(CTX, &p));               \
-    } else {                                \
-        return parser_context_unknown_prefix;   \
-    }                                       \
-    (ITEM)->UI_fixed_items += 1;                 \
-}                                           \
+parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
+    uint8_t type = 0xff;
+    CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    if (type == 0x00) {
+    /*nothing to do : empty version */
+    } else if (type == 0x01) {
+        CHECK_PARSER_ERR(_readUInt32(ctx, version));
+    } else {
+        return parser_context_unknown_prefix;
+    }
+    return parser_ok;
+}
 
 
 parser_error_t
 parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
     ctx->offset += HASH_LENGTH;
-
+    uint32_t dummy = 0;
     if (item->type == StoredVersionedContractByHash) {
-        PARSE_VERSION(ctx, item)
+        CHECK_PARSER_ERR(parse_version(ctx, &dummy))
+        if(app_mode_expert()){
+            item->UI_fixed_items++;
+        }
     }
 
     char buffer[100];
@@ -398,7 +403,7 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
-        return 100;
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
     }else{
         return parser_unexepected_error;
     }

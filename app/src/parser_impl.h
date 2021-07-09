@@ -53,6 +53,8 @@ parser_error_t check_fixed_items(deploy_type_e type, char *buffer, bool *result)
 
 parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, uint16_t bufferLen);
 
+parser_error_t parse_version(parser_context_t *ctx, uint32_t *version);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,3 +21,23 @@
 parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
+
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
+
+parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_context_t *ctx,
+                                            uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen,
+                                            char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount);
+
+parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
+                                             uint8_t displayIdx,
+                                             char *outKey, uint16_t outKeyLen,
+                                             char *outVal, uint16_t outValLen,
+                                             uint8_t pageIdx, uint8_t *pageCount);
+
+parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_context_t *ctx,
+                                         uint8_t displayIdx,
+                                         char *outKey, uint16_t outKeyLen,
+                                         char *outVal, uint16_t outValLen,
+                                         uint8_t pageIdx, uint8_t *pageCount);

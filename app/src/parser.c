@@ -24,6 +24,7 @@
 #include "crypto.h"
 #include "timeutils.h"
 #include "parser_common.h"
+#include "parser_special.h"
 
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
@@ -227,6 +228,12 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
 
+        case 22: {
+            uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
+            uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
+            DISPLAY_RUNTIMEARG_BYTES(ctx, 1 + pubkeyLen)
+        }
+
         default : {
             return parser_unexpected_type;
         }
@@ -414,7 +421,7 @@ parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t 
 
         case StoredVersionedContractByHash :
         case StoredContractByHash : {
-            return parser_unexpected_method;
+            return parser_ok;
         }
 
         case StoredVersionedContractByName :
@@ -518,10 +525,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
     if (displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Type");
-        if (parser_tx_obj.session.type == Transfer) {
+        if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
             snprintf(outVal, outValLen, "Token transfer");
-        } else {
-            snprintf(outVal, outValLen, "Contract");
+        } else if (parser_tx_obj.session.special_type == Delegate){
+            snprintf(outVal, outValLen, "Delegate");
+        }else{
+            return parser_unexpected_type;
         }
         return parser_ok;
     }
@@ -579,8 +588,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
     uint16_t total_payment_items = parser_tx_obj.payment.UI_fixed_items + parser_tx_obj.payment.UI_runtime_items;
     if (new_displayIdx < total_payment_items) {
-        return parser_getItemDeploy(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                    outValLen, pageIdx, pageCount);
+        if(parser_tx_obj.payment.special_type == SystemPayment){
+            return parser_getItem_SystemPayment(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
+                                                outValLen, pageIdx, pageCount);
+        }else{
+            return parser_unexpected_type; //only support for system payments now
+        }
     }
 
     new_displayIdx -= total_payment_items;
@@ -589,8 +602,14 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     uint16_t total_session_items = parser_tx_obj.session.UI_fixed_items + parser_tx_obj.session.UI_runtime_items;
 
     if (new_displayIdx < total_session_items) {
-        return parser_getItemDeploy(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                    outValLen, pageIdx, pageCount);
+        special_deploy_e special_type = parser_tx_obj.session.special_type;
+        if(special_type == NativeTransfer){
+            return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        }else if(special_type == Delegate){
+            return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        }else{
+            return parser_unexpected_type;
+        }
     }
 
     ctx->offset += parser_tx_obj.session.totalLength;
