@@ -53,16 +53,6 @@ parser_error_t check_fixed_items(deploy_type_e type, char *buffer, bool *result)
 
 parser_error_t copy_key_into_buffer(parser_context_t *ctx, char *buffer, uint16_t bufferLen);
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx);
-
-#define CHECK_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
-    type = 255;                     \
-    internal_type = 255;                                           \
-    CHECK_PARSER_ERR(searchRuntimeArgs((STR), &type, &internal_type, (NUM_ITEMS), (CTX)));          \
-    PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
-}
-
-
 #ifdef __cplusplus
 }
 #endif

@@ -19,3 +19,5 @@
 #include "parser_txdef.h"
 
 parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
+
+parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);

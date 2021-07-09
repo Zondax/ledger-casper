@@ -336,66 +336,28 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
     return parser_ok;
 }
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
-    uint16_t start = ctx->offset;
-    char buffer[300];
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        CHECK_PARSER_ERR(copy_key_into_buffer(ctx, buffer, sizeof(buffer)));
-        if (strcmp(buffer, argstr) == 0) {
-            //value
-            CHECK_PARSER_ERR(parse_item(ctx));
-
-            CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
-
-            ctx->offset = start;
-            return parser_ok;
-        }
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
-    return parser_runtimearg_notfound;
-}
-
-parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
-    uint32_t start = *(uint32_t *) &ctx->offset;
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    PARSER_ASSERT_OR_ERROR(3 <= deploy_argLen && deploy_argLen <= 4, parser_unexpected_number_items);
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "target", type == 11 || type == 12 || type == 15);
-    if(deploy_argLen == 4){
-        CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "source", type == 13 && internal_type == 12);
-    }
-    if(app_mode_expert()){
-        item->UI_runtime_items += deploy_argLen;
-    }else{
-        item->UI_runtime_items += 2; //amount and target only
-    }
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
-    return parseTotalLength(ctx, start, &item->totalLength);
-}
-
 parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
 
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
     uint32_t deploy_argLen = 0;
-    if (!(ctx->offset > index && ctx->offset - index == 4)) {                          //this means the module bytes are empty
-        return parser_unexpected_method; //only system payments support
-    }else{
+    if ((ctx->offset > index && ctx->offset - index == 4)) {                          //this means the module bytes are empty
         CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
         CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen));
+    }else{
+        return parser_unexpected_method; //only system payments support
     }
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
+    return parseTotalLength(ctx, start, &item->totalLength);
+}
+
+parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    //only support for native transfers now
+    CHECK_PARSER_ERR(parseNativeTransfer(ctx, item, deploy_argLen));
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -421,7 +383,7 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
         }
 
         case Transfer : {
-            return parseNativeTransfer(ctx, item);
+            return parseTransfer(ctx, item);
         }
         default : {
             return parser_context_mismatch;
