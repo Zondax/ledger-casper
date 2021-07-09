@@ -61,7 +61,7 @@ typedef enum {
 typedef struct {
     phase_type_e phase;
     deploy_type_e type;
-    special_deploy_e internal_type;
+    special_deploy_e special_type;
     uint32_t num_runtime_args;
     uint32_t UI_fixed_items;
     uint32_t UI_runtime_items;
