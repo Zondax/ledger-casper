@@ -23,6 +23,7 @@
 #include "bignum.h"
 #include "crypto.h"
 #include "timeutils.h"
+#include "parser_common.h"
 
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
@@ -233,23 +234,14 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
 }
 
 parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
-    uint16_t start_data = 0;
     char buffer[300];
     //loop to the correct index
     uint32_t dataLen = 0;
     uint8_t dummyType = 0;
     uint8_t dummyInternal = 0;
     for (uint8_t index = 0; index < num_items; index++) {
-        uint32_t part = 0;
-        CHECK_PARSER_ERR(readU32(ctx, &part));
-        if(part > sizeof(buffer) || part > ctx->bufferLen - ctx->offset){
-            return parser_unexpected_buffer_end;
-        }
-        MEMZERO(buffer, sizeof(buffer));
-        MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
+        CHECK_PARSER_ERR(copy_key_into_buffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, keystr) == 0) {
-            //continue key
-            ctx->offset += part;
             //read value length
             CHECK_PARSER_ERR(readU32(ctx, &dataLen));
             if(dataLen > ctx->bufferLen - ctx->offset){
@@ -257,7 +249,7 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
             }
 
             //remember start of data
-            start_data = ctx->offset;
+            uint16_t start_data = ctx->offset;
             //write length of data
             *length = dataLen;
             ctx->offset += dataLen;
@@ -267,15 +259,10 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
             ctx->offset = start_data;
             return parser_ok;
         }
-        ctx->offset += part;
 
-        if (parse_item(ctx) != parser_ok){
-            return parser_unexepected_error;
-        };
+        CHECK_PARSER_ERR(parse_item(ctx));
 
-        if(get_type(ctx, &dummyType, &dummyInternal) != parser_ok){
-            return parser_unexepected_error;
-        };
+        CHECK_PARSER_ERR(get_type(ctx, &dummyType, &dummyInternal));
     }
 
     return parser_no_data;
@@ -408,10 +395,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     value /= 1000;                                                            \
     char buffer[300];                                           \
     MEMZERO(buffer,sizeof(buffer));                             \
-    zxerr_t err = printTime(buffer, sizeof(buffer), value);     \
-    if(err != zxerr_ok){                                        \
-        return parser_unexepected_error;                                   \
-    }                                                            \
+    PARSER_ASSERT_OR_ERROR(printTime(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
     return parser_ok;                                                                \
 }
@@ -607,7 +591,6 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     ctx->offset += parser_tx_obj.payment.totalLength;
 
     uint16_t total_session_items = parser_tx_obj.session.fixed_items + parser_tx_obj.session.runtime_items;
-
 
     if (new_displayIdx < total_session_items) {
         return parser_getItemDeploy(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,

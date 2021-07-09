@@ -41,8 +41,6 @@ GEN_DEC_READFIX_UNSIGNED(32);
 
 GEN_DEC_READFIX_UNSIGNED(64);
 
-#define PARSER_ASSERT_OR_ERROR(CALL, ERROR) if (!(CALL)) return ERROR;
-
 //pub account: PublicKey,             //1 + 32/33
 //pub timestamp: Timestamp,           //8
 //pub ttl: TimeDiff,                  //8
@@ -309,6 +307,18 @@ parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t 
     return parser_ok;
 }
 
+parser_error_t copy_key_into_buffer(parser_context_t *ctx, char *buffer, uint16_t bufferLen){
+    uint32_t part = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &part));
+    if(part > bufferLen || part > ctx->bufferLen - ctx->offset){
+        return parser_unexpected_buffer_end;
+    }
+    MEMZERO(buffer, bufferLen);
+    MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
+    ctx->offset += part;
+    return parser_ok;
+}
+
 parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
@@ -332,15 +342,8 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     uint8_t dummy_internal = 0;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
-        uint32_t part = 0;
-        CHECK_PARSER_ERR(readU32(ctx, &part));
-        if(part >= sizeof(buffer) || part >= ctx->bufferLen - ctx->offset){
-            return parser_unexpected_buffer_end;
-        }
-        MEMZERO(buffer, sizeof(buffer));
-        MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
+        CHECK_PARSER_ERR(copy_key_into_buffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, argstr) == 0) {
-            ctx->offset += part;
             //value
             CHECK_PARSER_ERR(parse_item(ctx));
 
@@ -349,7 +352,6 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
             ctx->offset = start;
             return parser_ok;
         }
-        ctx->offset += part;
         //value
         CHECK_PARSER_ERR(parse_item(ctx));
 
@@ -467,7 +469,6 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     }
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
-
     return parser_ok;
 }
 
