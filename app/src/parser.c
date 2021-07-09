@@ -276,13 +276,13 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
     uint32_t num_items = 0;
     CHECK_PARSER_ERR(readU32(ctx, &num_items));
 
-    if(item.runtime_items > num_items){
+    if(item.UI_runtime_items > num_items){
         return parser_unexpected_number_items;
     }
 
-    uint8_t new_displayIdx = displayIdx - item.fixed_items;
+    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
-    if (new_displayIdx < 0 || new_displayIdx > item.runtime_items) {
+    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -308,7 +308,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
         return parser_no_data;
     }else{
-        if(new_displayIdx == 0 && item.runtime_items == 4) {
+        if(new_displayIdx == 0 && item.UI_runtime_items == 4) {
             snprintf(outKey, outKeyLen, "From");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx,
@@ -316,7 +316,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
                                              pageIdx, pageCount);
         }
 
-        if(item.runtime_items == 4){
+        if(item.UI_runtime_items == 4){
             new_displayIdx -= 1;
         }
 
@@ -362,15 +362,15 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     ctx->offset += dataLen;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
-    uint8_t new_displayIdx = displayIdx - item.fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item.runtime_items) {
+    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
+    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Fee");
-        CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.runtime_items, ctx))
+        CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
         return parser_display_runtimeArg(datatype, dataLength, ctx,
                                          outVal, outValLen,
                                          pageIdx, pageCount);
@@ -405,10 +405,6 @@ parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t 
                                     char *outKey, uint16_t outKeyLen,
                                     char *outVal, uint16_t outValLen,
                                     uint8_t pageIdx, uint8_t *pageCount) {
-    if (displayIdx == 0) {
-        char *deployPhase = item.phase == Payment ? "Payment" : "Execution";
-        snprintf(outKey, outKeyLen, "%s", deployPhase);
-    }
     ctx->offset++;
     switch (item.type) {
         case ModuleBytes : {
@@ -581,7 +577,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     }
     ctx->offset = headerLength(parser_tx_obj.header) + 32;
 
-    uint16_t total_payment_items = parser_tx_obj.payment.fixed_items + parser_tx_obj.payment.runtime_items;
+    uint16_t total_payment_items = parser_tx_obj.payment.UI_fixed_items + parser_tx_obj.payment.UI_runtime_items;
     if (new_displayIdx < total_payment_items) {
         return parser_getItemDeploy(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
                                     outValLen, pageIdx, pageCount);
@@ -590,7 +586,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     new_displayIdx -= total_payment_items;
     ctx->offset += parser_tx_obj.payment.totalLength;
 
-    uint16_t total_session_items = parser_tx_obj.session.fixed_items + parser_tx_obj.session.runtime_items;
+    uint16_t total_session_items = parser_tx_obj.session.UI_fixed_items + parser_tx_obj.session.UI_runtime_items;
 
     if (new_displayIdx < total_session_items) {
         return parser_getItemDeploy(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal,

@@ -19,6 +19,7 @@
 #include "parser_txdef.h"
 #include "app_mode.h"
 #include "crypto.h"
+#include "parser_special.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -361,13 +362,6 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     return parser_runtimearg_notfound;
 }
 
-#define CHECK_RUNTIME_ARGTYPE(STR,CONDITION) { \
-    type = 255;                     \
-    internal_type = 255;                                           \
-    CHECK_PARSER_ERR(searchRuntimeArgs((STR), &type, &internal_type, deploy_argLen, ctx));          \
-    PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
-}
-
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
     uint32_t deploy_argLen = 0;
@@ -375,16 +369,16 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     PARSER_ASSERT_OR_ERROR(3 <= deploy_argLen && deploy_argLen <= 4, parser_unexpected_number_items);
     uint8_t type = 0;
     uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE("amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE("id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE("target", type == 11 || type == 12 || type == 15);
+    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "amount", type == 8);
+    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "id", type == 13 && internal_type == 5);
+    CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "target", type == 11 || type == 12 || type == 15);
     if(deploy_argLen == 4){
-        CHECK_RUNTIME_ARGTYPE("source", type == 13 && internal_type == 12);
+        CHECK_RUNTIME_ARGTYPE(ctx, deploy_argLen, "source", type == 13 && internal_type == 12);
     }
     if(app_mode_expert()){
-        item->runtime_items += deploy_argLen;
+        item->UI_runtime_items += deploy_argLen;
     }else{
-        item->runtime_items += 2; //amount and target only
+        item->UI_runtime_items += 2; //amount and target only
     }
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
@@ -395,17 +389,13 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 
     uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
+    uint32_t deploy_argLen = 0;
     if (!(ctx->offset > index && ctx->offset - index == 4)) {                          //this means the module bytes are empty
         return parser_unexpected_method; //only system payments support
+    }else{
+        CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+        CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen));
     }
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    PARSER_ASSERT_OR_ERROR(deploy_argLen == 1, parser_unexpected_number_items);
-
-    uint8_t type = 255;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE("amount", type == 8);
-    item->runtime_items += 1; //amount only
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -413,8 +403,8 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 parser_error_t
 parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->totalLength = 0;
-    item->fixed_items = 0;
-    item->runtime_items = 0;
+    item->UI_fixed_items = 0;
+    item->UI_runtime_items = 0;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
@@ -509,6 +499,6 @@ uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
     uint8_t basicnum = app_mode_expert() ? 8 : 4;
     uint8_t itemCount = 1 +
-            basicnum + v->payment.fixed_items + v->payment.runtime_items + v->session.fixed_items + v->session.runtime_items; //header + payment + session v->session.num_items
+            basicnum + v->payment.UI_fixed_items + v->payment.UI_runtime_items + v->session.UI_fixed_items + v->session.UI_runtime_items; //header + payment + session v->session.num_items
     return itemCount;
 }
