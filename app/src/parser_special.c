@@ -28,7 +28,7 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     uint8_t dummy_internal = 0;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
-        CHECK_PARSER_ERR(copy_key_into_buffer(ctx, buffer, sizeof(buffer)));
+        CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, argstr) == 0) {
             //value
             CHECK_PARSER_ERR(parse_item(ctx));
@@ -79,6 +79,20 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     uint8_t type = 0;
     uint8_t internal_type = 0;
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
+    item->UI_runtime_items += 1; //amount only
+    item->special_type = SystemPayment;
+    return parser_ok;
+}
+
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+
+    PARSER_ASSERT_OR_ERROR(num_items == 3, parser_unexpected_number_items);
+
+    uint8_t type = 0;
+    uint8_t internal_type = 0;
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == 8);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 8);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
     item->UI_runtime_items += 1; //amount only
     item->special_type = SystemPayment;
