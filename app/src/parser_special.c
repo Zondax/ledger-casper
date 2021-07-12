@@ -209,6 +209,16 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
 
     switch (item->type){
         case StoredContractByHash: {
+            if(displayIdx == 0 && app_mode_expert()) {
+                snprintf(outKey, outKeyLen, "Execution");
+                snprintf(outVal, outValLen, "by-hash");
+                return parser_ok;
+            }
+            if(displayIdx == 1 && app_mode_expert()) {
+                snprintf(outKey, outKeyLen, "Address");
+                return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
+                                         pageIdx, pageCount);
+            }
             ctx->offset += HASH_LENGTH;
             CHECK_PARSER_ERR(parse_item(ctx))
             break;
@@ -237,7 +247,52 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             break;
         }
 
-        default: {
+        case StoredContractByName: {
+            if(displayIdx == 0 && app_mode_expert()) {
+                snprintf(outKey, outKeyLen, "Execution");
+                snprintf(outVal, outValLen, "by-name");
+                return parser_ok;
+            }
+
+            if (displayIdx == 1 && app_mode_expert()) {
+                char buffer[300];
+                CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+                snprintf(outKey, outKeyLen, "Name");
+                pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+                return parser_ok;
+            }
+            CHECK_PARSER_ERR(parse_item(ctx));
+            CHECK_PARSER_ERR(parse_item(ctx))
+            break;
+        }
+
+        case StoredVersionedContractByName: {
+            if(displayIdx == 0 && app_mode_expert()) {
+                snprintf(outKey, outKeyLen, "Execution");
+                snprintf(outVal, outValLen, "by-name-versioned");
+                return parser_ok;
+            }
+
+            if (displayIdx == 1 && app_mode_expert()) {
+                char buffer[300];
+                CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+                snprintf(outKey, outKeyLen, "Name");
+                pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+                return parser_ok;
+            }
+            CHECK_PARSER_ERR(parse_item(ctx));
+            uint32_t version = 0;
+            CHECK_PARSER_ERR(parse_version(ctx, &version))
+            if(displayIdx == 2 && app_mode_expert()) {
+                uint64_t value = 0;
+                MEMCPY(&value, &version, 4);
+                snprintf(outKey, outKeyLen, "Version");
+                return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
+            }
+            CHECK_PARSER_ERR(parse_item(ctx))
+            break;
+        }
+        default :{
             return parser_unexpected_type;
         }
     }
@@ -294,7 +349,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     item->UI_runtime_items += 3;
 
     if(app_mode_expert()){
-        uint8_t has_version = item->type == StoredVersionedContractByHash ? 1 : 0;
+        uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
         item->UI_fixed_items = 2 + has_version; //type
     }
 

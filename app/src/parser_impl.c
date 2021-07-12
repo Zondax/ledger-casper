@@ -412,24 +412,34 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
-//parser_error_t
-//parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
-//    uint32_t start = *(uint32_t *) &ctx->offset;
-//    item->num_items += 2;
-//    CHECK_PARSER_ERR(parse_item(ctx));
-//
-//    if (item->type == StoredVersionedContractByName) {
-//        PARSE_VERSION(ctx, item)
-//    }
-//
-//    CHECK_PARSER_ERR(parse_item(ctx));
-//
-//    item->num_items += 2;
-//
-//    CHECK_PARSER_ERR(parseRuntimeArgs(ctx, &item->num_items));
-//    return parseTotalLength(ctx, start, &item->totalLength);
-//}
-//
+parser_error_t
+parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    CHECK_PARSER_ERR(parse_item(ctx));
+
+    uint32_t dummy = 0;
+    if (item->type == StoredVersionedContractByName) {
+        CHECK_PARSER_ERR(parse_version(ctx, &dummy))
+        if(app_mode_expert()){
+            item->UI_fixed_items++;
+        }
+    }
+
+    char buffer[100];
+    MEMZERO(buffer, sizeof(buffer));
+    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    if (strcmp(buffer, "delegate") == 0) {
+        //is delegation
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+    }else{
+        return parser_unexepected_error;
+    }
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,deploy_argLen));
+    return parseTotalLength(ctx, start, &item->totalLength);
+}
+
 
 parser_error_t
 parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
@@ -449,7 +459,7 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
 
         case StoredVersionedContractByName :
         case StoredContractByName : {
-            return parser_unexpected_method;
+            return parseStoredContractByName(ctx,item);
         }
 
         case Transfer : {
