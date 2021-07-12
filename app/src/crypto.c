@@ -177,6 +177,22 @@ zxerr_t crypto_sign(uint8_t *signature,
     return zxerr_ok;
 }
 
+#else
+
+#include "picohash.h"
+
+zxerr_t hash_sha224(uint8_t *input, uint16_t inputLen, uint8_t *output, uint16_t outputLen) {
+    if (outputLen < 28) {
+        return zxerr_invalid_crypto_settings;
+    }
+    picohash_ctx_t ctx;
+
+    picohash_init_sha224(&ctx);
+    picohash_update(&ctx, input, inputLen);
+    picohash_final(&ctx, output);
+    return zxerr_ok;
+}
+
 #endif
 
 typedef struct {

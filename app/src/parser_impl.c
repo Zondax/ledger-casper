@@ -343,20 +343,16 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
 parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
 
-    uint16_t index = ctx->offset;
     CHECK_PARSER_ERR(parse_item(ctx));
     uint32_t deploy_argLen = 0;
-    if ((ctx->offset > index && ctx->offset - index == 4)) {                          //this means the module bytes are empty
-        if(item->phase == Payment){
-            CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-            CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen));
-            item->special_type = SystemPayment;
-        }else{
-            return parser_unexpected_method; //only system payments support
-        }
+    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
+    if(item->phase == Payment){
+        CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen)); //only support for system payment
+        item->special_type = SystemPayment;
     }else{
-        return parser_unexpected_method; //only system payments support
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
     }
+
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }

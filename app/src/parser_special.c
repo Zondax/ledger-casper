@@ -19,6 +19,7 @@
 #include "parser_common.h"
 #include "parser_txdef.h"
 #include "parser.h"
+#include "crypto.h"
 
 #include "app_mode.h"
 
@@ -206,6 +207,31 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     ctx->offset++;
 
     switch (item->type){
+        case ModuleBytes : {
+            if(displayIdx == 0 && app_mode_expert()) {
+                snprintf(outKey, outKeyLen, "Execution");
+                snprintf(outVal, outValLen, "Contract");
+                return parser_ok;
+            }
+            if(displayIdx == 1 && app_mode_expert()){
+                snprintf(outKey, outKeyLen, "Cntrct hash");
+                uint32_t dataLength = 0;
+                CHECK_PARSER_ERR(readU32(ctx, &dataLength))
+                uint64_t value = 0;
+                MEMCPY(&value, &dataLength, 4);
+                uint8_t hash[32];
+                MEMZERO(hash, sizeof(hash));
+                MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
+                if (blake2b_hash(ctx->buffer + ctx->offset,dataLength,hash) != zxerr_ok){
+                    return parser_unexepected_error;
+                };
+                return parser_printBytes(hash, 32, outVal, outValLen,
+                                         pageIdx, pageCount);
+            }
+            CHECK_PARSER_ERR(parse_item(ctx));
+            break;
+        }
+
         case StoredContractByHash: {
             if(displayIdx == 0 && app_mode_expert()) {
                 snprintf(outKey, outKeyLen, "Execution");
@@ -335,12 +361,34 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     return parser_no_data;
 }
 
-
 parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
-
-    PARSER_ASSERT_OR_ERROR(num_items == 3, parser_unexpected_number_items);
     uint8_t type = 0;
     uint8_t internal_type = 0;
+
+    if(item->type == ModuleBytes){
+        uint16_t start = ctx->offset;
+        PARSER_ASSERT_OR_ERROR(num_items == 4, parser_unexpected_number_items);
+        uint32_t dataLength = 0;
+        CHECK_PARSER_ERR(parser_runtimeargs_getData("auction", &dataLength, &type, num_items, ctx));
+        char buffer[100];
+        MEMZERO(buffer,sizeof(buffer));
+        PARSER_ASSERT_OR_ERROR(dataLength < sizeof(buffer) && ctx->bufferLen > ctx->offset + dataLength, parser_unexpected_buffer_end);
+        PARSER_ASSERT_OR_ERROR(type == 10, parser_unexpected_type);
+        uint32_t stringLength = 0;
+        CHECK_PARSER_ERR(readU32(ctx, &stringLength))
+        MEMCPY(buffer, ctx->buffer + ctx->offset, stringLength);
+        if (strcmp(buffer, "delegate") == 0){
+            item->special_type = Delegate;
+        }else if (strcmp(buffer, "undelegate") == 0){
+            item->special_type = UnDelegate;
+        }else{
+            return parser_unexepected_error;
+        }
+        ctx->offset = start;
+    }else{
+        PARSER_ASSERT_OR_ERROR(num_items == 3, parser_unexpected_number_items);
+    }
+
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == 22);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 22);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);

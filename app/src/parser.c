@@ -246,7 +246,7 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
     uint32_t dataLen = 0;
     uint8_t dummyType = 0;
     uint8_t dummyInternal = 0;
-    for (uint8_t index = 0; index < num_items; index++) {
+    for (uint32_t index = 0; index < num_items; index++) {
         CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, keystr) == 0) {
             //read value length
