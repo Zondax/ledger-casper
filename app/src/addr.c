@@ -35,9 +35,8 @@ zxerr_t addr_getItem(int8_t displayIdx,
                      char *outVal, uint16_t outValLen,
                      uint8_t pageIdx, uint8_t *pageCount) {
     char buffer[300];
-    zemu_log_stack(buffer);
     array_to_hexstr(buffer, sizeof(buffer), G_io_apdu_buffer, SECP256K1_PK_LEN);
-
+    zemu_log_stack(buffer);
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "Pubkey");

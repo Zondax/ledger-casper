@@ -210,7 +210,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         case ModuleBytes : {
             if(displayIdx == 0 && app_mode_expert()) {
                 snprintf(outKey, outKeyLen, "Execution");
-                snprintf(outVal, outValLen, "Contract");
+                snprintf(outVal, outValLen, "contract");
                 return parser_ok;
             }
             if(displayIdx == 1 && app_mode_expert()){

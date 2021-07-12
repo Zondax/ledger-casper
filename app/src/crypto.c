@@ -179,18 +179,17 @@ zxerr_t crypto_sign(uint8_t *signature,
 
 #else
 
-#include "picohash.h"
+#include "blake2.h"
 
-zxerr_t hash_sha224(uint8_t *input, uint16_t inputLen, uint8_t *output, uint16_t outputLen) {
-    if (outputLen < 28) {
-        return zxerr_invalid_crypto_settings;
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                     unsigned char *out){
+    int result = blake2(out, 32, in, inLen, NULL, 0);
+    if(result != 0){
+        return zxerr_unknown;
+    }else{
+        return zxerr_ok;
     }
-    picohash_ctx_t ctx;
 
-    picohash_init_sha224(&ctx);
-    picohash_update(&ctx, input, inputLen);
-    picohash_final(&ctx, output);
-    return zxerr_ok;
 }
 
 #endif
