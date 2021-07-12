@@ -153,7 +153,6 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     }else{
         item->UI_runtime_items += 2; //amount and target only
     }
-    item->special_type = NativeTransfer;
     return parser_ok;
 }
 
@@ -165,7 +164,6 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
     uint8_t internal_type = 0;
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
     item->UI_runtime_items += 1; //amount only
-    item->special_type = SystemPayment;
     return parser_ok;
 }
 
@@ -353,6 +351,5 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         item->UI_fixed_items = 2 + has_version; //type
     }
 
-    item->special_type = Delegate;
     return parser_ok;
 }

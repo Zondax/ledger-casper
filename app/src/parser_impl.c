@@ -350,6 +350,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
         if(item->phase == Payment){
             CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
             CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen));
+            item->special_type = SystemPayment;
         }else{
             return parser_unexpected_method; //only system payments support
         }
@@ -366,6 +367,7 @@ parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) 
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     //only support for native transfers now
     CHECK_PARSER_ERR(parseNativeTransfer(ctx, item, deploy_argLen));
+    item->special_type = NativeTransfer;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
@@ -383,6 +385,26 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
     return parser_ok;
 }
 
+parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
+    char buffer[100];
+    MEMZERO(buffer, sizeof(buffer));
+    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    if (strcmp(buffer, "delegate") == 0) {
+        //is delegation
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+        item->special_type = Delegate;
+    }else if (strcmp(buffer, "undelegate") == 0) {
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+        item->special_type = UnDelegate;
+    }else{
+        return parser_unexepected_error;
+    }
+    *num_runs = deploy_argLen;
+    return parser_ok;
+}
+
 
 parser_error_t
 parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
@@ -395,20 +417,10 @@ parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
             item->UI_fixed_items++;
         }
     }
+    uint32_t num_runtimeargs = 0;
+    CHECK_PARSER_ERR(check_entrypoint(ctx, item, &num_runtimeargs));
 
-    char buffer[100];
-    MEMZERO(buffer, sizeof(buffer));
-    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
-    if (strcmp(buffer, "delegate") == 0) {
-        //is delegation
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
-    }else{
-        return parser_unexepected_error;
-    }
-
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,deploy_argLen));
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,num_runtimeargs));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
@@ -425,18 +437,10 @@ parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
         }
     }
 
-    char buffer[100];
-    MEMZERO(buffer, sizeof(buffer));
-    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
-    uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
-    if (strcmp(buffer, "delegate") == 0) {
-        //is delegation
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
-    }else{
-        return parser_unexepected_error;
-    }
-    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,deploy_argLen));
+    uint32_t num_runtimeargs = 0;
+    CHECK_PARSER_ERR(check_entrypoint(ctx, item, &num_runtimeargs));
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,num_runtimeargs));
+
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
