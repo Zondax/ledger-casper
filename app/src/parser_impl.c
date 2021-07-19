@@ -496,10 +496,6 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     v->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
-//    if(v->session.type != Transfer){
-//        return parser_unexpected_type;
-//    }
-
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
     return parser_ok;
 }
