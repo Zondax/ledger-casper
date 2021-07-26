@@ -19,6 +19,7 @@
 #include "parser_txdef.h"
 #include "app_mode.h"
 #include "crypto.h"
+#include "parser_special.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -40,8 +41,6 @@ GEN_DEC_READFIX_UNSIGNED(16);
 GEN_DEC_READFIX_UNSIGNED(32);
 
 GEN_DEC_READFIX_UNSIGNED(64);
-
-#define PARSER_ASSERT_OR_ERROR(CALL, ERROR) if (!(CALL)) return ERROR;
 
 //pub account: PublicKey,             //1 + 32/33
 //pub timestamp: Timestamp,           //8
@@ -278,6 +277,10 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return _readUInt32(ctx, &num_bytes);
         }
 
+        case 22: {
+            return parser_ok;
+        }
+
         default : {
             return parser_unexpected_type;
         }
@@ -309,6 +312,18 @@ parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start, uint32_t 
     return parser_ok;
 }
 
+parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, uint16_t bufferLen){
+    uint32_t part = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &part));
+    if(part > bufferLen || part > ctx->bufferLen - ctx->offset){
+        return parser_unexpected_buffer_end;
+    }
+    MEMZERO(buffer, bufferLen);
+    MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
+    ctx->offset += part;
+    return parser_ok;
+}
+
 parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
@@ -325,97 +340,113 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
     return parser_ok;
 }
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
-    uint16_t start = ctx->offset;
-    char buffer[300];
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        uint32_t part = 0;
-        CHECK_PARSER_ERR(readU32(ctx, &part));
-        if(part >= sizeof(buffer) || part >= ctx->bufferLen - ctx->offset){
-            return parser_unexpected_buffer_end;
-        }
-        MEMZERO(buffer, sizeof(buffer));
-        MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
-        if (strcmp(buffer, argstr) == 0) {
-            ctx->offset += part;
-            //value
-            CHECK_PARSER_ERR(parse_item(ctx));
-
-            CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
-
-            ctx->offset = start;
-            return parser_ok;
-        }
-        ctx->offset += part;
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
-    return parser_runtimearg_notfound;
-}
-
-#define CHECK_RUNTIME_ARGTYPE(STR,CONDITION) { \
-    type = 255;                     \
-    internal_type = 255;                                           \
-    CHECK_PARSER_ERR(searchRuntimeArgs((STR), &type, &internal_type, deploy_argLen, ctx));          \
-    PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
-}
-
-parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
+parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-    item->fixed_items += 1;               //type of transfer
+
+    CHECK_PARSER_ERR(parse_item(ctx));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    PARSER_ASSERT_OR_ERROR(3 <= deploy_argLen && deploy_argLen <= 4, parser_unexpected_number_items);
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE("amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE("id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE("target", type == 11 || type == 12 || type == 15);
-    if(deploy_argLen == 4){
-        CHECK_RUNTIME_ARGTYPE("source", type == 13 && internal_type == 12);
-    }
-    if(app_mode_expert()){
-        item->runtime_items += deploy_argLen;
+    if(item->phase == Payment){
+        CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen)); //only support for system payment
+        item->special_type = SystemPayment;
     }else{
-        item->runtime_items += 2; //amount and target only
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
     }
+
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
-parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *item) {
+parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
     uint32_t start = *(uint32_t *) &ctx->offset;
-
-    uint16_t index = ctx->offset;
-    CHECK_PARSER_ERR(parse_item(ctx));
-    if (ctx->offset > index && ctx->offset - index == 4) {                          //this means the module bytes are empty
-        item->fixed_items += 1;
-    } else {
-        return parser_unexpected_method; //only system payments support
-    }
     uint32_t deploy_argLen = 0;
-    CHECK_PARSER_ERR(_readUInt32(ctx, &deploy_argLen));
-    PARSER_ASSERT_OR_ERROR(deploy_argLen == 1, parser_unexpected_number_items);
-
-    uint8_t type = 255;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE("amount", type == 8);
-    item->runtime_items += 1; //amount only
+    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    //only support for native transfers now
+    CHECK_PARSER_ERR(parseNativeTransfer(ctx, item, deploy_argLen));
+    item->special_type = NativeTransfer;
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
+    return parseTotalLength(ctx, start, &item->totalLength);
+}
+
+parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
+    uint8_t type = 0xff;
+    CHECK_PARSER_ERR(_readUInt8(ctx, &type));
+    if (type == 0x00) {
+    /*nothing to do : empty version */
+    } else if (type == 0x01) {
+        CHECK_PARSER_ERR(_readUInt32(ctx, version));
+    } else {
+        return parser_context_unknown_prefix;
+    }
+    return parser_ok;
+}
+
+parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
+    char buffer[100];
+    MEMZERO(buffer, sizeof(buffer));
+    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    uint32_t deploy_argLen = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    if (strcmp(buffer, "delegate") == 0) {
+        //is delegation
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+        item->special_type = Delegate;
+    }else if (strcmp(buffer, "undelegate") == 0) {
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+        item->special_type = UnDelegate;
+    }else{
+        return parser_unexepected_error;
+    }
+    *num_runs = deploy_argLen;
+    return parser_ok;
+}
+
+
+parser_error_t
+parseStoredContractByHash(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    ctx->offset += HASH_LENGTH;
+    uint32_t dummy = 0;
+    if (item->type == StoredVersionedContractByHash) {
+        CHECK_PARSER_ERR(parse_version(ctx, &dummy))
+        if(app_mode_expert()){
+            item->UI_fixed_items++;
+        }
+    }
+    uint32_t num_runtimeargs = 0;
+    CHECK_PARSER_ERR(check_entrypoint(ctx, item, &num_runtimeargs));
+
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,num_runtimeargs));
     return parseTotalLength(ctx, start, &item->totalLength);
 }
 
 parser_error_t
+parseStoredContractByName(parser_context_t *ctx, ExecutableDeployItem *item) {
+    uint32_t start = *(uint32_t *) &ctx->offset;
+    CHECK_PARSER_ERR(parse_item(ctx));
+
+    uint32_t dummy = 0;
+    if (item->type == StoredVersionedContractByName) {
+        CHECK_PARSER_ERR(parse_version(ctx, &dummy))
+        if(app_mode_expert()){
+            item->UI_fixed_items++;
+        }
+    }
+
+    uint32_t num_runtimeargs = 0;
+    CHECK_PARSER_ERR(check_entrypoint(ctx, item, &num_runtimeargs));
+    CHECK_PARSER_ERR(parseRuntimeArgs(ctx,num_runtimeargs));
+
+    return parseTotalLength(ctx, start, &item->totalLength);
+}
+
+
+parser_error_t
 parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->totalLength = 0;
-    item->fixed_items = 0;
-    item->runtime_items = 0;
+    item->UI_fixed_items = 0;
+    item->UI_runtime_items = 0;
+    item->num_runtime_args = 0;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
@@ -423,16 +454,16 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
 
         case StoredVersionedContractByHash :
         case StoredContractByHash : {
-            return parser_unexpected_method;
+            return parseStoredContractByHash(ctx,item);
         }
 
         case StoredVersionedContractByName :
         case StoredContractByName : {
-            return parser_unexpected_method;
+            return parseStoredContractByName(ctx,item);
         }
 
         case Transfer : {
-            return parseNativeTransfer(ctx, item);
+            return parseTransfer(ctx, item);
         }
         default : {
             return parser_context_mismatch;
@@ -465,16 +496,10 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     v->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
-    if(v->session.type != Transfer){
-        return parser_unexpected_type;
-    }
-
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
-
     return parser_ok;
 }
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX)
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     uint8_t hash[BLAKE2B_256_SIZE];
 
@@ -499,18 +524,11 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
     return parser_ok;
 }
-#else
-
-parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
-    return parser_ok;
-}
-
-#endif
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
-    uint8_t basicnum = app_mode_expert() ? 7 : 3;
+    uint8_t basicnum = app_mode_expert() ? 8 : 4;
     uint8_t itemCount = 1 +
-            basicnum + v->payment.fixed_items + v->payment.runtime_items + v->session.fixed_items + v->session.runtime_items; //header + payment + session v->session.num_items
+            basicnum + v->payment.UI_fixed_items + v->payment.UI_runtime_items + v->session.UI_fixed_items + v->session.UI_runtime_items; //header + payment + session v->session.num_items
     return itemCount;
 }

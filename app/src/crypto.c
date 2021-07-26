@@ -177,6 +177,21 @@ zxerr_t crypto_sign(uint8_t *signature,
     return zxerr_ok;
 }
 
+#else
+
+#include "blake2.h"
+
+zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
+                     unsigned char *out){
+    int result = blake2(out, 32, in, inLen, NULL, 0);
+    if(result != 0){
+        return zxerr_unknown;
+    }else{
+        return zxerr_ok;
+    }
+
+}
+
 #endif
 
 typedef struct {

@@ -44,6 +44,15 @@ typedef enum {
     Transfer = 5,
 } deploy_type_e;
 
+//These are either Generic or special deploys that need specific handling
+typedef enum {
+    Generic = 0, //Not special: no support yet
+    SystemPayment = 1,
+    NativeTransfer = 2,
+    Delegate = 3,
+    UnDelegate = 4,
+} special_deploy_e;
+
 typedef enum {
     Payment = 0,
     Session = 1,
@@ -52,8 +61,10 @@ typedef enum {
 typedef struct {
     phase_type_e phase;
     deploy_type_e type;
-    uint32_t fixed_items;
-    uint32_t runtime_items;
+    special_deploy_e special_type;
+    uint32_t num_runtime_args;
+    uint32_t UI_fixed_items;
+    uint32_t UI_runtime_items;
     uint32_t totalLength;
 } ExecutableDeployItem;
 

@@ -42,7 +42,7 @@ typedef enum {
     parser_cbor_not_canonical,
     // Coin specific
     parser_unexpected_tx_version,
-    parser_unexpected_type,
+    parser_unexpected_type, //10
     parser_unexpected_method,
     parser_unexpected_buffer_end,
     parser_unexpected_value,
@@ -53,7 +53,7 @@ typedef enum {
     parser_invalid_address,
     // Context related errors
     parser_context_mismatch,
-    parser_context_unexpected_size,
+    parser_context_unexpected_size, //20
     parser_context_invalid_chars,
     parser_context_unknown_prefix,
     // Required fields
