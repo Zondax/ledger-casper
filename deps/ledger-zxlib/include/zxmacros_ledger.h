@@ -34,11 +34,10 @@
     #define MEMCMP os_memcmp
     #define MEMZERO explicit_bzero
 #else
-    #include "ux.h"
     #include "os_io_seproxyhal.h"
     #define NV_CONST
     #define NV_VOLATILE
-    #define IS_UX_ALLOWED (G_ux_params.len != BOLOS_UX_IGNORE && G_ux_params.len != BOLOS_UX_CONTINUE)
+    #define IS_UX_ALLOWED (ux.params.len != BOLOS_UX_IGNORE && ux.params.len != BOLOS_UX_CONTINUE)
 
     #define MEMCPY memmove
     #define MEMMOVE memmove

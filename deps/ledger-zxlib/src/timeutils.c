@@ -497,6 +497,7 @@ zxerr_t printTime(char *out, uint16_t outLen, uint64_t t) {
              tm_day,
              tm_hour, tm_min, tm_sec
     );
+
     return zxerr_ok;
 }
 

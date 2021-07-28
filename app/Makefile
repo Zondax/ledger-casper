@@ -40,6 +40,10 @@ all: bin/app.elf
 
 include $(BOLOS_SDK)/Makefile.defines
 
+#DEFINES += APP_SECRET_MODE_ENABLED
+
+$(info ************ TARGET_NAME  = [$(TARGET_NAME)])
+
 ifeq ($(APP_TESTING),1)
 DEFINES += APP_TESTING
 DEFINES += ZEMU_LOGGING
@@ -52,9 +56,10 @@ endif
 
 APPVERSION_M=2
 APPVERSION_N=1
-APPVERSION_P=0
+APPVERSION_P=1
 
 $(info COIN  = [$(COIN)])
+
 ifeq ($(COIN),CSPR)
 # Main app configuration
 DEFINES += APP_STANDARD
@@ -79,13 +84,13 @@ DEFINES += HAVE_PENDING_REVIEW_SCREEN
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 APP_STACK_SIZE:=1892
 ICONNAME:=$(CURDIR)/nanos_icon.gif
-OUTPUT_ELF:= $(CURDIR)/output/app_s.elf
-OUTPUT_INSTALLER:= $(CURDIR)/pkg/installer_s.sh
+OUTPUT_ELF ?= $(CURDIR)/output/app_s.elf
+OUTPUT_INSTALLER := $(CURDIR)/pkg/installer_s.sh
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 ICONNAME:=$(CURDIR)/nanox_icon.gif
-OUTPUT_ELF:= $(CURDIR)/output/app_x.elf
+OUTPUT_ELF ?= $(CURDIR)/output/app_x.elf
 OUTPUT_INSTALLER:= $(CURDIR)/pkg/installer_x.sh
 endif
 
@@ -135,12 +140,9 @@ SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 else
 # Assume Nano S
 DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-DEFINES       +=
 endif
 
 # X specific
-
-# App specific
 
 #Feature temporarily disabled
 DEFINES   += LEDGER_SPECIFIC

@@ -6,8 +6,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles  -t 'Standard'",
-    "testDeploytypes": "jest --detectOpenHandles  -t 'Deploytypes'"
+    "test": "jest -t 'Standard'",
+    "testDeploytypes": "jest -t 'Deploytypes'"
   },
   "repository": {
     "type": "git",
@@ -18,26 +18,25 @@
   ],
   "dependencies": {
     "@zondax/ledger-casper": "link:../js",
-    "@zondax/zemu": "^0.13.0"
+    "@zondax/zemu": "^0.16.5"
   },
   "devDependencies": {
-    "@babel/cli": "^7.14.3",
-    "@babel/core": "^7.14.3",
-    "@babel/node": "^7.14.2",
-    "@babel/plugin-transform-runtime": "^7.14.3",
-    "@babel/preset-env": "^7.14.2",
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.14.8",
+    "@babel/node": "^7.14.7",
+    "@babel/plugin-transform-runtime": "^7.14.5",
+    "@babel/preset-env": "^7.14.8",
     "babel-eslint": "^10.1.0",
-    "babel-jest": "26.6.3",
-    "crypto-js": "4.0.0",
-    "eslint": "^7.26.0",
+    "babel-jest": "27.0.6",
+    "crypto-js": "4.1.1",
+    "eslint": "^7.31.0",
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.23.2",
-    "eslint-plugin-jest": "^24.3.6",
+    "eslint-plugin-import": "^2.23.4",
+    "eslint-plugin-jest": "^24.4.0",
     "eslint-plugin-prettier": "^3.4.0",
-    "jest": "26.6.3",
-    "jest-serial-runner": "^1.1.0",
-    "secp256k1": "^4.0.2",
-    "js-sha256": "0.9.0"
+    "jest": "^26",
+    "js-sha256": "0.9.0",
+    "secp256k1": "^4.0.2"
   }
 }
