@@ -30,6 +30,8 @@
 #include "zxmacros.h"
 #include "app_mode.h"
 
+static bool tx_initialized = false;
+
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 unsigned char io_event(unsigned char channel) {
@@ -130,21 +132,30 @@ bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
             tx_initialize();
             tx_reset();
             extractHDPath(rx, OFFSET_DATA);
+            tx_initialized = true;
             return false;
         case 1:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
             if (added != rx - OFFSET_DATA) {
+                tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             return false;
         case 2:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
             if (added != rx - OFFSET_DATA) {
+                tx_initialized = false;
                 THROW(APDU_CODE_OUTPUT_BUFFER_TOO_SMALL);
             }
             return true;
     }
-
+    tx_initialized = false;
     THROW(APDU_CODE_INVALIDP1P2);
 }
 
