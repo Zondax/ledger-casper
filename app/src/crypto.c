@@ -159,8 +159,8 @@ zxerr_t crypto_sign(uint8_t *signature,
                                             sizeof_field(signature_t, der_signature),
                                             &info);
 
-            err_convert_e err = convertDERtoRSV(signature_object->der_signature, info,  signature_object->r, signature_object->s, &signature_object->v);
-            if (err != no_error) {
+            err_convert_e err_c = convertDERtoRSV(signature_object->der_signature, info,  signature_object->r, signature_object->s, &signature_object->v);
+            if (err_c != no_error) {
                 // Error while converting so return length 0
                 MEMZERO(signature, signatureMaxlen);
                 err = zxerr_unknown;
