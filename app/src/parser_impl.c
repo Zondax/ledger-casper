@@ -387,12 +387,11 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
         item->special_type = Delegate;
     }else if (strcmp(buffer, "undelegate") == 0) {
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
         item->special_type = UnDelegate;
     }else{
         return parser_unexepected_error;

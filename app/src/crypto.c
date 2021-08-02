@@ -136,7 +136,7 @@ zxerr_t crypto_sign(uint8_t *signature,
     unsigned int info = 0;
 
     signature_t *const signature_object = (signature_t *) signature;
-
+    zxerr_t err = zxerr_ok;
     BEGIN_TRY
     {
         TRY
@@ -158,7 +158,20 @@ zxerr_t crypto_sign(uint8_t *signature,
                                             signature_object->der_signature,
                                             sizeof_field(signature_t, der_signature),
                                             &info);
+
+            err_convert_e err = convertDERtoRSV(signature_object->der_signature, info,  signature_object->r, signature_object->s, &signature_object->v);
+            if (err != no_error) {
+                // Error while converting so return length 0
+                MEMZERO(signature, signatureMaxlen);
+                err = zxerr_unknown;
+            }else{
+                *sigSize = SIG_RS_LEN;
+            }
         }
+        CATCH_ALL {
+            MEMZERO(signature, signatureMaxlen);
+            err = zxerr_unknown;
+        };
         FINALLY {
             MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
             MEMZERO(privateKeyData, 32);
@@ -166,15 +179,7 @@ zxerr_t crypto_sign(uint8_t *signature,
     }
     END_TRY;
 
-    err_convert_e err = convertDERtoRSV(signature_object->der_signature, info,  signature_object->r, signature_object->s, &signature_object->v);
-    if (err != no_error) {
-        // Error while converting so return length 0
-        MEMZERO(signature, signatureMaxlen);
-        return zxerr_unknown;
-    }
-    *sigSize = SIG_RS_LEN;
-
-    return zxerr_ok;
+    return err;
 }
 
 #else
