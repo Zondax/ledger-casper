@@ -387,12 +387,11 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
         item->special_type = Delegate;
     }else if (strcmp(buffer, "undelegate") == 0) {
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
         item->special_type = UnDelegate;
     }else{
         return parser_unexepected_error;
@@ -527,8 +526,8 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
 
 uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
     UNUSED(c);
-    uint8_t basicnum = app_mode_expert() ? 8 : 4;
-    uint8_t itemCount = 1 +
+    uint8_t basicnum = app_mode_expert() ? 9 : 4;
+    uint8_t itemCount =
             basicnum + v->payment.UI_fixed_items + v->payment.UI_runtime_items + v->session.UI_fixed_items + v->session.UI_runtime_items; //header + payment + session v->session.num_items
     return itemCount;
 }

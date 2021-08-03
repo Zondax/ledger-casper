@@ -616,7 +616,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
     ctx->offset += parser_tx_obj.session.totalLength;
 
-    if (displayIdx == numItems - 1) {
+    if (displayIdx == numItems - 1 && app_mode_expert()) {
         snprintf(outKey, outKeyLen, "Approvals #");
         uint32_t num_approvs = 0;
         CHECK_PARSER_ERR(readU32(ctx, &num_approvs));
