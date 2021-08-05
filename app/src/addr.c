@@ -42,7 +42,7 @@ zxerr_t addr_getItem(int8_t displayIdx,
     zemu_log_stack(buffer);
     switch (displayIdx) {
         case 0:
-            snprintf(outKey, outKeyLen, "Pubkey");
+            snprintf(outKey, outKeyLen, "Address");
             pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
             return zxerr_ok;
         case 1: {
