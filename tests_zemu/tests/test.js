@@ -95,8 +95,10 @@ describe('Standard', function () {
             expect(resp.errorMessage).toEqual("No errors");
 
             const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+            const expected_address = "02028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
 
             expect(resp.publicKey.toString('hex')).toEqual(expected_pk);
+            expect(resp.address.toString('hex')).toEqual(expected_address);
         } finally {
             await sim.close();
         }

@@ -41,8 +41,11 @@ function processGetAddrResponse(response: Buffer) {
 
     const publicKey = Buffer.from(partialResponse.slice(0, PKLEN));
 
+    const address = Buffer.concat([Buffer.from("02", 'hex'), Buffer.from(publicKey)]);
+
     return {
         publicKey,
+        address,
         returnCode,
         errorMessage: errorCodeToString(returnCode),
     };
