@@ -145,7 +145,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     uint8_t internal_type = 0;
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
     if(num_items == 4){
         CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 13 && internal_type == 12);
     }
