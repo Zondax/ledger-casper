@@ -57,6 +57,8 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out);
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out);
 
+zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr);
+
 #ifdef __cplusplus
 }
 #endif
