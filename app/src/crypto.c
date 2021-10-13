@@ -238,16 +238,16 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     uint8_t hash_input[BLAKE2B_256_SIZE];
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles, nibblesLen);
-    blake2b_hash((uint8_t*)address, sizeof(address), hash_input);
+    blake2b_hash((uint8_t*)address, addressLen, hash_input);
 
     uint8_t offset = 0x00;
     uint8_t index = 0x00;
 
     for(int i = 0; i < nibblesLen; i++) {
         char c = HEX_CHARS[input_nibbles[i]];
-        // if(is_alphabetic(c)) {
-        //     get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
-        // }
+        if(is_alphabetic(c)) {
+            get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+        }
         encodedAddr[i] = c;
     }
     return zxerr_ok;
@@ -256,7 +256,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
 bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset) {
     //Return true if following bit is 1
     bool ret = (hash_input[*index] >> *offset) == 0x01;
-    *offset = *offset + 1;
+    (*offset)++;
     if(*offset >= 0x08) {
         *offset = 0x00;
         (*index)++;
