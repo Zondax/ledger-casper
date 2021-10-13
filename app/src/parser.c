@@ -178,7 +178,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;                                                       \
 }
 
-parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
+parser_error_t parser_display_runtimeArg(runtime_type_e type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
     char buffer[400];
@@ -240,12 +240,12 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
     }
 }
 
-parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
+parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, runtime_type_e *runtype, uint32_t num_items, parser_context_t *ctx) {
     char buffer[300];
     //loop to the correct index
     uint32_t dataLen = 0;
-    uint8_t dummyType = 0;
-    uint8_t dummyInternal = 0;
+    runtime_type_e dummyType = 0;
+    runtime_type_e dummyInternal = 0;
     for (uint32_t index = 0; index < num_items; index++) {
         CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, keystr) == 0) {
@@ -293,7 +293,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         return parser_no_data;
     }
     uint32_t dataLength = 0;
-    uint8_t datatype = 255;
+    runtime_type_e datatype = 255;
 
     if(!app_mode_expert()){
         if(new_displayIdx == 0) {
@@ -374,7 +374,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
         return parser_no_data;
     }
     uint32_t dataLength = 0;
-    uint8_t datatype = 255;
+    runtime_type_e datatype = tag_unknown;
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Fee");
         CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))

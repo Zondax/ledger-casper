@@ -207,10 +207,11 @@ parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
     }
 }
 
-parser_error_t check_runtime_type(uint8_t cl_type) {
+parser_error_t check_runtime_type(uint8_t cl_type, runtime_type_e *result) {
     if (cl_type > NUM_RUNTIME_TYPES) {
         return parser_context_unknown_prefix;
     } else {
+        *result = cl_type;
         return parser_ok;
     }
 }
@@ -241,30 +242,30 @@ const CL_TYPE_TAG_ANY: u8 = 21;
 const CL_TYPE_TAG_PUBLIC_KEY: u8 = 22;
  */
 
-parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
+parser_error_t parse_additional_typebytes(parser_context_t *ctx, runtime_type_e type, runtime_type_e *option_type) {
     switch (type) {
-        case 8: {
+        case tag_u512: {
             return parser_ok;
         }
 
-        case 10 : {
+        case tag_string : {
             return parser_ok;
         }
 
         //only account_hash for "from" supported
-        case 11 : {
+        case tag_key : {
             return parser_ok;
         }
 
-        case 12 : {
+        case tag_uref : {
             return parser_ok;
         }
 
         //option with U64 inside for ID
-        case 13: {
+        case tag_option: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
-            if(inner_type != 5 && inner_type != 12){
+            if(inner_type != tag_u64 && inner_type != tag_uref){
                 return parser_unexpected_type;
             }else{
                 *option_type = inner_type;
@@ -272,12 +273,12 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             }
         }
 
-        case 15: {
+        case tag_byte_array: {
             uint32_t num_bytes = 0;
             return _readUInt32(ctx, &num_bytes);
         }
 
-        case 22: {
+        case tag_public_key: {
             return parser_ok;
         }
 
@@ -297,12 +298,11 @@ parser_error_t parse_item(parser_context_t *ctx) {
     return parser_ok;
 }
 
-parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type, uint8_t *option_type) {
+parser_error_t get_type(parser_context_t *ctx, runtime_type_e *runtime_type, runtime_type_e *option_type) {
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
-    CHECK_PARSER_ERR(check_runtime_type(type));
-    CHECK_PARSER_ERR(parse_additional_typebytes(ctx, type, option_type));
-    *runtime_type = type;
+    CHECK_PARSER_ERR(check_runtime_type(type, runtime_type));
+    CHECK_PARSER_ERR(parse_additional_typebytes(ctx, *runtime_type, option_type));
     return parser_ok;
 }
 
@@ -325,8 +325,8 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
 }
 
 parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
+    runtime_type_e dummy_type = 0;
+    runtime_type_e dummy_internal = 0;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
         CHECK_PARSER_ERR(parse_item(ctx));

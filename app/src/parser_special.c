@@ -23,11 +23,11 @@
 
 #include "app_mode.h"
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
+parser_error_t searchRuntimeArgs(char *argstr, runtime_type_e *type, runtime_type_e *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
     uint16_t start = ctx->offset;
     char buffer[300];
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
+    runtime_type_e dummy_type = 0;
+    runtime_type_e dummy_internal = 0;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
         CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
@@ -76,7 +76,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         return parser_unexpected_number_items;
     }
     uint32_t dataLength = 0;
-    uint8_t datatype = 255;
+    runtime_type_e datatype = tag_unknown;
 
     if(!app_mode_expert()){
         if(new_displayIdx == 0) {
@@ -141,13 +141,13 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
     PARSER_ASSERT_OR_ERROR(3 <= num_items && num_items <= 4, parser_unexpected_number_items);
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
+    runtime_type_e type = 0;
+    runtime_type_e internal_type = 0;
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == tag_u512);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == tag_option && internal_type == tag_u64);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == tag_key || type == tag_uref || type == tag_byte_array || type == tag_public_key);
     if(num_items == 4){
-        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 13 && internal_type == 12);
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == tag_option && internal_type == tag_uref);
     }
     if(app_mode_expert()){
         item->UI_runtime_items += num_items;
@@ -161,9 +161,9 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
 
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
+    runtime_type_e type = 0;
+    runtime_type_e internal_type = 0;
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == tag_u512);
     item->UI_runtime_items += 1; //amount only
     return parser_ok;
 }
@@ -187,7 +187,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
         return parser_no_data;
     }
     uint32_t dataLength = 0;
-    uint8_t datatype = 255;
+    runtime_type_e datatype = 255;
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Fee");
         CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
@@ -329,7 +329,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         return parser_no_data;
     }
     uint32_t dataLength = 0;
-    uint8_t datatype = 255;
+    runtime_type_e datatype = tag_unknown;
 
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Delegator");
@@ -362,8 +362,8 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
 }
 
 parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
+    runtime_type_e type = 0;
+    runtime_type_e internal_type = 0;
 
     if(item->type == ModuleBytes){
         uint16_t start = ctx->offset;
@@ -389,9 +389,9 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         PARSER_ASSERT_OR_ERROR(num_items == 3, parser_unexpected_number_items);
     }
 
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == 22);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 22);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == tag_public_key);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == tag_public_key);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == tag_u512);
     item->UI_runtime_items += 3;
 
     if(app_mode_expert()){
