@@ -255,7 +255,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
 
 bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset) {
     //Return true if following bit is 1
-    bool ret = (hash_input[*index] >> *offset) == 0x01;
+    bool ret = ((hash_input[*index] >> *offset) & 0x01) == 0x01;
     (*offset)++;
     if(*offset >= 0x08) {
         *offset = 0x00;
