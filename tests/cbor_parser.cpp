@@ -314,4 +314,19 @@ namespace {
         err = cbor_value_leave_container(&it, &contents);
         EXPECT_EQ(err, CborNoError);
     }
+
+    TEST(ChecksumTest, EncodeFunctionTest) {
+        uint8_t rawInput[] ={0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        char encodedInput[65];
+        MEMZERO(encodedInput, sizeof(encodedInput));
+        encode((char*)rawInput, sizeof(rawInput), encodedInput);
+
+        char expectedOutput[] = "FFfffffFFfFfFFfFFfFFfFfFfFFffFFFFffFFffFFFffFffffFffffFfFfFFfFFF";
+        for(int i = 0; i < sizeof(expectedOutput); i++) {
+            EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
+        }
+    }
 }
