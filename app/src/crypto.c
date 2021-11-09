@@ -197,7 +197,10 @@ zxerr_t crypto_sign(uint8_t *signature,
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out){
-    int result = blake2(out, 32, in, inLen, NULL, 0);
+    uint8_t dummy_out[64];
+    MEMZERO(dummy_out, sizeof(dummy_out));
+    int result = blake2(dummy_out, 64, in, inLen, NULL, 0);
+    MEMCPY(out, dummy_out, 32);
     if(result != 0){
         return zxerr_unknown;
     }else{
