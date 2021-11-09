@@ -41,10 +41,10 @@ parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t d
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
                                  char *outVal, uint16_t outValLen,
                                  uint8_t pageIdx, uint8_t *pageCount) {
-    char buffer[300];
-    MEMZERO(buffer, sizeof(buffer));
-    array_to_hexstr(buffer, sizeof(buffer), bytes, byteLength);
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+    char encodedAddr[100];
+    MEMZERO(encodedAddr, sizeof(encodedAddr));
+    encode(bytes, byteLength, encodedAddr);
+    pageString(outVal, outValLen, encodedAddr, pageIdx, pageCount);
     return parser_ok;
 }
 
