@@ -329,4 +329,19 @@ namespace {
             EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
         }
     }
+
+    TEST(ChecksumTest, EncodeFunctionTest2) {
+        //Removed addr_plus_prefix (0x02) for test
+        uint8_t rawInput[] ={0x02, 0x53, 0x1f, 0xe6, 0x06, 0x81, 0x34, 0x50, 0x3d, 0x27, 0x23,
+                             0x13, 0x32, 0x27, 0xc8, 0x67, 0xac, 0x8f, 0xa6, 0xc8, 0x3c, 0x53, 0x7e,
+                             0x9a, 0x44, 0xc3, 0xc5, 0xbd, 0xbd, 0xcb, 0x1f, 0xe3, 0x37};
+        char encodedInput[65];
+        MEMZERO(encodedInput, sizeof(encodedInput));
+        encode((char*)rawInput, sizeof(rawInput), encodedInput);
+
+        char expectedOutput[] = "02531fE6068134503d2723133227C867ac8fA6c83c537E9A44C3C5bDBdCB1fe337";
+        for(int i = 0; i < sizeof(expectedOutput); i++) {
+            EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
+        }
+    }
 }
