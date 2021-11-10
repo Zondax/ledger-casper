@@ -29,7 +29,6 @@ bool isTestnet() {
 const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
 'a', 'b', 'c', 'd', 'e', 'f'};
 
-static void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles, uint8_t nibblesLen);
 static bool is_alphabetic(const char byte);
 static void to_uppercase(char* letter);
 static void to_lowercase(char* letter);
