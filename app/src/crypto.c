@@ -44,6 +44,10 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
     cx_hash(&ctx.header, CX_LAST, in, inLen, out, 32);
     return zxerr_ok;
 }
+zxerr_t blake2b_hash32(const unsigned char *in, unsigned int inLen,
+                          unsigned char *out) {
+    return blake2b_hash(in, inLen, out);
+}
 
 
 zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
@@ -200,12 +204,21 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
     MEMZERO(dummy_out, sizeof(dummy_out));
     int result = blake2(dummy_out, 64, in, inLen, NULL, 0);
     MEMCPY(out, dummy_out, 32);
-    if(result != 0){
+    if (result != 0) {
         return zxerr_unknown;
-    }else{
+    } else {
         return zxerr_ok;
     }
+}
 
+zxerr_t blake2b_hash32(const unsigned char *in, unsigned int inLen,
+                     unsigned char *out){
+    int result = blake2(out, 32, in, inLen, NULL, 0);
+    if (result != 0) {
+        return zxerr_unknown;
+    } else {
+        return zxerr_ok;
+    }
 }
 
 #endif
@@ -239,7 +252,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     uint8_t input_nibbles[nibblesLen];
     uint8_t hash_input[BLAKE2B_256_SIZE];
 
-    bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles, nibblesLen);
+    bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
     blake2b_hash((uint8_t*)address, addressLen, hash_input);
 
     uint8_t offset = 0x00;
@@ -285,7 +298,7 @@ void to_lowercase(char* letter) {
     }
 }
 
-void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles, uint8_t nibblesLen) {
+void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles) {
     for(uint8_t i = 0; i < bytesLen; i++){
         nibbles[2*i] = bytes[i] >> 4;
         nibbles[2*i+1] = bytes[i] & 0x0F;

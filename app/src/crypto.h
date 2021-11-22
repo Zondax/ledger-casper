@@ -55,11 +55,14 @@ zxerr_t crypto_sign(uint8_t *signature,
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out);
+zxerr_t blake2b_hash32(const unsigned char *in, unsigned int inLen,
+                     unsigned char *out);
+
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out);
 
 zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr);
 
-void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles, uint8_t nibblesLen);
+void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles);
 
 #ifdef __cplusplus
 }

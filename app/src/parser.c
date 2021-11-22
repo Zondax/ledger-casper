@@ -57,7 +57,7 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
     MEMZERO(buffer, sizeof(buffer));
     encode((char*)bytes+1, byteLength-1, encodedAddr);
 
-    bytes_to_nibbles((uint8_t*)bytes, 1, (uint8_t*)buffer, 2);
+    bytes_to_nibbles((uint8_t*)bytes, 1, (uint8_t*)buffer);
     buffer[0] += '0';
     buffer[1] += '0';
     MEMCPY(buffer+2, (char*)encodedAddr, 2*byteLength-2);
