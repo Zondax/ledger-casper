@@ -247,6 +247,15 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     return zxerr_ok;
 }
 
+zxerr_t encode_addr(char* address, const uint8_t addressLen, char* encodedAddr) {
+    //Address Prefix must not be encoded
+    bytes_to_nibbles((uint8_t*)address, 1, (uint8_t*)encodedAddr);
+    encodedAddr[0] += '0';
+    encodedAddr[1] += '0';
+
+    encode(address+1, addressLen-1, encodedAddr+2);
+}
+
 zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     const uint8_t nibblesLen = 2 * addressLen;
     uint8_t input_nibbles[nibblesLen];
