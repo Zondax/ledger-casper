@@ -36,18 +36,12 @@ zxerr_t addr_getItem(int8_t displayIdx,
                      uint8_t pageIdx, uint8_t *pageCount) {
     char encodedAddr[2*SECP256K1_PK_LEN];
     char buffer[100];
-    MEMZERO(encodedAddr, sizeof(encodedAddr));
     MEMZERO(buffer, sizeof(buffer));
+    uint8_t addr_plus_prefix[1 + SECP256K1_PK_LEN];
+    MEMCPY(addr_plus_prefix + 1, G_io_apdu_buffer, SECP256K1_PK_LEN);
+    addr_plus_prefix[0] = 02;
 
-    //Apply checksum to address and add prefix
-    buffer[0] = '0';
-    buffer[1] = '2';
-    bytes_to_nibbles((uint8_t*)G_io_apdu_buffer, 1, (uint8_t*)buffer+2);
-    buffer[2] += '0';
-    buffer[3] += '0';
-
-    encode((char*)G_io_apdu_buffer+1, SECP256K1_PK_LEN-1, encodedAddr);
-    MEMCPY(buffer+4, (char*)encodedAddr, 2*SECP256K1_PK_LEN-2);
+    encode_addr(addr_plus_prefix, SECP256K1_PK_LEN+1, buffer);
 
     zemu_log_stack(buffer);
     switch (displayIdx) {

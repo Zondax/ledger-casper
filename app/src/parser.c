@@ -51,16 +51,10 @@ parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
 parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
                                    char *outVal, uint16_t outValLen,
                                    uint8_t pageIdx, uint8_t *pageCount) {
-    char encodedAddr[100];
     char buffer[100];
-    MEMZERO(encodedAddr, sizeof(encodedAddr));
     MEMZERO(buffer, sizeof(buffer));
-    encode((char*)bytes+1, byteLength-1, encodedAddr);
 
-    bytes_to_nibbles((uint8_t*)bytes, 1, (uint8_t*)buffer);
-    buffer[0] += '0';
-    buffer[1] += '0';
-    MEMCPY(buffer+2, (char*)encodedAddr, 2*byteLength-2);
+    encode_addr((char*)bytes, byteLength, buffer);
 
     pageString(outVal, outValLen, buffer, pageIdx, pageCount);
     return parser_ok;
