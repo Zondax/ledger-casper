@@ -34,14 +34,13 @@ zxerr_t addr_getItem(int8_t displayIdx,
                      char *outKey, uint16_t outKeyLen,
                      char *outVal, uint16_t outValLen,
                      uint8_t pageIdx, uint8_t *pageCount) {
-    char encodedAddr[2*SECP256K1_PK_LEN];
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
     uint8_t addr_plus_prefix[1 + SECP256K1_PK_LEN];
     MEMCPY(addr_plus_prefix + 1, G_io_apdu_buffer, SECP256K1_PK_LEN);
     addr_plus_prefix[0] = 02;
 
-    encode_addr(addr_plus_prefix, SECP256K1_PK_LEN+1, buffer);
+    encode_addr((char *)addr_plus_prefix, SECP256K1_PK_LEN+1, buffer);
 
     zemu_log_stack(buffer);
     switch (displayIdx) {
