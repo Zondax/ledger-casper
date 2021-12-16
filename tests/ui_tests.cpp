@@ -46,7 +46,8 @@ typedef struct {
     uint64_t index;
     std::string name;
     std::string blob;
-    bool valid;
+    bool valid_regular;
+    bool valid_expert;
     std::vector<std::string> expected;
     std::vector<std::string> expected_expert;
 } testcase_t;
@@ -98,7 +99,8 @@ std::vector<testcase_t> GetJsonTestCases(const std::string &jsonFile) {
                 i["index"].asUInt64(),
                 i["name"].asString(),
                 i["blob"].asString(),
-                i["valid"].asBool(),
+                i["valid_regular"].asBool(),
+                i["valid_expert"].asBool(),
                 outputs,
                 outputs_expert
         });
@@ -118,7 +120,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
 
     err = parser_parse(&ctx, buffer, bufferLen);
 
-    if (tc.valid) {
+    if (tc.valid_regular && tc.valid_expert) {
         ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
     } else {
         ASSERT_NE(err, parser_ok) << parser_getErrorDescription(err);
