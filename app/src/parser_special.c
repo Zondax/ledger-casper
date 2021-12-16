@@ -222,7 +222,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                 uint8_t hash[32];
                 MEMZERO(hash, sizeof(hash));
                 MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
-                if (blake2b_hash32(ctx->buffer + ctx->offset,dataLength,hash) != zxerr_ok){
+                if (blake2b_hash(ctx->buffer + ctx->offset,dataLength,hash) != zxerr_ok){
                     return parser_unexepected_error;
                 };
                 return parser_printBytes(hash, 32, outVal, outValLen,
