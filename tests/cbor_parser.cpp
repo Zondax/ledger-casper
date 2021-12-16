@@ -324,7 +324,8 @@ namespace {
         MEMZERO(encodedInput, sizeof(encodedInput));
         encode((char*)rawInput, sizeof(rawInput), encodedInput);
 
-        char expectedOutput[] = "FFfffffFFfFfFFfFFfFFfFfFfFFffFFFFffFFffFFFffFffffFffffFfFfFFfFFF";
+        char expectedOutput[] = "fFfffFFFfFffffffFfffFffffffffFFfffffFfFfFFFFffffFfffffffFffFFfff";
+
         for(int i = 0; i < sizeof(expectedOutput); i++) {
             EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
         }
@@ -339,7 +340,8 @@ namespace {
         MEMZERO(encodedInput, sizeof(encodedInput));
         encode((char*)rawInput, sizeof(rawInput), encodedInput);
 
-        char expectedOutput[] = "02531fE6068134503d2723133227C867ac8fA6c83c537E9A44C3C5bDBdCB1fe337";
+        char expectedOutput[] = "02531Fe6068134503D2723133227c867Ac8Fa6C83C537e9a44c3c5BdBDCb1fE337";
+
         for(int i = 0; i < sizeof(expectedOutput); i++) {
             EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
         }
