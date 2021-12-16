@@ -253,7 +253,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     uint8_t hash_input[BLAKE2B_256_SIZE];
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
-    blake2b_hash((uint8_t*)address, addressLen, hash_input);
+    blake2b_hash32((uint8_t*)address, addressLen, hash_input);
 
     uint8_t offset = 0x00;
     uint8_t index = 0x00;
