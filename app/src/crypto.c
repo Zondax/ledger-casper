@@ -26,6 +26,14 @@ bool isTestnet() {
            hdPath[1] == HDPATH_1_TESTNET;
 }
 
+const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+'a', 'b', 'c', 'd', 'e', 'f'};
+
+static bool is_alphabetic(const char byte);
+static void to_uppercase(char* letter);
+static void to_lowercase(char* letter);
+static bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset);
+
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX)
 #include "cx.h"
 
@@ -36,7 +44,6 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
     cx_hash(&ctx.header, CX_LAST, in, inLen, out, 32);
     return zxerr_ok;
 }
-
 
 zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
     cx_ecfp_public_key_t cx_publicKey;
@@ -189,12 +196,11 @@ zxerr_t crypto_sign(uint8_t *signature,
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out){
     int result = blake2(out, 32, in, inLen, NULL, 0);
-    if(result != 0){
+    if (result != 0) {
         return zxerr_unknown;
-    }else{
+    } else {
         return zxerr_ok;
     }
-
 }
 
 #endif
@@ -221,4 +227,71 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
 
     *addrLen = sizeof_field(answer_t, publicKey);
     return zxerr_ok;
+}
+
+zxerr_t encode_addr(char* address, const uint8_t addressLen, char* encodedAddr) {
+    //Address Prefix must not be encoded
+    bytes_to_nibbles((uint8_t*)address, 1, (uint8_t*)encodedAddr);
+    encodedAddr[0] += '0';
+    encodedAddr[1] += '0';
+
+    return encode(address+1, addressLen-1, encodedAddr+2);
+}
+
+zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
+    const uint8_t nibblesLen = 2 * addressLen;
+    uint8_t input_nibbles[nibblesLen];
+    uint8_t hash_input[BLAKE2B_256_SIZE];
+
+    bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
+    blake2b_hash((uint8_t*)address, addressLen, hash_input);
+
+    uint8_t offset = 0x00;
+    uint8_t index = 0x00;
+
+    for(int i = 0; i < nibblesLen; i++) {
+        char c = HEX_CHARS[input_nibbles[i]];
+        if(is_alphabetic(c)) {
+            get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+        }
+        encodedAddr[i] = c;
+    }
+    return zxerr_ok;
+}
+
+bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset) {
+    //Return true if following bit is 1
+    bool ret = ((hash_input[*index] >> *offset) & 0x01) == 0x01;
+    (*offset)++;
+    if(*offset >= 0x08) {
+        *offset = 0x00;
+        (*index)++;
+    }
+    return ret;
+}
+
+bool is_alphabetic(const char byte) {
+    return  (byte >= 0x61  && byte <= 0x7A) ||
+            (byte >= 0x41  && byte <= 0x5A);
+}
+
+void to_uppercase(char* letter) {
+    //Check if lowercase letter
+    if(*letter >= 0x61  && *letter <= 0x7A) {
+        *letter = *letter - 0x20;
+    }
+}
+
+void to_lowercase(char* letter) {
+    //Check if uppercase letter
+    if(*letter >= 0x41  && *letter <= 0x5A) {
+        *letter = *letter + 0x20;
+    }
+}
+
+void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles) {
+    for(uint8_t i = 0; i < bytesLen; i++){
+        nibbles[2*i] = bytes[i] >> 4;
+        nibbles[2*i+1] = bytes[i] & 0x0F;
+    }
 }
