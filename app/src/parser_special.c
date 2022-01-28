@@ -20,7 +20,7 @@
 #include "parser_txdef.h"
 #include "parser.h"
 #include "crypto.h"
-
+#include "zxformat.h"
 #include "app_mode.h"
 
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {

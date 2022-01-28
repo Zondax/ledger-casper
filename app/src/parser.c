@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <zxmacros.h>
+#include <zxformat.h>
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -643,7 +644,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         uint32_t num_approvs = 0;
         CHECK_PARSER_ERR(readU32(ctx, &num_approvs));
         uint64_t value = 0;
-        MEMCPY(&value, &num_approvs, 4);  
+        MEMCPY(&value, &num_approvs, 4);
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 
