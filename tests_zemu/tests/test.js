@@ -31,7 +31,8 @@ var simOptions = {
     logging: true,
     start_delay: 3000,
     custom: `-s "${APP_SEED}"`,
-    X11: false
+    X11: false,
+    startText: 'Ready'
 };
 
 let models = [
