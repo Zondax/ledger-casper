@@ -72,7 +72,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_unexpected_number_items;
     }
     uint32_t dataLength = 0;
@@ -183,7 +183,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -325,7 +325,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item->UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item->UI_runtime_items) {
+    if (new_displayIdx > item->UI_runtime_items || displayIdx < item->UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
