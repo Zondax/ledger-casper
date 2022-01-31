@@ -242,6 +242,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     const uint8_t nibblesLen = 2 * addressLen;
     uint8_t input_nibbles[nibblesLen];
     uint8_t hash_input[BLAKE2B_256_SIZE];
+    MEMZERO(input_nibbles, nibblesLen);
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
     blake2b_hash((uint8_t*)address, addressLen, hash_input);
