@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <zxmacros.h>
+#include <zxformat.h>
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -29,6 +30,10 @@
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function){
+    UNUSED(assertion);
+    UNUSED(file);
+    UNUSED(line);
+    UNUSED(function);
     while(1) {};
 }
 #endif
@@ -306,7 +311,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -392,7 +397,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -643,7 +648,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         uint32_t num_approvs = 0;
         CHECK_PARSER_ERR(readU32(ctx, &num_approvs));
         uint64_t value = 0;
-        MEMCPY(&value, &num_approvs, 4);  
+        MEMCPY(&value, &num_approvs, 4);
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 

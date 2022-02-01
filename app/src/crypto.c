@@ -26,7 +26,7 @@ bool isTestnet() {
            hdPath[1] == HDPATH_1_TESTNET;
 }
 
-const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 'a', 'b', 'c', 'd', 'e', 'f'};
 
 static bool is_alphabetic(const char byte);
@@ -242,6 +242,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     const uint8_t nibblesLen = 2 * addressLen;
     uint8_t input_nibbles[nibblesLen];
     uint8_t hash_input[BLAKE2B_256_SIZE];
+    MEMZERO(input_nibbles, nibblesLen);
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
     blake2b_hash((uint8_t*)address, addressLen, hash_input);
@@ -250,7 +251,11 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     uint8_t index = 0x00;
 
     for(int i = 0; i < nibblesLen; i++) {
-        char c = HEX_CHARS[input_nibbles[i]];
+        const uint8_t char_index = input_nibbles[i];
+        if(char_index >= sizeof(HEX_CHARS)) {
+            return zxerr_out_of_bounds;
+        }
+        char c = HEX_CHARS[char_index];
         if(is_alphabetic(c)) {
             get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
         }
