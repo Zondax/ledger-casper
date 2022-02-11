@@ -20,7 +20,7 @@
 #include "parser_txdef.h"
 #include "parser.h"
 #include "crypto.h"
-
+#include "zxformat.h"
 #include "app_mode.h"
 
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
@@ -72,7 +72,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_unexpected_number_items;
     }
     uint32_t dataLength = 0;
@@ -147,7 +147,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
     if(num_items == 4){
-        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 13 && internal_type == 12);
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 12 || (type == 13 && internal_type == 12));
     }
     if(app_mode_expert()){
         item->UI_runtime_items += num_items;
@@ -183,7 +183,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -325,7 +325,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item->UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item->UI_runtime_items) {
+    if (new_displayIdx > item->UI_runtime_items || displayIdx < item->UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;

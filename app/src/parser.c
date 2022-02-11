@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <zxmacros.h>
+#include <zxformat.h>
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -29,6 +30,10 @@
 #if defined(TARGET_NANOX)
 // For some reason NanoX requires this function
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function){
+    UNUSED(assertion);
+    UNUSED(file);
+    UNUSED(line);
+    UNUSED(function);
     while(1) {};
 }
 #endif
@@ -41,10 +46,22 @@ parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t d
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
                                  char *outVal, uint16_t outValLen,
                                  uint8_t pageIdx, uint8_t *pageCount) {
-    char buffer[300];
+    char encodedAddr[100];
+    MEMZERO(encodedAddr, sizeof(encodedAddr));
+    encode((char*)bytes, byteLength, encodedAddr);
+    pageString(outVal, outValLen, encodedAddr, pageIdx, pageCount);
+    return parser_ok;
+}
+
+parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
+                                   char *outVal, uint16_t outValLen,
+                                   uint8_t pageIdx, uint8_t *pageCount) {
+    char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
-    array_to_hexstr(buffer, sizeof(buffer), bytes, byteLength);
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
+
+    encode_addr((char*)bytes, byteLength, buffer);
+
+    pageString(outVal, outValLen, buffer, pageIdx, pageCount);
     return parser_ok;
 }
 
@@ -103,6 +120,11 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 
 #define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
     return parser_printBytes((const uint8_t *) ((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx,        \
+    pageCount);                                                                                                         \
+}
+
+#define DISPLAY_RUNTIMEARG_ADDRESS(CTX, LEN){                                        \
+    return parser_printAddress((const uint8_t *) ((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx,        \
     pageCount);                                                                                                         \
 }
 
@@ -231,7 +253,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         case 22: {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
-            DISPLAY_RUNTIMEARG_BYTES(ctx, 1 + pubkeyLen)
+            DISPLAY_RUNTIMEARG_ADDRESS(ctx, 1 + pubkeyLen)
         }
 
         default : {
@@ -289,7 +311,7 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -299,6 +321,11 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         if(new_displayIdx == 0) {
             snprintf(outKey, outKeyLen, "Target");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+
+
+//            return parser_printAddress((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
+//                                       pageIdx, pageCount);
+
             return parser_display_runtimeArg(datatype, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
@@ -370,7 +397,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
-    if (new_displayIdx < 0 || new_displayIdx > item.UI_runtime_items) {
+    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_no_data;
     }
     uint32_t dataLength = 0;
@@ -546,7 +573,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Account");
         CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
         uint16_t pubkeyLen = 1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
-        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
+        return parser_printAddress((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
                                  pageIdx, pageCount);
     }
 
@@ -621,7 +648,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         uint32_t num_approvs = 0;
         CHECK_PARSER_ERR(readU32(ctx, &num_approvs));
         uint64_t value = 0;
-        MEMCPY(&value, &num_approvs, 4);  
+        MEMCPY(&value, &num_approvs, 4);
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
     }
 

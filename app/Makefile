@@ -55,8 +55,8 @@ COIN=CSPR
 endif
 
 APPVERSION_M=2
-APPVERSION_N=2
-APPVERSION_P=6
+APPVERSION_N=3
+APPVERSION_P=2
 
 $(info COIN  = [$(COIN)])
 
@@ -78,10 +78,11 @@ endef
 $(error "$(error_message)")
 endif
 
-APP_LOAD_PARAMS = --appFlags 0x200 --delete $(COMMON_LOAD_PARAMS) --path ${APPPATH} --path "44'/1'" --tlvraw 9F:01
+APP_LOAD_PARAMS = --delete $(COMMON_LOAD_PARAMS) --path ${APPPATH} --path "44'/1'" --tlvraw 9F:01 --curve secp256k1
 DEFINES += HAVE_PENDING_REVIEW_SCREEN
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
+APP_LOAD_PARAMS += --appFlags 0x000
 APP_STACK_SIZE:=1892
 ICONNAME:=$(CURDIR)/nanos_icon.gif
 OUTPUT_ELF ?= $(CURDIR)/output/app_s.elf
@@ -89,6 +90,7 @@ OUTPUT_INSTALLER := $(CURDIR)/pkg/installer_s.sh
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
+APP_LOAD_PARAMS += --appFlags 0x200
 ICONNAME:=$(CURDIR)/nanox_icon.gif
 OUTPUT_ELF ?= $(CURDIR)/output/app_x.elf
 OUTPUT_INSTALLER:= $(CURDIR)/pkg/installer_x.sh
