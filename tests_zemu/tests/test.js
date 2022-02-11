@@ -19,7 +19,7 @@ import Zemu from "@zondax/zemu";
 import CasperApp from "@zondax/ledger-casper";
 import * as secp256k1 from "secp256k1";
 
-const sha256 = require('js-sha256')
+const sha256 = require('js-sha256');
 
 const Resolve = require("path").resolve;
 const APP_PATH_S = Resolve("../app/output/app_s.elf");
@@ -40,7 +40,7 @@ let models = [
     ['X', {model: 'nanox', prefix: 'X', path: APP_PATH_X}]
 ]
 
-jest.setTimeout(60000)
+jest.setTimeout(60000);
 
 describe('Standard', function () {
     test.each(models)('can start and stop container (%s)', async function (_, {model, prefix, path}) {
@@ -56,7 +56,7 @@ describe('Standard', function () {
         const sim = new Zemu(path);
         try {
             await sim.start({model, ...simOptions});
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-mainmenu`, 3);
+            await sim.navigateAndCompareSnapshots(".", `${prefix.toLowerCase()}-mainmenu`, [5]);
         } finally {
             await sim.close();
         }
