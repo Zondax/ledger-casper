@@ -558,6 +558,8 @@ parser_error_t parser_getItem(parser_context_t *ctx,
             snprintf(outVal, outValLen, "Delegate");
         }else if (parser_tx_obj.session.special_type == UnDelegate) {
             snprintf(outVal, outValLen, "Undelegate");
+        }else if (parser_tx_obj.session.special_type == ReDelegate) {
+            snprintf(outVal, outValLen, "Redelegate");
         }else{
             return parser_unexpected_type;
         }
@@ -634,7 +636,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         special_deploy_e special_type = parser_tx_obj.session.special_type;
         if(special_type == NativeTransfer){
             return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else if(special_type == Delegate || special_type == UnDelegate){
+        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate){
             return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         }else{
             return parser_unexpected_type;

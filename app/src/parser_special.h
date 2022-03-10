@@ -15,6 +15,7 @@
 ********************************************************************************/
 #pragma once
 
+#include <stdbool.h>
 #include "parser_common.h"
 #include "parser_txdef.h"
 
@@ -22,7 +23,7 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
 
-parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegation);
 
 parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_context_t *ctx,
                                             uint8_t displayIdx,
