@@ -350,7 +350,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
         CHECK_PARSER_ERR(parseSystemPayment(ctx, item, deploy_argLen)); //only support for system payment
         item->special_type = SystemPayment;
     }else{
-        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+        CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen, false));
     }
 
     CHECK_PARSER_ERR(parseRuntimeArgs(ctx, deploy_argLen));
@@ -387,12 +387,19 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
-    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen));
+    bool redelegation = false;
+    if (strcmp(buffer, "redelegate") == 0) {
+        redelegation = true;
+    }
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
+
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
         item->special_type = Delegate;
     }else if (strcmp(buffer, "undelegate") == 0) {
         item->special_type = UnDelegate;
+    }else if (strcmp(buffer, "redelegate") == 0) {
+        item->special_type = ReDelegate;
     }else{
         return parser_unexepected_error;
     }

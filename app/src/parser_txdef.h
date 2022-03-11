@@ -51,6 +51,7 @@ typedef enum {
     NativeTransfer = 2,
     Delegate = 3,
     UnDelegate = 4,
+    ReDelegate = 5,
 } special_deploy_e;
 
 typedef enum {

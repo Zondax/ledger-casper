@@ -339,35 +339,75 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                          pageIdx, pageCount);
 
     }
+    if(item->special_type == ReDelegate){
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Old");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, item->UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
 
-    if(new_displayIdx == 1) {
-        snprintf(outKey, outKeyLen, "Validator");
-        CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, item->UI_runtime_items, ctx))
-        return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                         outVal, outValLen,
-                                         pageIdx, pageCount);
+        }
+        if(new_displayIdx == 2) {
+            snprintf(outKey, outKeyLen, "New");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("new_validator", &dataLength, &datatype, item->UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+        if(new_displayIdx == 3) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
 
     }
+    else{
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Validator");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, item->UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
 
-    if(new_displayIdx == 2) {
-        snprintf(outKey, outKeyLen, "Amount");
-        CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
-        return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                         outVal, outValLen,
-                                         pageIdx, pageCount);
+        }
 
+        if(new_displayIdx == 2) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
     }
 
     return parser_no_data;
 }
 
-parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegation){
+
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
+    // for calls coming from parseModuleBytes, we need to check again
+    uint16_t start = ctx->offset;
+    parser_error_t err = searchRuntimeArgs(("new_validator"), &type, &internal_type, (num_items), (ctx));
+    if(err == parser_ok){
+    redelegation = true;
+    }
+    ctx->offset = start;
+
     if(item->type == ModuleBytes){
         uint16_t start = ctx->offset;
-        PARSER_ASSERT_OR_ERROR(num_items == 4, parser_unexpected_number_items);
+        if(redelegation){
+            PARSER_ASSERT_OR_ERROR(num_items == 5, parser_unexpected_number_items);
+        } else{
+            PARSER_ASSERT_OR_ERROR(num_items == 4, parser_unexpected_number_items);
+        }
+
         uint32_t dataLength = 0;
         CHECK_PARSER_ERR(parser_runtimeargs_getData("auction", &dataLength, &type, num_items, ctx));
         char buffer[100];
@@ -381,10 +421,14 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
             item->special_type = Delegate;
         }else if (strcmp(buffer, "undelegate") == 0){
             item->special_type = UnDelegate;
+        }else if (strcmp(buffer, "redelegate") == 0){
+            item->special_type = ReDelegate;
         }else{
             return parser_unexepected_error;
         }
         ctx->offset = start;
+    }else if (redelegation) {
+        PARSER_ASSERT_OR_ERROR(num_items == 4, parser_unexpected_number_items);
     }else{
         PARSER_ASSERT_OR_ERROR(num_items == 3, parser_unexpected_number_items);
     }
@@ -392,7 +436,12 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == 22);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 22);
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-    item->UI_runtime_items += 3;
+    if (redelegation) {
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == 22);
+        item->UI_runtime_items += 4;
+    }else {
+        item->UI_runtime_items += 3;
+    }
 
     if(app_mode_expert()){
         uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
