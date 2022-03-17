@@ -531,8 +531,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     return parser_ok;
 }
 
-uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v) {
-    UNUSED(c);
+uint8_t _getNumItems(__Z_UNUSED const parser_context_t *c, const parser_tx_t *v) {
     uint8_t basicnum = app_mode_expert() ? 9 : 4;
     uint8_t itemCount =
             basicnum + v->payment.UI_fixed_items + v->payment.UI_runtime_items + v->session.UI_fixed_items + v->session.UI_runtime_items; //header + payment + session v->session.num_items
