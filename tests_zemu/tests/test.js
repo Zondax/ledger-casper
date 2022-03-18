@@ -19,7 +19,7 @@ import Zemu from "@zondax/zemu";
 import CasperApp from "@zondax/ledger-casper";
 import * as secp256k1 from "secp256k1";
 
-const sha256 = require('js-sha256')
+const sha256 = require('js-sha256');
 
 const Resolve = require("path").resolve;
 const APP_PATH_S = Resolve("../app/output/app_s.elf");
@@ -42,7 +42,7 @@ let models = [
     ['SP', {model: 'nanosp', prefix: 'SP', path: APP_PATH_SP}]
 ]
 
-jest.setTimeout(60000)
+jest.setTimeout(60000);
 
 beforeAll(async () => {
     await Zemu.checkAndPullImage()
