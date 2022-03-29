@@ -7,3 +7,6 @@
 [submodule "deps/BLAKE2"]
 	path = deps/BLAKE2
 	url = https://github.com/BLAKE2/BLAKE2
+[submodule "deps/nanosplus-secure-sdk"]
+	path = deps/nanosplus-secure-sdk
+	url = https://github.com/LedgerHQ/nanosplus-secure-sdk

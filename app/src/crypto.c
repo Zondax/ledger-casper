@@ -34,7 +34,7 @@ static void to_uppercase(char* letter);
 static void to_lowercase(char* letter);
 static bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset);
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX)
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #include "cx.h"
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,

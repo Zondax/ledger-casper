@@ -24,6 +24,7 @@ const sha256 = require('js-sha256');
 const Resolve = require("path").resolve;
 const APP_PATH_S = Resolve("../app/output/app_s.elf");
 const APP_PATH_X = Resolve("../app/output/app_x.elf");
+const APP_PATH_SP = Resolve("../app/output/app_s2.elf");
 
 const APP_SEED = "equip will roof matter pink blind book anxiety banner elbow sun young"
 
@@ -37,10 +38,15 @@ var simOptions = {
 
 let models = [
     ['S', {model: 'nanos', prefix: 'S', path: APP_PATH_S}],
-    ['X', {model: 'nanox', prefix: 'X', path: APP_PATH_X}]
+    ['X', {model: 'nanox', prefix: 'X', path: APP_PATH_X}],
+    ['SP', {model: 'nanosp', prefix: 'SP', path: APP_PATH_SP}]
 ]
 
 jest.setTimeout(60000);
+
+beforeAll(async () => {
+    await Zemu.checkAndPullImage()
+})
 
 describe('Standard', function () {
     test.each(models)('can start and stop container (%s)', async function (_, {model, prefix, path}) {
@@ -56,7 +62,7 @@ describe('Standard', function () {
         const sim = new Zemu(path);
         try {
             await sim.start({model, ...simOptions});
-            await sim.navigateAndCompareSnapshots(".", `${prefix.toLowerCase()}-mainmenu`, [5]);
+            await sim.navigateAndCompareSnapshots('.', `${prefix.toLowerCase()}-mainmenu`, [1, 0, 0, 4, -5])
         } finally {
             await sim.close();
         }
