@@ -264,6 +264,29 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     return zxerr_ok;
 }
 
+zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
+    const uint8_t nibblesLen = 2 * bytesLen;
+    uint8_t input_nibbles[nibblesLen];
+
+    bytes_to_nibbles((uint8_t*)bytes, bytesLen, input_nibbles);
+
+    uint8_t offset = 0x00;
+    uint8_t index = 0x00;
+
+    for(int i = 0; i < nibblesLen; i++) {
+        const uint8_t char_index = input_nibbles[i];
+        if(char_index >= sizeof(HEX_CHARS)) {
+            return zxerr_out_of_bounds;
+        }
+        char c = HEX_CHARS[char_index];
+        if(is_alphabetic(c)) {
+            get_next_hash_bit(bytes, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+        }
+        output[i] = c;
+    }
+    return zxerr_ok;
+}
+
 bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset) {
     //Return true if following bit is 1
     bool ret = ((hash_input[*index] >> *offset) & 0x01) == 0x01;
