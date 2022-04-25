@@ -28,11 +28,12 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     char buffer[300];
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
+    uint8_t ret = parser_ok;
     for (uint32_t i = 0; i < deploy_argLen; i++) {
         //key
-        CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
-        if (strcmp(buffer, argstr) == 0) {
-            //value
+        ret = copy_item_into_charbuffer(ctx, buffer, sizeof(buffer));
+        if (ret == parser_ok && (strcmp(buffer, argstr) == 0)) {
+              //value
             CHECK_PARSER_ERR(parse_item(ctx));
 
             CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
@@ -46,6 +47,11 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
         CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
 
     }
+    zemu_log_stack("runtime arg not found:\0");
+    zemu_log_stack(argstr);
+    // runtimarg_notfound is an expected error, so we should
+    // set the offset to its original value back for further processing
+    ctx->offset = start;
     return parser_runtimearg_notfound;
 }
 
