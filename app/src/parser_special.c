@@ -163,14 +163,35 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     return parser_ok;
 }
 
-parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
-
-    PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
+parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
 
     uint8_t type = 0;
     uint8_t internal_type = 0;
+
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-    item->UI_runtime_items += 1; //amount only
+
+    return parser_ok;
+}
+
+parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+
+    if ( num_items == 1){
+        uint8_t ret = parser_ok;
+        ret = checkForSystemPaymentArgs(ctx, item, num_items);
+        if (ret == parser_ok) {
+            item->with_generic_args = 0;
+            item->UI_runtime_items += 1;// Amount arg
+            return ret;
+        } else if (ret != parser_runtimearg_notfound) {
+            return ret;
+        }
+    }
+
+    // generic SystemPayment with a generic arg(No amount)
+    // TODO: is it valid to have more than one runtimearg?
+    item->with_generic_args = 1;
+    item->UI_runtime_items += 1;
+
     return parser_ok;
 }
 
