@@ -284,7 +284,8 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         }
 
         default : {
-            return parser_unexpected_type;
+            // we support now generic arguments
+            return parser_ok;
         }
     }
 }
