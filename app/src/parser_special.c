@@ -145,6 +145,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
     }
 }
 
+
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
     PARSER_ASSERT_OR_ERROR(3 <= num_items && num_items <= 4, parser_unexpected_number_items);
     uint8_t type = 0;
@@ -195,11 +196,46 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
     return parser_ok;
 }
 
+parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_t *ctx,
+                                          uint32_t bytes_len, char *name, uint8_t name_len,
+                                          char *outKey, uint16_t outKeyLen,
+                                          char *outVal, uint16_t outValLen,
+                                          uint8_t pageIdx, uint8_t *pageCount) {
+
+    uint8_t hash[BLAKE2B_256_SIZE];
+    MEMZERO(hash, BLAKE2B_256_SIZE);
+
+    if (blake2b_hash(ctx->buffer + ctx->offset, bytes_len, hash) != zxerr_ok){
+        return parser_unexepected_error;
+    };
+
+    snprintf(outKey, outKeyLen, "Args hash");
+
+    // name-hash
+    // name + '-' + hex-hash + 'null-terminator'
+    uint32_t output_len = name_len + 1 + (BLAKE2B_256_SIZE * 2) + 1;
+    uint8_t output[output_len];
+    MEMZERO(output, output_len);
+
+    uint8_t hex_hash[BLAKE2B_256_SIZE * 2];
+    encode_hex(hash, BLAKE2B_256_SIZE, hex_hash);
+
+    MEMCPY(output, name, name_len);
+    output[name_len] = '-';
+    MEMCPY((output + name_len + 1), hex_hash, BLAKE2B_256_SIZE * 2);
+
+    pageString(outVal, outValLen, (char *)output, pageIdx, pageCount);
+
+    return parser_ok;
+}
+
 parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_context_t *ctx,
                                           uint8_t displayIdx,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
+
+    uint32_t start = ctx->offset;
     ctx->offset++;
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
@@ -216,12 +252,26 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
     if(new_displayIdx == 0) {
-        snprintf(outKey, outKeyLen, "Fee");
-        CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
-        return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                         outVal, outValLen,
-                                         pageIdx, pageCount);
+        if (item.with_generic_args == 0) {
+            snprintf(outKey, outKeyLen, "Fee");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                    outVal, outValLen,
+                    pageIdx, pageCount);
+        } else {
+            char *name = "payment";
+            uint32_t name_len = strlen(name);
+            // move offset to the end of args
+            CHECK_PARSER_ERR(parseRuntimeArgs(ctx, item.UI_runtime_items));
+            uint32_t end = ctx->offset;
+            uint32_t len = ctx->offset - start;
+            // blake2b of runtime args
+            ctx->offset = start;
+            CHECK_PARSER_ERR(showGenericRuntimeArgs(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
 
+            ctx->offset = end;
+            return parser_ok;
+        }
     }
     return parser_no_data;
 }
