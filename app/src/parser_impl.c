@@ -193,6 +193,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Required field nonce";
         case parser_required_method:
             return "Required field method";
+        case parser_runtimearg_notfound:
+            return "RuntimArg not found";
         default:
             return "Unrecognized error code";
     }
