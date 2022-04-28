@@ -62,140 +62,6 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
 }
 
-
-parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
-                                       uint8_t displayIdx,
-                                       char *outKey, uint16_t outKeyLen,
-                                       char *outVal, uint16_t outValLen,
-                                       uint8_t pageIdx, uint8_t *pageCount) {
-    ctx->offset++;
-    uint32_t num_items = 0;
-    CHECK_PARSER_ERR(readU32(ctx, &num_items));
-
-    if(item.UI_runtime_items > num_items){
-        return parser_unexpected_number_items;
-    }
-
-    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
-
-    if (new_displayIdx > item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
-        return parser_unexpected_number_items;
-    }
-    uint32_t dataLength = 0;
-    uint8_t datatype = 255;
-
-    if(!app_mode_expert()){
-        if(new_displayIdx == 0) {
-            snprintf(outKey, outKeyLen, "Target");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-
-        }
-
-        if(new_displayIdx == 1) {
-            snprintf(outKey, outKeyLen, "Amount");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        return parser_no_data;
-    }else{
-        if(new_displayIdx == 0 && item.UI_runtime_items == 4) {
-            snprintf(outKey, outKeyLen, "From");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        if(item.UI_runtime_items == 4){
-            new_displayIdx -= 1;
-        }
-
-        if(new_displayIdx == 0) {
-            snprintf(outKey, outKeyLen, "Target");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-
-        }
-
-        if(new_displayIdx == 1) {
-            snprintf(outKey, outKeyLen, "Amount");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        if(new_displayIdx == 2) {
-            snprintf(outKey, outKeyLen, "ID");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        return parser_no_data;
-    }
-}
-
-
-parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
-    PARSER_ASSERT_OR_ERROR(3 <= num_items && num_items <= 4, parser_unexpected_number_items);
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
-    if(num_items == 4){
-        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 12 || (type == 13 && internal_type == 12));
-    }
-    if(app_mode_expert()){
-        item->UI_runtime_items += num_items;
-    }else{
-        item->UI_runtime_items += 2; //amount and target only
-    }
-    return parser_ok;
-}
-
-parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
-
-    uint8_t type = 0;
-    uint8_t internal_type = 0;
-
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-
-    return parser_ok;
-}
-
-parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
-
-    if ( num_items == 1){
-        uint8_t ret = parser_ok;
-        ret = checkForSystemPaymentArgs(ctx, item, num_items);
-        if (ret == parser_ok) {
-            item->with_generic_args = 0;
-            item->UI_runtime_items += 1;// Amount arg
-            return ret;
-        } else if (ret != parser_runtimearg_notfound) {
-            return ret;
-        }
-    }
-
-    // generic SystemPayment with a generic arg(No amount)
-    // TODO: is it valid to have more than one runtimearg?
-    item->with_generic_args = 1;
-    item->UI_runtime_items += 1;
-
-    return parser_ok;
-}
-
 parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_t *ctx,
                                           uint32_t bytes_len, char *name, uint8_t name_len,
                                           char *outKey, uint16_t outKeyLen,
@@ -225,6 +91,194 @@ parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_
     MEMCPY((output + name_len + 1), hex_hash, BLAKE2B_256_SIZE * 2);
 
     pageString(outVal, outValLen, (char *)output, pageIdx, pageCount);
+
+    return parser_ok;
+}
+
+parser_error_t getItem_BasicNativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
+                                       uint8_t displayIdx,
+                                       char *outKey, uint16_t outKeyLen,
+                                       char *outVal, uint16_t outValLen,
+                                       uint8_t pageIdx, uint8_t *pageCount, uint32_t num_items) {
+
+    uint32_t dataLength = 0;
+    uint8_t datatype = 255;
+
+    if(!app_mode_expert()) {
+        if(displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
+
+        if(displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        return parser_no_data;
+    }else{
+        if(displayIdx == 0 && item.UI_runtime_items == 4) {
+            snprintf(outKey, outKeyLen, "From");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(item.UI_runtime_items == 4){
+            displayIdx -= 1;
+        }
+
+        if(displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
+
+        if(displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(displayIdx == 2) {
+            snprintf(outKey, outKeyLen, "ID");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        return parser_no_data;
+    }
+}
+
+
+parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
+                                       uint8_t displayIdx,
+                                       char *outKey, uint16_t outKeyLen,
+                                       char *outVal, uint16_t outValLen,
+                                       uint8_t pageIdx, uint8_t *pageCount) {
+    uint32_t start = ctx->offset;
+    ctx->offset++;
+    uint32_t num_items = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &num_items));
+
+    if(item.UI_runtime_items > num_items){
+        return parser_unexpected_number_items;
+    }
+
+    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;// fixed Items is 0
+
+    if (new_displayIdx >= item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
+        return parser_unexpected_number_items;
+    }
+
+    if (item.with_generic_args){
+        if (new_displayIdx == 0) {
+            char *name = "native-transfer";
+            uint32_t name_len = strlen(name);
+            // move offset to the end of args
+            CHECK_PARSER_ERR(parseRuntimeArgs(ctx, item.UI_runtime_items));
+            uint32_t end = ctx->offset;
+            uint32_t len = ctx->offset - start;
+            // blake2b of runtime args
+            ctx->offset = start;
+            CHECK_PARSER_ERR(showGenericRuntimeArgs(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+
+            ctx->offset = end;
+            return parser_ok;
+        }
+    } else {
+        return getItem_BasicNativeTransfer(item, ctx,
+                                       displayIdx,
+                                       outKey, outKeyLen,
+                                       outVal, outValLen,
+                                       pageIdx, pageCount, num_items);
+    }
+    return parser_no_data;
+}
+
+
+parser_error_t parseBasicNativeTransferArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
+
+    PARSER_ASSERT_OR_ERROR(3 <= num_items && num_items <= 4, parser_unexpected_number_items);
+    uint8_t type = 0;
+    uint8_t internal_type = 0;
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
+    if(num_items == 4){
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 12 || (type == 13 && internal_type == 12));
+    }
+    if(app_mode_expert()){
+        item->UI_runtime_items += num_items;
+    }else{
+        item->UI_runtime_items += 2; //amount and target only
+    }
+
+    return parser_ok;
+}
+
+parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
+    parser_error_t ret = parser_ok;
+    ret = parseBasicNativeTransferArgs(ctx, item, num_items);
+    if (ret == parser_ok){
+        item->with_generic_args = 0;
+        return parser_ok;
+    } else if (ret != parser_runtimearg_notfound && ret != parser_unexpected_number_items && ret != parser_unexpected_type)
+        return ret;
+
+    // it is a generic native transfer
+    // so we show the runtime args hash
+    item->with_generic_args = 1;
+    item->UI_runtime_items += 1; // just the hash
+
+    return parser_ok;
+}
+
+parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+
+    uint8_t type = 0;
+    uint8_t internal_type = 0;
+
+    PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8 || type == 5  ); // also type 5
+
+    return parser_ok;
+}
+
+parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+
+    if (num_items == 0 )
+        return parser_unexpected_number_items;
+
+    parser_error_t ret = parser_ok;
+    ret = checkForSystemPaymentArgs(ctx, item, num_items);
+
+    if (ret == parser_ok) {
+        item->with_generic_args = 0;
+        item->UI_runtime_items += 1;// Amount arg
+        return ret;
+    } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
+        return ret;
+    }
+
+    // generic SystemPayment with one or more generic args
+    item->with_generic_args = 1;
+    item->UI_runtime_items += 1;
 
     return parser_ok;
 }
