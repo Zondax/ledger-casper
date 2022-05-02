@@ -22,38 +22,7 @@
 #include "crypto.h"
 #include "zxformat.h"
 #include "app_mode.h"
-
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
-    uint16_t start = ctx->offset;
-    char buffer[300];
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    uint8_t ret = parser_ok;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        ret = copy_item_into_charbuffer(ctx, buffer, sizeof(buffer));
-        if (ret == parser_ok && (strcmp(buffer, argstr) == 0)) {
-              //value
-            CHECK_PARSER_ERR(parse_item(ctx));
-
-            CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
-
-            ctx->offset = start;
-            return parser_ok;
-        }
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
-    zemu_log_stack("runtime arg not found:\0");
-    zemu_log_stack(argstr);
-    // runtimarg_notfound is an expected error, so we should
-    // set the offset to its original value back for further processing
-    ctx->offset = start;
-    return parser_runtimearg_notfound;
-}
+#include "runtime_arg.h"
 
 #define CHECK_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
     type = 255;                     \
@@ -62,117 +31,15 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
 }
 
-parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_t *ctx,
-                                          uint32_t bytes_len, char *name, uint8_t name_len,
-                                          char *outKey, uint16_t outKeyLen,
-                                          char *outVal, uint16_t outValLen,
-                                          uint8_t pageIdx, uint8_t *pageCount) {
-
-    uint8_t hash[BLAKE2B_256_SIZE];
-    MEMZERO(hash, BLAKE2B_256_SIZE);
-
-    if (blake2b_hash(ctx->buffer + ctx->offset, bytes_len, hash) != zxerr_ok){
-        return parser_unexepected_error;
-    };
-
-    snprintf(outKey, outKeyLen, "Args hash");
-
-    // name-hash
-    // name + '-' + hex-hash + 'null-terminator'
-    uint32_t output_len = name_len + 1 + (BLAKE2B_256_SIZE * 2) + 1;
-    uint8_t output[output_len];
-    MEMZERO(output, output_len);
-
-    uint8_t hex_hash[BLAKE2B_256_SIZE * 2];
-    encode_hex(hash, BLAKE2B_256_SIZE, hex_hash);
-
-    MEMCPY(output, name, name_len);
-    output[name_len] = '-';
-    MEMCPY((output + name_len + 1), hex_hash, BLAKE2B_256_SIZE * 2);
-
-    pageString(outVal, outValLen, (char *)output, pageIdx, pageCount);
-
-    return parser_ok;
-}
-
-parser_error_t getItem_BasicNativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
-                                       uint8_t displayIdx,
-                                       char *outKey, uint16_t outKeyLen,
-                                       char *outVal, uint16_t outValLen,
-                                       uint8_t pageIdx, uint8_t *pageCount, uint32_t num_items) {
-
-    uint32_t dataLength = 0;
-    uint8_t datatype = 255;
-
-    if(!app_mode_expert()) {
-        if(displayIdx == 0) {
-            snprintf(outKey, outKeyLen, "Target");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-
-        }
-
-        if(displayIdx == 1) {
-            snprintf(outKey, outKeyLen, "Amount");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        return parser_no_data;
-    }else{
-        if(displayIdx == 0 && item.UI_runtime_items == 4) {
-            snprintf(outKey, outKeyLen, "From");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        if(item.UI_runtime_items == 4){
-            displayIdx -= 1;
-        }
-
-        if(displayIdx == 0) {
-            snprintf(outKey, outKeyLen, "Target");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-
-        }
-
-        if(displayIdx == 1) {
-            snprintf(outKey, outKeyLen, "Amount");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        if(displayIdx == 2) {
-            snprintf(outKey, outKeyLen, "ID");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
-                                             outVal, outValLen,
-                                             pageIdx, pageCount);
-        }
-
-        return parser_no_data;
-    }
-}
-
 
 parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
                                        uint8_t displayIdx,
                                        char *outKey, uint16_t outKeyLen,
                                        char *outVal, uint16_t outValLen,
                                        uint8_t pageIdx, uint8_t *pageCount) {
-    uint32_t start = ctx->offset;
     ctx->offset++;
+    zemu_log("getItem NAtive---->\n");
+    uint32_t start = ctx->offset;
     uint32_t num_items = 0;
     CHECK_PARSER_ERR(readU32(ctx, &num_items));
 
@@ -182,11 +49,17 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;// fixed Items is 0
 
+    uint32_t dataLength = 0;
+    uint8_t datatype = 255;
+
+    // normal tx, target, id, source(optional) and amount
+
     if (new_displayIdx >= item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_unexpected_number_items;
     }
 
-    if (item.with_generic_args){
+    // generic
+    if (item.unknown_items > 0){
         if (new_displayIdx == 0) {
             char *name = "native-transfer";
             uint32_t name_len = strlen(name);
@@ -201,32 +74,114 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
             ctx->offset = end;
             return parser_ok;
         }
-    } else {
-        return getItem_BasicNativeTransfer(item, ctx,
-                                       displayIdx,
-                                       outKey, outKeyLen,
-                                       outVal, outValLen,
-                                       pageIdx, pageCount, num_items);
+        return parser_no_data;
     }
+
+
+    bool expected_items = num_items == 3 || num_items == 4;
+/*parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,*/
+        /*uint16_t pageIdx, uint16_t *pageCount, uint32_t num_items, parser_context_t *ctx) {*/
+
+    // generic no hash there is less args than expected but they are valid
+    if (item.unknown_items == 0 && !expected_items) {
+        zemu_log("no HASH runtimeargs**\n");
+
+        return showRuntimeArgByIndex(new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount, num_items, ctx);
+    }
+
+    // no generic, normal transactions
+    if(!app_mode_expert()) {
+        if(new_displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
+
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        return parser_no_data;
+    }else{
+        if(new_displayIdx == 0 && item.UI_runtime_items == 4) {
+            snprintf(outKey, outKeyLen, "From");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(item.UI_runtime_items == 4){
+            new_displayIdx -= 1;
+        }
+
+        if(new_displayIdx == 0) {
+            snprintf(outKey, outKeyLen, "Target");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+
+        }
+
+        if(new_displayIdx == 1) {
+            snprintf(outKey, outKeyLen, "Amount");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if(new_displayIdx == 2) {
+            snprintf(outKey, outKeyLen, "ID");
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype,num_items, ctx))
+            return parser_display_runtimeArg(datatype, dataLength, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+    }
+
     return parser_no_data;
 }
 
 
-parser_error_t parseBasicNativeTransferArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
+parser_error_t parseBasicNativeTransferArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, uint32_t *fitems) {
 
-    PARSER_ASSERT_OR_ERROR(3 <= num_items && num_items <= 4, parser_unexpected_number_items);
     uint8_t type = 0;
     uint8_t internal_type = 0;
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "id", type == 13 && internal_type == 5);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", type == 11 || type == 12 || type == 15 || type == 22);
+    *fitems = 0;
+    parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
+
+    if (err == parser_ok && (type == 8 || type == 4 || type == 5) ) {
+        *fitems += 1;
+    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
+        return err;
+
+    err = searchRuntimeArgs("id", &type, &internal_type, num_items, ctx);
+    if (err == parser_ok && ((type == 13 && internal_type == 5) || type == 5) ) {
+        *fitems += 1;
+    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
+        return err;
+
+    err = searchRuntimeArgs("target", &type, &internal_type, num_items, ctx);
+    if (err == parser_ok && (type == 11 || type == 12 || type == 15 || type == 22) ) {
+        *fitems += 1;
+    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
+        return err;
+
     if(num_items == 4){
-        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "source", type == 12 || (type == 13 && internal_type == 12));
-    }
-    if(app_mode_expert()){
-        item->UI_runtime_items += num_items;
-    }else{
-        item->UI_runtime_items += 2; //amount and target only
+        err = searchRuntimeArgs("source", &type, &internal_type, num_items, ctx);
+        if (err == parser_ok && (type == 11 || type == 12 || type == 15 || type == 22) ) {
+            *fitems += 1;
+        } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
+            return err;
     }
 
     return parser_ok;
@@ -234,19 +189,43 @@ parser_error_t parseBasicNativeTransferArgs(parser_context_t *ctx, ExecutableDep
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
     parser_error_t ret = parser_ok;
-    ret = parseBasicNativeTransferArgs(ctx, item, num_items);
-    if (ret == parser_ok){
-        item->with_generic_args = 0;
-        return parser_ok;
-    } else if (ret != parser_runtimearg_notfound && ret != parser_unexpected_number_items && ret != parser_unexpected_type)
+    uint32_t found_items = 0;
+
+    ret = parseBasicNativeTransferArgs(ctx, item, num_items, &found_items);
+
+    if (ret != parser_ok)
         return ret;
 
-    // it is a generic native transfer
-    // so we show the runtime args hash
-    item->with_generic_args = 1;
-    item->UI_runtime_items += 1; // just the hash
+    uint32_t uitems = num_items - found_items;
+    item->unknown_items = uitems;
 
-    return parser_ok;
+    bool expected_items = found_items == 3 || found_items == 4;
+
+    // normal tx, target, id, source(optional) and amount
+    if (uitems == 0 && expected_items) {
+        if(app_mode_expert()){
+            item->UI_runtime_items += num_items;
+        }else{
+            item->UI_runtime_items += 2; //amount and target only
+        }
+        item->with_generic_args = 0;
+        return parser_ok;
+    }
+
+    // generic no hash
+    if (uitems == 0 && found_items == num_items) {
+        item->UI_runtime_items += found_items;
+        item->with_generic_args = 0;
+        return parser_ok;
+    }
+    // generic with hash
+    if (uitems > 0) {
+        item->with_generic_args = 1;
+        item->UI_runtime_items += 1;
+        return parser_ok;
+    }
+
+    return parser_unexepected_error;
 }
 
 parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
@@ -270,6 +249,7 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     if (ret == parser_ok) {
         item->with_generic_args = 0;
+        item->unknown_items = 0;
         item->UI_runtime_items += 1;// Amount arg
         return ret;
     } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
@@ -278,6 +258,7 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     // generic SystemPayment with one or more generic args
     item->with_generic_args = 1;
+    item->unknown_items = 1;
     item->UI_runtime_items += 1;
 
     return parser_ok;
@@ -289,8 +270,8 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
 
-    uint32_t start = ctx->offset;
     ctx->offset++;
+    uint32_t start = ctx->offset;
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     if(dataLen > ctx->bufferLen - ctx->offset){
@@ -306,7 +287,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
     if(new_displayIdx == 0) {
-        if (item.with_generic_args == 0) {
+        if (item.unknown_items == 0) {
             snprintf(outKey, outKeyLen, "Fee");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx,
