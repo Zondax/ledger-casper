@@ -361,7 +361,7 @@ parser_error_t parseModuleBytes(parser_context_t *ctx, ExecutableDeployItem *ite
 }
 
 parser_error_t parseTransfer(parser_context_t *ctx, ExecutableDeployItem *item) {
-    uint32_t start = *(uint32_t *) &ctx->offset;
+    uint32_t start = *(uint32_t *) &ctx->offset;    
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     //only support for native transfers now
@@ -456,6 +456,8 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->UI_fixed_items = 0;
     item->UI_runtime_items = 0;
     item->num_runtime_args = 0;
+    item->with_generic_args = 0;
+    item->unknown_items = 0;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
