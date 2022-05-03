@@ -24,6 +24,7 @@
 
 
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
+    zemu_log("searchRuntimeArgs--->\n");
     uint16_t start = ctx->offset;
     char buffer[300];
     MEMZERO(buffer, 300);
@@ -41,6 +42,7 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
             CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
 
             ctx->offset = start;
+            zemu_log("searchRuntimeArgs---<\n");
             return parser_ok;
         }
         //value
@@ -52,6 +54,7 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     // runtimarg_notfound is an expected error, so we should
     // set the offset to its original value back for further processing
     ctx->offset = start;
+    zemu_log("searchRuntimeArgs---<\n");
     return parser_runtimearg_notfound;
 }
 
@@ -124,6 +127,13 @@ parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outK
         CHECK_PARSER_ERR(get_type(ctx, &dataType, &dataInternal));
     }
 
+    // should we omit this step?
+    /*ctx->offset = start;*/
+
+    zemu_log("ARG BY INDEX\n");
+    zemu_log("NODATA \n");
+    // is this ok?
+    /*ctx->offset = start;*/
     return parser_no_data;
 }
 
