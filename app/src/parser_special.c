@@ -46,19 +46,17 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         return parser_unexpected_number_items;
     }
 
-    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;// fixed Items is 0
+    uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
 
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
-
-    // normal tx, target, id, source(optional) and amount
 
     if (new_displayIdx >= item.UI_runtime_items || displayIdx < item.UI_fixed_items) {
         return parser_unexpected_number_items;
     }
 
     // generic
-    if (item.unknown_items > 0){
+    if (item.with_generic_args > 0){
         if (new_displayIdx == 0) {
             char *name = "native-transfer";
             uint32_t name_len = strlen(name);
@@ -76,14 +74,11 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         return parser_no_data;
     }
 
-
     bool expected_items = num_items == 3 || num_items == 4;
-/*parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,*/
-        /*uint16_t pageIdx, uint16_t *pageCount, uint32_t num_items, parser_context_t *ctx) {*/
 
     // generic no hash there is less args than expected but they are valid
-    if (item.unknown_items == 0 && !expected_items) {
-        return showRuntimeArgByIndex(new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount, num_items, ctx);
+    if (!expected_items) {
+        return showRuntimeArgByIndex(new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount, item.UI_runtime_items, ctx);
     }
 
     // no generic, normal transactions
@@ -194,7 +189,6 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
         return ret;
 
     uint32_t uitems = num_items - found_items;
-    item->unknown_items = uitems;
 
     bool expected_items = found_items == 3 || found_items == 4;
 
@@ -210,7 +204,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     }
 
     // generic no hash
-    if (uitems == 0 && found_items == num_items) {
+    if (uitems == 0 && !expected_items) {
         item->UI_runtime_items += found_items;
         item->with_generic_args = 0;
         return parser_ok;
