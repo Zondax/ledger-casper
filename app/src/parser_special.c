@@ -240,7 +240,6 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     if (ret == parser_ok) {
         item->with_generic_args = 0;
-        item->unknown_items = 0;
         item->UI_runtime_items += 1;// Amount arg
         return ret;
     } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
@@ -249,7 +248,6 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
 
     // generic SystemPayment with one or more generic args
     item->with_generic_args = 1;
-    item->unknown_items = 1;
     item->UI_runtime_items += 1;
 
     return parser_ok;
@@ -278,7 +276,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
     if(new_displayIdx == 0) {
-        if (item.unknown_items == 0) {
+        if (item.with_generic_args == 0) {
             snprintf(outKey, outKeyLen, "Fee");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx,
