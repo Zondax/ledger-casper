@@ -106,11 +106,20 @@ parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outK
 
         if (i == index) {
             uint32_t key_len = strlen(buffer);
+            if (strcmp(buffer, "id") == 0){
+                snprintf(outKey, outKeyLen, "ID");
+            } else {
+                MEMCPY(outKey, buffer, key_len);
+                // convert first character to upper case
+                if ( 'a' <= outKey[0] || outKey[0] <= 'z') {
+                    char c = outKey[0];
+                    outKey[0] = c - 32;
+                }
+            }
 
             ctx->offset = start;
             CHECK_PARSER_ERR(parser_runtimeargs_getData(buffer, &dataLength, &dataType, num_items, ctx));
 
-            MEMCPY(outKey, buffer, key_len);
 
             return parser_display_runtimeArg(dataType, dataLength, ctx,
                                              outVal, outValLen,
