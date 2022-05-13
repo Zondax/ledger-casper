@@ -134,14 +134,6 @@ zxerr_t crypto_sign(uint8_t *signature,
     MEMZERO(signature, signatureMaxlen);
 
     const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
-    {
-        zemu_log("headerhash: \n");
-        char buffer[CX_SHA256_SIZE * 2 + 1];
-        MEMZERO(buffer, CX_SHA256_SIZE * 2 + 1);
-        array_to_hexstr(buffer, CX_SHA256_SIZE*2 + 1, message_digest, CX_SHA256_SIZE );
-        zemu_log(buffer);
-        zemu_log(" \n");
-    }
 
     uint8_t hash[CX_SHA256_SIZE];
     MEMCPY(hash, message_digest, CX_SHA256_SIZE);
