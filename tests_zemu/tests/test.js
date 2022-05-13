@@ -121,7 +121,7 @@ describe('Standard', function () {
 
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-show_address`, model === "nanos" ? 2 : 3);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-show_address`)
 
             const resp = await respRequest;
 
@@ -161,7 +161,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_basic_normal`, model === "nanos" ? 10 : 11);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-sign_basic_normal`)
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
@@ -210,7 +210,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_expert_transfer`, model === "nanos" ? 18 : 19);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-sign_expert_transfer`)
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
@@ -258,7 +258,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-sign_basic_delegation`, model === "nanos" ? 12 : 13);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-sign_basic_delegation`)
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
@@ -268,6 +268,8 @@ describe('Standard', function () {
 
             let headerhash = Buffer.from("9b100331533e4ae46966e83243bcac343712934d92c5e8f0218c39fa5d14a708",'hex');
             let hash = sha256.hex(headerhash).toString('hex');
+            console.log("hash", hash)// 968b5805da8869e92f5b497cffa37a461299a68d31701d7be09201619e2aa830
+            //but 00005805da8869e92f5b497cffa37a461299a68d31701d7be09201619e2aa830
 
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
@@ -307,8 +309,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-generic_native_transfer`,
-                model === "nanos" ? 16 : 17);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-generic_native_transfer`)
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
@@ -316,7 +317,7 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            let headerhash = Buffer.from("08546b91f63d6435f071bcb0d35779f8717378b84762b8b418d1fa3b7d264510",'hex');
+            let headerhash = Buffer.from("c2baafd298bde51d15edb71b54d2b2ae695f55a4f164e063fc1d28ad5134d0d1",'hex');
             let hash = sha256.hex(headerhash).toString('hex');
 
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
@@ -333,7 +334,7 @@ describe('Standard', function () {
         }
     });
 
-    test.each(models)('sign generic delegation(%s)', async function (_, {model, prefix, path}) {
+    test.each(models)('sign generic delegation (%s)', async function (_, {model, prefix, path}) {
         const sim = new Zemu(path);
         try {
             await sim.start({model, ...simOptions});
@@ -348,7 +349,7 @@ describe('Standard', function () {
 
             const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
 
-            // #248  delegate-type:by-hash_missing:amount_payment:system-missing:amount
+            // #248  delegate-type:by-hash_missing:amount_payment:system-missing:amount`
             const txBlobStr = "018139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394a087c0377901000080ee3600000000000200000000000000470d89c68dbb472faefbeb4bfb5ec23be9ca62d1834ac238b74e869e2837338600000000070000006d61696e6e65743bcacd42c232c3be6fd4463b1268be89a1cd5ee40a41502119c9d80e579cd30700000000000100000006000000706179696e67050000000400ca9a3b080101010101010101010101010101010101010101010101010101010101010101010800000064656c6567617465020000000900000064656c656761746f7221000000010101010101010101010101010101010101010101010101010101010101010101160900000076616c696461746f72210000000103030303030303030303030303030303030303030303030303030303030303031603000000018139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b39401427f04259e7a61153c3f7cf66268f2c13afc42f6a35de46f7d7738f72f09bca6e49d53912f21da8a443370e9e258db678dee5ed9b1a06640fee972618a064f0102031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f02f86e632f25cccabd3ec47c76d8484a1970ee1e359fb873c872cc3d573f331c470a8dd15ba159e05d1d239af72758051234ab2c59cf3a74de0f8f89506b4ca9c4013b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29014d5ef196b38604c66b3fe1ee37e652f40e1f5eef9f4ceaa85ae90d2427d191789ff80a1f7a587df125b5816af26dc02e6a68da47494cc21c293f91b3bda8f708"
 
             const txBlob = Buffer.from(txBlobStr, "hex");
@@ -357,8 +358,7 @@ describe('Standard', function () {
             // Wait until we are not in the main menu
             await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
 
-            await sim.compareSnapshotsAndAccept(".", `${prefix.toLowerCase()}-generid_delegation`,
-                model === "nanos" ? 16 : 17);
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-generic_delegation`)
 
             let signatureResponse = await respRequest;
             console.log(signatureResponse);
@@ -366,7 +366,7 @@ describe('Standard', function () {
             expect(signatureResponse.returnCode).toEqual(0x9000);
             expect(signatureResponse.errorMessage).toEqual("No errors");
 
-            let headerhash = Buffer.from("08546b91f63d6435f071bcb0d35779f8717378b84762b8b418d1fa3b7d264510",'hex');
+            let headerhash = Buffer.from("3bcacd42c232c3be6fd4463b1268be89a1cd5ee40a41502119c9d80e579cd307",'hex');
             let hash = sha256.hex(headerhash).toString('hex');
 
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
@@ -383,7 +383,54 @@ describe('Standard', function () {
         }
     });
 
+    test.each(models)('sign generic delegation with invalid entry point (%s)', async function (_, {model, prefix, path}) {
+        const sim = new Zemu(path);
+        try {
+            await sim.start({model, ...simOptions});
+            const app = new CasperApp(sim.getTransport());
 
+            // Enable expert mode
+            console.log("Set expert mode")
+            await sim.clickRight();
+            await sim.clickBoth();
+            await sim.clickLeft();
+
+
+            const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
+
+            // #262 delegate-type:versioned-by-name_invalid:entrypoint_payment:system-missing:amount
+            const txBlobStr = "011398f62c6d1a457c51ba6a4b5f3dbd2f69fca93216218dc8997e416bd17d93caa087c0377901000060ea0000000000000200000000000000e483229a97b1318a4c7314a68197be3261b31526894a3455f1089c0fc7bb3a1a00000000070000006d61696e6e6574618de3fe29fe260e9fde8ff1e89c919238c8bf6f68f59f248b52770930a5370100000000000100000006000000706179696e67050000000400ca9a3b080410000000696e76616c69642d636f6e7472616374010100000007000000696e76616c6964030000000900000064656c656761746f7221000000010101010101010101010101010101010101010101010101010101010101010101160900000076616c696461746f72210000000103030303030303030303030303030303030303030303030303030303030303031606000000616d6f756e74050000000400e1f505080a000000011398f62c6d1a457c51ba6a4b5f3dbd2f69fca93216218dc8997e416bd17d93ca01b99efa9087619436d6a37cd44255f902a90f3da1cdb3c829247dbb0ed759eec722fedc64127ae3f2cfaf562cdfded7ac4b154d91c866738492e1b49d48d59d0d020256b328b30c8bf5839e24058747879408bdb36241dc9c2e7c619faa12b292096702fdf9b44c8dca4d1b964b1abcc2cde5a0ff697283faa1879263bdbd93159ef33a0d233191e31d3317bee091643c5638cff2c4a40b824f539c666e164c20bcab5a02031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f0221144f796cf880c42b956a72b3d34825612840ae728d187d592f85ffec94247968ee318b19fc46738cdcd9c68497fe374bcbde3792132b7648ba561f8b089f22018a875fff1eb38451577acd5afee405456568dd7c89e090863a0557bc7af49f1701a7a5f9fb93862387e39625ed54a1ba05e59867a5485517dae8b52f623ddbfaf030053ed58d41b6e53ff7240ad6b7decffe4f476f58ffbb2e20ad6a643cb057020202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337024bc687803e6af6e9bbe91bfc0606decee6ed461a626a35267a55897087943a79157f961d42cb3f9f69f5d0f02c45a2adf392b217dc6e69864095b9d16721874a01ca93ac1705187071d67b83c7ff0efe8108e8ec4530575d7726879333dbdabe7c014645bba8924ab9cf2f813d94f15625eea0f31be3ee71e0a9d8b9691bf923b664289b8a2314131afb30687724c15a7acaa04a9e6e6b4afd4848d297870ceb8e06020362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f70236ac5428a14ba11b70b42eccd86b9412c5c5ab63fa3a81abce97f4c8b6e973ed34411e7d697ad169d1d878d80b0cab773b4c2805658013a89f64014aef7e87af0202989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f02bbe5d58b56a99ec7de882b2ccfc213437e56cf9fa19f2eb1d04535b69edab38f76e188d28a9e46b805330143d942c5ee35a1020cfd5539a2e974ed4dcbc7259d013b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29011f1aaaf316e2ab06621370d2d6556fcf5ab3b2a0ea8ea9be08ccf7b3b76b7586a8b550df2a97968855df30faf4902d74a2a213d6ab33536e987313f9a2fa3509018139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394019fe29fc2fc48fd7338624c876d4663b8d72ee486f35cdfbe57564ab70069b4f828fa955b02f6367583db8f5560ec063b2580a17c31f274052d400f816912c306"
+
+            const txBlob = Buffer.from(txBlobStr, "hex");
+            const respRequest = app.sign("m/44'/506'/0'/0/0", txBlob);
+
+            // Wait until we are not in the main menu
+            await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
+            await sim.compareSnapshotsAndApprove(".", `${prefix.toLowerCase()}-delegation_invalid_entry_point`)
+
+            let signatureResponse = await respRequest;
+            console.log(signatureResponse);
+
+            expect(signatureResponse.returnCode).toEqual(0x9000);
+            expect(signatureResponse.errorMessage).toEqual("No errors");
+
+            let headerhash = Buffer.from("618de3fe29fe260e9fde8ff1e89c919238c8bf6f68f59f248b52770930a53701",'hex');
+            let hash = sha256.hex(headerhash).toString('hex');
+
+            const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
+            expect(pk.byteLength).toEqual(33);
+            const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
+            const signature = Uint8Array.from(signatureResponse.signatureRS);
+            expect(signature.byteLength).toEqual(64);
+
+            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            expect(signatureOk).toEqual(true);
+
+        } finally {
+            await sim.close();
+        }
+    });
 
 });
 
