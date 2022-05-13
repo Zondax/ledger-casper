@@ -20,6 +20,7 @@
 #include "app_mode.h"
 #include "crypto.h"
 #include "parser_special.h"
+#include "runtime_arg.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -324,22 +325,6 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
     MEMZERO(buffer, bufferLen);
     MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
     ctx->offset += part;
-    return parser_ok;
-}
-
-parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-        //type
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
     return parser_ok;
 }
 
