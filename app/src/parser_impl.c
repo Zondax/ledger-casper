@@ -403,8 +403,9 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = UnDelegate;
     }else if (strcmp(buffer, "redelegate") == 0) {
         item->special_type = ReDelegate;
-    }else{
-        return parser_unexepected_error;
+    // anything else is generic
+    }else {
+        item->special_type = Generic;
     }
     *num_runs = deploy_argLen;
     return parser_ok;

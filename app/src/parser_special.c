@@ -423,7 +423,6 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         }
     }
 
-    // get num_items?
     uint32_t dataLen = 0;
     uint32_t start = ctx->offset;
 
@@ -437,6 +436,26 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
 
     // get hash and show it
     if (item->with_generic_args) {
+        // two cases
+        // 1. special_type == Generic -> amount(if present) + hash
+        // 2. special_type != Generic -> only hash
+
+        // case amount.
+        if ( (new_displayIdx == 0) && (item->UI_runtime_items == 2)) {
+            snprintf(outKey, outKeyLen, "Amount");
+
+            uint32_t dlen = 0;
+            uint8_t dtyp = 255;
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dlen, &dtyp, dataLen, ctx))
+            return parser_display_runtimeArg(dtyp, dlen, ctx,
+                                             outVal, outValLen,
+                                             pageIdx, pageCount);
+        }
+
+        if ((new_displayIdx == 1) && (item->UI_runtime_items == 2)) {
+            new_displayIdx -= 1;
+        }
+
         if (new_displayIdx == 0) {
             char *name = "execution";
             uint32_t name_len = strlen(name);
@@ -522,6 +541,12 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 22  );
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8 || type == 4 || type == 5  );
 
+    if (item->special_type == Generic) {
+        item->UI_runtime_items += 2; // amount and hash
+        item->with_generic_args = 1;
+        return parser_ok;
+    }
+
     if (item->type == ReDelegate) {
         CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == 22); // also type 5
         item->UI_runtime_items += 4;
@@ -566,9 +591,8 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
             item->special_type = UnDelegate;
         }else if (strcmp(buffer, "redelegate") == 0){
             item->special_type = ReDelegate;
-        }else{
-            // errors here as a generic tx is any of above
-            return parser_unexepected_error;
+        }else {
+            item->special_type = Generic;
         }
         ctx->offset = start;
     }
@@ -577,7 +601,15 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     err = checkForDelegationItems(ctx, item, num_items);
 
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
-        item->UI_runtime_items += 1;
+        bool add_amount = 0;
+        if (item->special_type == Generic) {
+            // we should show amount(if present) and the runtime args hash
+            parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
+            if(err == parser_ok){
+                add_amount += 1;
+            }
+        }
+        item->UI_runtime_items += 1 + add_amount;
         item->with_generic_args = 1;
     } else if (err != parser_ok)
         return err;
