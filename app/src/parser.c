@@ -129,7 +129,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
 }
 
 #define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
-    uint64_t value = 0;                                                     \
+    uint32_t value = 0;                                                     \
     CHECK_PARSER_ERR(readU32(CTX, &value));                                                   \
     return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
 }

@@ -144,7 +144,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 }
 
 
-parser_error_t checkNativeTransferArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, uint32_t *fitems) {
+parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED ExecutableDeployItem *item, uint32_t num_items, uint32_t *fitems) {
 
     uint8_t type = 0;
     uint8_t internal_type = 0;
@@ -219,7 +219,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     return parser_unexepected_error;
 }
 
-parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED ExecutableDeployItem *item, uint32_t num_items){
 
     uint8_t type = 0;
     uint8_t internal_type = 0;

@@ -18,6 +18,7 @@
 #include "coin.h"
 #include "zxmacros.h"
 #include "parser_impl.h"
+#include "zxformat.h"
 
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
@@ -32,7 +33,7 @@ const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 static bool is_alphabetic(const char byte);
 static void to_uppercase(char* letter);
 static void to_lowercase(char* letter);
-static bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset);
+static bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset);
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #include "cx.h"
@@ -133,6 +134,14 @@ zxerr_t crypto_sign(uint8_t *signature,
     MEMZERO(signature, signatureMaxlen);
 
     const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+    {
+        zemu_log("headerhash: \n");
+        char buffer[CX_SHA256_SIZE * 2 + 1];
+        MEMZERO(buffer, CX_SHA256_SIZE * 2 + 1);
+        array_to_hexstr(buffer, CX_SHA256_SIZE*2 + 1, message_digest, CX_SHA256_SIZE );
+        zemu_log(buffer);
+        zemu_log(" \n");
+    }
 
     uint8_t hash[CX_SHA256_SIZE];
     MEMCPY(hash, message_digest, CX_SHA256_SIZE);
@@ -241,11 +250,11 @@ zxerr_t encode_addr(char* address, const uint8_t addressLen, char* encodedAddr) 
 zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     const uint8_t nibblesLen = 2 * addressLen;
     uint8_t input_nibbles[nibblesLen];
-    uint8_t hash_input[BLAKE2B_256_SIZE];
+    char hash_input[BLAKE2B_256_SIZE];
     MEMZERO(input_nibbles, nibblesLen);
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
-    blake2b_hash((uint8_t*)address, addressLen, hash_input);
+    blake2b_hash((uint8_t*)address, addressLen, (uint8_t *)hash_input);
 
     uint8_t offset = 0x00;
     uint8_t index = 0x00;
@@ -287,7 +296,7 @@ zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
     return zxerr_ok;
 }
 
-bool get_next_hash_bit(uint8_t* hash_input, uint8_t* index, uint8_t* offset) {
+bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset) {
     //Return true if following bit is 1
     bool ret = ((hash_input[*index] >> *offset) & 0x01) == 0x01;
     (*offset)++;
