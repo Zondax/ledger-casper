@@ -22,6 +22,22 @@
 #include "crypto.h"
 #include "zxformat.h"
 
+parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
+    uint8_t dummy_type = 0;
+    uint8_t dummy_internal = 0;
+    for (uint32_t i = 0; i < deploy_argLen; i++) {
+        //key
+        CHECK_PARSER_ERR(parse_item(ctx));
+
+        //value
+        CHECK_PARSER_ERR(parse_item(ctx));
+        //type
+        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
+
+    }
+    return parser_ok;
+}
+
 
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
     uint16_t start = ctx->offset;
@@ -55,7 +71,7 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     return parser_runtimearg_notfound;
 }
 
-parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t showGenericRuntimeArgs(__Z_UNUSED ExecutableDeployItem item, parser_context_t *ctx,
                                           uint32_t bytes_len, char *name, uint8_t name_len,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
@@ -76,8 +92,8 @@ parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_
     uint8_t output[output_len];
     MEMZERO(output, output_len);
 
-    uint8_t hex_hash[BLAKE2B_256_SIZE * 2];
-    encode_hex(hash, BLAKE2B_256_SIZE, hex_hash);
+    char hex_hash[BLAKE2B_256_SIZE * 2];
+    encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash);
 
     MEMCPY(output, name, name_len);
     output[name_len] = '-';
@@ -89,7 +105,7 @@ parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_
 }
 
 parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
-        uint16_t pageIdx, uint16_t *pageCount, uint32_t num_items, parser_context_t *ctx) {
+        uint16_t pageIdx, uint8_t *pageCount, uint32_t num_items, parser_context_t *ctx) {
 
     uint32_t start = ctx->offset;
 

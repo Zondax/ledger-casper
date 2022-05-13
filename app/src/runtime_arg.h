@@ -19,6 +19,8 @@
 #include "parser_common.h"
 #include "parser_txdef.h"
 
+parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen);
+
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx);
 
 parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_t *ctx,
@@ -28,4 +30,5 @@ parser_error_t showGenericRuntimeArgs(ExecutableDeployItem item, parser_context_
                                           uint8_t pageIdx, uint8_t *pageCount);
 
 parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
-        uint16_t pageIdx, uint16_t *pageCount, uint32_t num_items, parser_context_t *ctx);
+        uint16_t pageIdx, uint8_t *pageCount, uint32_t num_items, parser_context_t *ctx);
+
