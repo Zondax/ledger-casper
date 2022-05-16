@@ -383,7 +383,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             if(displayIdx == 2 && app_mode_expert()) {
                 return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             }
-
+            break;
         }
         case StoredVersionedContractByHash: {
             if(displayIdx == 0 && app_mode_expert()) {
