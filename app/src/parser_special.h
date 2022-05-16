@@ -19,6 +19,9 @@
 #include "parser_common.h"
 #include "parser_txdef.h"
 
+// offset to the entrypoint for retrival during the getItem stage
+extern uint16_t entry_point_offset;
+
 parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
 
 parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);

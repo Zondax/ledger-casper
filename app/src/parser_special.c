@@ -24,6 +24,8 @@
 #include "app_mode.h"
 #include "runtime_arg.h"
 
+uint16_t entry_point_offset;
+
 #define CHECK_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
     type = 255;                     \
     internal_type = 255;                                           \
@@ -300,6 +302,25 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     return parser_no_data;
 }
 
+parser_error_t render_entry_point(parser_context_t *ctx,
+                                            char *outKey, uint16_t outKeyLen,
+                                            char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount) {
+    uint16_t prev_offset = ctx->offset;
+
+    char buffer[100];
+    MEMZERO(buffer, sizeof(buffer));
+
+    ctx->offset = entry_point_offset;
+
+    CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    ctx->offset = prev_offset;
+
+    snprintf(outKey, outKeyLen, "Entry-point");
+    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
 parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_context_t *ctx,
                                             uint8_t displayIdx,
                                             char *outKey, uint16_t outKeyLen,
@@ -347,7 +368,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             }
             ctx->offset += HASH_LENGTH;
             CHECK_PARSER_ERR(parse_item(ctx))
-            break;
+
+            if(displayIdx == 2 && app_mode_expert()) {
+                return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            }
+
         }
         case StoredVersionedContractByHash: {
             if(displayIdx == 0 && app_mode_expert()) {
@@ -360,9 +385,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
             }
+
             ctx->offset += HASH_LENGTH;
             uint32_t version = 0;
             CHECK_PARSER_ERR(parse_version(ctx, &version))
+
             if(displayIdx == 2 && app_mode_expert()) {
                 uint64_t value = 0;
                 MEMCPY(&value, &version, 4);
@@ -370,6 +397,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                 return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
             }
             CHECK_PARSER_ERR(parse_item(ctx))
+
+            if(displayIdx == 3 && app_mode_expert()) {
+                return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            }
+
             break;
         }
 
@@ -389,6 +421,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             }
             CHECK_PARSER_ERR(parse_item(ctx));
             CHECK_PARSER_ERR(parse_item(ctx))
+
+            if(displayIdx == 2 && app_mode_expert()) {
+                return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            }
+
             break;
         }
 
@@ -406,9 +443,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                 pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
                 return parser_ok;
             }
+
             CHECK_PARSER_ERR(parse_item(ctx));
             uint32_t version = 0;
             CHECK_PARSER_ERR(parse_version(ctx, &version))
+
             if(displayIdx == 2 && app_mode_expert()) {
                 uint64_t value = 0;
                 MEMCPY(&value, &version, 4);
@@ -416,6 +455,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                 return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
             }
             CHECK_PARSER_ERR(parse_item(ctx))
+
+            if(displayIdx == 3 && app_mode_expert()) {
+                return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+            }
+
             break;
         }
         default :{
@@ -602,6 +646,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
 
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
         bool add_amount = 0;
+
         if (item->special_type == Generic) {
             // we should show amount(if present) and the runtime args hash
             parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
@@ -616,7 +661,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
 
     if(app_mode_expert()){
         uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
-        item->UI_fixed_items = 2 + has_version; //type
+        item->UI_fixed_items = 2 + has_version + 1; // entry-point
     }
 
     return parser_ok;
