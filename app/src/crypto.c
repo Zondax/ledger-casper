@@ -136,7 +136,6 @@ zxerr_t crypto_sign(uint8_t *signature,
     const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
 
     uint8_t hash[CX_SHA256_SIZE];
-    MEMCPY(hash, message_digest, CX_SHA256_SIZE);
     cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
 
     cx_ecfp_private_key_t cx_privateKey;
@@ -215,7 +214,6 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     MEMZERO(buffer, buffer_len);
 
     if (buffer_len < sizeof(answer_t)) {
-        zemu_log_stack("crypto_fillAddress: zxerr_buffer_too_small");
         return zxerr_buffer_too_small;
     }
 
