@@ -65,11 +65,11 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
     return parser_ok;
 }
 
-parser_error_t parser_printU32(uint64_t value, char *outVal,
+parser_error_t parser_printU32(uint32_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
     char tmpBuffer[100];
-    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
+    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
 }
@@ -583,11 +583,11 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Type");
         if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
             snprintf(outVal, outValLen, "Token transfer");
-        } else if (parser_tx_obj.session.special_type == Delegate){
+        } else if (parser_tx_obj.session.special_type == Delegate && parser_tx_obj.session.with_generic_args == 0 ){
             snprintf(outVal, outValLen, "Delegate");
-        }else if (parser_tx_obj.session.special_type == UnDelegate) {
+        }else if (parser_tx_obj.session.special_type == UnDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Undelegate");
-        }else if (parser_tx_obj.session.special_type == ReDelegate) {
+        }else if (parser_tx_obj.session.special_type == ReDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Redelegate");
         }else {
             snprintf(outVal, outValLen, "Contract execution");
