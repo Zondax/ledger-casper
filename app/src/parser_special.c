@@ -34,6 +34,18 @@ uint16_t entry_point_offset;
 }
 
 
+parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_context_t *ctx,
+                                            uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen,
+                                            char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount);
+
+parser_error_t render_entry_point(parser_context_t *ctx,
+                                            char *outKey, uint16_t outKeyLen,
+                                            char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount);
+
+
 parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx,
                                        uint8_t displayIdx,
                                        char *outKey, uint16_t outKeyLen,
@@ -321,12 +333,11 @@ parser_error_t render_entry_point(parser_context_t *ctx,
     return parser_ok;
 }
 
-parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_context_t *ctx,
+parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_context_t *ctx,
                                             uint8_t displayIdx,
                                             char *outKey, uint16_t outKeyLen,
                                             char *outVal, uint16_t outValLen,
                                             uint8_t pageIdx, uint8_t *pageCount) {
-    ctx->offset++;
 
     // this are not generic args and are part of valid contract transactions
     switch (item->type){
@@ -466,6 +477,21 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             return parser_unexpected_type;
         }
     }
+    return parser_ok;
+}
+
+parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_context_t *ctx,
+                                            uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen,
+                                            char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount) {
+    ctx->offset++;
+
+    // call fixed items rendering and move offset if items
+    // have been already rendered
+    CHECK_PARSER_ERR(render_fixed_delegation_items(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+    if (displayIdx < item->UI_fixed_items)
+        return parser_ok;
 
     uint32_t dataLen = 0;
     uint32_t start = ctx->offset;
