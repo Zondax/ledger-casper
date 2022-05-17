@@ -486,6 +486,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                             char *outVal, uint16_t outValLen,
                                             uint8_t pageIdx, uint8_t *pageCount) {
     ctx->offset++;
+    zemu_log_stack("getItemDelegation\n");
 
     // call fixed items rendering and move offset if items
     // have been already rendered
