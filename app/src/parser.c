@@ -68,7 +68,7 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
 parser_error_t parser_printU32(uint32_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
-    char tmpBuffer[100];
+    char tmpBuffer[30];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
@@ -78,7 +78,7 @@ parser_error_t parser_printU32(uint32_t value, char *outVal,
 parser_error_t parser_printU64(uint64_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
-    char tmpBuffer[100];
+    char tmpBuffer[30];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
