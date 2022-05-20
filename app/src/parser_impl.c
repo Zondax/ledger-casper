@@ -372,6 +372,7 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
 parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
+    uint16_t offset = ctx->offset;
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
@@ -393,6 +394,8 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = Generic;
     }
     *num_runs = deploy_argLen;
+    // set the offset for later retrival
+    entry_point_offset = offset;
     return parser_ok;
 }
 
