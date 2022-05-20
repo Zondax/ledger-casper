@@ -65,10 +65,20 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
     return parser_ok;
 }
 
+parser_error_t parser_printU32(uint32_t value, char *outVal,
+                               uint16_t outValLen, uint8_t pageIdx,
+                               uint8_t *pageCount) {
+    char tmpBuffer[30];
+    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
+
 parser_error_t parser_printU64(uint64_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
-    char tmpBuffer[100];
+    char tmpBuffer[30];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
@@ -116,6 +126,12 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     uint64_t value = 0;                                                     \
     CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
+}
+
+#define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
+    uint32_t value = 0;                                                     \
+    CHECK_PARSER_ERR(readU32(CTX, &value));                                                   \
+    return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
 #define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
@@ -209,7 +225,20 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         return parser_unexpected_buffer_end;
     }
     switch(type) {
-        case 8 : {
+        case 4: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_U32(ctx);
+
+        }
+        case 5: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_U64(ctx);
+        }
+        case 8: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
