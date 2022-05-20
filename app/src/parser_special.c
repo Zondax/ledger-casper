@@ -22,32 +22,8 @@
 #include "crypto.h"
 #include "zxformat.h"
 #include "app_mode.h"
+#include "runtime_arg.h"
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
-    uint16_t start = ctx->offset;
-    char buffer[300];
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
-        if (strcmp(buffer, argstr) == 0) {
-            //value
-            CHECK_PARSER_ERR(parse_item(ctx));
-
-            CHECK_PARSER_ERR(get_type(ctx, type, internal_type));
-
-            ctx->offset = start;
-            return parser_ok;
-        }
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
-    return parser_runtimearg_notfound;
-}
 
 #define CHECK_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
     type = 255;                     \

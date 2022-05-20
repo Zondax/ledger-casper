@@ -20,6 +20,7 @@
 #include "app_mode.h"
 #include "crypto.h"
 #include "parser_special.h"
+#include "runtime_arg.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -193,6 +194,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Required field nonce";
         case parser_required_method:
             return "Required field method";
+        case parser_runtimearg_notfound:
+            return "RuntimArg not found";
         default:
             return "Unrecognized error code";
     }
@@ -282,7 +285,8 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         }
 
         default : {
-            return parser_unexpected_type;
+            // we support now generic arguments
+            return parser_ok;
         }
     }
 }
@@ -321,22 +325,6 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
     MEMZERO(buffer, bufferLen);
     MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
     ctx->offset += part;
-    return parser_ok;
-}
-
-parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-        //type
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
     return parser_ok;
 }
 
@@ -400,8 +388,9 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = UnDelegate;
     }else if (strcmp(buffer, "redelegate") == 0) {
         item->special_type = ReDelegate;
-    }else{
-        return parser_unexepected_error;
+    // anything else is generic
+    }else {
+        item->special_type = Generic;
     }
     *num_runs = deploy_argLen;
     return parser_ok;
@@ -453,6 +442,7 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->UI_fixed_items = 0;
     item->UI_runtime_items = 0;
     item->num_runtime_args = 0;
+    item->with_generic_args = 0;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
