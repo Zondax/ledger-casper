@@ -583,14 +583,14 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Type");
         if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
             snprintf(outVal, outValLen, "Token transfer");
-        } else if (parser_tx_obj.session.special_type == Delegate){
+        } else if (parser_tx_obj.session.special_type == Delegate && parser_tx_obj.session.with_generic_args == 0 ){
             snprintf(outVal, outValLen, "Delegate");
-        }else if (parser_tx_obj.session.special_type == UnDelegate) {
+        }else if (parser_tx_obj.session.special_type == UnDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Undelegate");
-        }else if (parser_tx_obj.session.special_type == ReDelegate) {
+        }else if (parser_tx_obj.session.special_type == ReDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Redelegate");
-        }else{
-            return parser_unexpected_type;
+        }else {
+            snprintf(outVal, outValLen, "Contract execution");
         }
         return parser_ok;
     }
@@ -665,7 +665,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         special_deploy_e special_type = parser_tx_obj.session.special_type;
         if(special_type == NativeTransfer){
             return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate){
+        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate || special_type == Generic){
             return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         }else{
             return parser_unexpected_type;
