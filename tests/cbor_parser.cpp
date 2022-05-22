@@ -324,7 +324,8 @@ namespace {
         MEMZERO(encodedInput, sizeof(encodedInput));
         encode((char*)rawInput, sizeof(rawInput), encodedInput);
 
-        char expectedOutput[] = "fFfffFFFfFffffffFfffFffffffffFFfffffFfFfFFFFffffFfffffffFffFFfff";
+        //char expectedOutput[] = "fFfffFFFfFffffffFfffFffffffffFFfffffFfFfFFFFffffFfffffffFffFFfff";
+        char expectedOutput[] = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
         for(int i = 0; i < sizeof(expectedOutput); i++) {
             EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
@@ -340,7 +341,8 @@ namespace {
         MEMZERO(encodedInput, sizeof(encodedInput));
         encode_addr((char*)rawInput, sizeof(rawInput), encodedInput);
 
-        char expectedOutput[] = "0202531Fe6068134503D2723133227c867Ac8Fa6C83C537e9a44c3c5BdBDCb1fE337";
+        //char expectedOutput[] = "0202531Fe6068134503D2723133227c867Ac8Fa6C83C537e9a44c3c5BdBDCb1fE337";
+        char expectedOutput[] = "0202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337";
 
         for(int i = 0; i < sizeof(expectedOutput); i++) {
             EXPECT_EQ(expectedOutput[i], encodedInput[i]) << "Index: " << i;
