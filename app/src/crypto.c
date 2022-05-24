@@ -141,6 +141,7 @@ zxerr_t crypto_sign(uint8_t *signature,
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];
     unsigned int info = 0;
+    int len = 0;
 
     signature_t *const signature_object = (signature_t *) signature;
     zxerr_t err = zxerr_ok;
@@ -157,7 +158,7 @@ zxerr_t crypto_sign(uint8_t *signature,
             cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
 
             // Sign
-            cx_ecdsa_sign(&cx_privateKey,
+            len=cx_ecdsa_sign(&cx_privateKey,
                                             CX_RND_RFC6979 | CX_LAST,
                                             CX_SHA256,
                                             hash,
@@ -172,7 +173,9 @@ zxerr_t crypto_sign(uint8_t *signature,
                 MEMZERO(signature, signatureMaxlen);
                 err = zxerr_unknown;
             }else{
-                *sigSize = SIG_RS_LEN;
+                *sigSize = sizeof_field(signature_t, r) +
+                    sizeof_field(signature_t, s) +
+                    sizeof_field(signature_t, v);
             }
         }
         CATCH_ALL {

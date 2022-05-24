@@ -190,9 +190,9 @@ export default class CasperApp {
                 }
 
                 if (returnCode === LedgerError.NoErrors && response.length > 2) {
-                    signatureRS = response.slice(0, SIGLEN);
+                    signatureRSV = response.slice(0, SIGLEN);
                     return {
-                        signatureRS,
+                        signatureRSV,
                         returnCode: returnCode,
                         errorMessage: errorMessage,
                     };
