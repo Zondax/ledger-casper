@@ -26,6 +26,7 @@ import {
     P1_VALUES,
     PAYLOAD_TYPE,
     PKLEN,
+    ADDRESS_LEN,
     processErrorResponse,
     serializePath, SIGLEN,
 } from './common';
@@ -41,7 +42,9 @@ function processGetAddrResponse(response: Buffer) {
 
     const publicKey = Buffer.from(partialResponse.slice(0, PKLEN));
 
-    const address = Buffer.concat([Buffer.from("02", 'hex'), Buffer.from(publicKey)]);
+    partialResponse = partialResponse.slice(PKLEN);
+
+    const address = Buffer.from(partialResponse.slice(0, -2)).toString();
 
     return {
         publicKey,
