@@ -176,10 +176,10 @@ describe('Standard', function () {
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
             const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
-            const signature = Uint8Array.from(signatureResponse.signatureRS);
-            expect(signature.byteLength).toEqual(64);
+            const signature = Uint8Array.from(signatureResponse.signatureRSV);
+            expect(signature.byteLength).toEqual(65);
 
-            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            const signatureOk = secp256k1.ecdsaVerify(signature.slice(0, 64), digest, pk);
             expect(signatureOk).toEqual(true);
 
         } finally {
@@ -224,10 +224,10 @@ describe('Standard', function () {
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
             const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
-            const signature = Uint8Array.from(signatureResponse.signatureRS);
-            expect(signature.byteLength).toEqual(64);
+            const signature = Uint8Array.from(signatureResponse.signatureRSV);
+            expect(signature.byteLength).toEqual(65);
 
-            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            const signatureOk = secp256k1.ecdsaVerify(signature.slice(0, 64), digest, pk);
             expect(signatureOk).toEqual(true);
 
         } finally {
@@ -272,10 +272,10 @@ describe('Standard', function () {
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
             const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
-            const signature = Uint8Array.from(signatureResponse.signatureRS);
-            expect(signature.byteLength).toEqual(64);
+            const signature = Uint8Array.from(signatureResponse.signatureRSV);
+            expect(signature.byteLength).toEqual(65);
 
-            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            const signatureOk = secp256k1.ecdsaVerify(signature.slice(0, 64), digest, pk);
             expect(signatureOk).toEqual(true);
 
         } finally {
