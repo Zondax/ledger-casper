@@ -179,7 +179,7 @@ export default class CasperApp {
                 const returnCode = errorCodeData[0] * 256 + errorCodeData[1];
                 let errorMessage = errorCodeToString(returnCode);
 
-                let signatureRS = Buffer.alloc(0);
+                let signatureRSV = Buffer.alloc(0);
 
                 if (returnCode === LedgerError.BadKeyHandle ||
                     returnCode === LedgerError.DataIsInvalid ||
@@ -212,7 +212,7 @@ export default class CasperApp {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
-                    signatureRS: null as null | Buffer,
+                    signatureRSV: null as null | Buffer,
                 };
                 for (let i = 1; i < chunks.length; i += 1) {
                     // eslint-disable-next-line no-await-in-loop
