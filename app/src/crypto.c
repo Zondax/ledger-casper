@@ -145,7 +145,6 @@ zxerr_t crypto_sign(uint8_t *signature,
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];
     unsigned int info = 0;
-    int len = 0;
 
     signature_t *const signature_object = (signature_t *) signature;
     zxerr_t err = zxerr_ok;
@@ -162,7 +161,7 @@ zxerr_t crypto_sign(uint8_t *signature,
             cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
 
             // Sign
-            len=cx_ecdsa_sign(&cx_privateKey,
+            cx_ecdsa_sign(&cx_privateKey,
                                             CX_RND_RFC6979 | CX_LAST,
                                             CX_SHA256,
                                             hash,
@@ -237,7 +236,7 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     MEMCPY(addr_plus_prefix + 1, answer->publicKey, SECP256K1_PK_LEN);
     addr_plus_prefix[0] = 02;
 
-    err = encode_addr((char *)addr_plus_prefix, SECP256K1_PK_LEN+1, answer->address);
+    err = encode_addr((char *)addr_plus_prefix, SECP256K1_PK_LEN+1, (char *)answer->address);
 
     if (err != zxerr_ok) {
         return err;
