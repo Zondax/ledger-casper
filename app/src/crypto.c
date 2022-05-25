@@ -53,6 +53,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     if (pubKeyLen < SECP256K1_PK_LEN) {
         return zxerr_invalid_crypto_settings;
     }
+    zxerr_t err = zxerr_ok;
 
     BEGIN_TRY
     {
@@ -65,16 +66,19 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
             cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
             cx_ecfp_init_public_key(CX_CURVE_256K1, NULL, 0, &cx_publicKey);
             cx_ecfp_generate_pair(CX_CURVE_256K1, &cx_publicKey, &cx_privateKey, 1);
+            cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
+            memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
         }
+        CATCH_ALL {
+            MEMZERO(privateKeyData, 32);
+            err = zxerr_unknown;
+        };
         FINALLY {
             MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
-            MEMZERO(privateKeyData, 32);
         }
     }
     END_TRY;
-    cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
-    memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
-    return zxerr_ok;
+    return err;
 }
 
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
