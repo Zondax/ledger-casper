@@ -282,6 +282,9 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
             return zxerr_out_of_bounds;
         }
         char c = HEX_CHARS[char_index];
+        if(is_alphabetic(c)) {
+            get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+        }
         encodedAddr[i] = c;
     }
     return zxerr_ok;
@@ -302,6 +305,9 @@ zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
             return zxerr_out_of_bounds;
         }
         char c = HEX_CHARS[char_index];
+        if(is_alphabetic(c)) {
+            get_next_hash_bit(bytes, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+        }
         output[i] = c;
     }
     return zxerr_ok;
