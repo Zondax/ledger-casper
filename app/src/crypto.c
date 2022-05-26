@@ -70,11 +70,11 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
             memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
         }
         CATCH_ALL {
-            MEMZERO(privateKeyData, 32);
             err = zxerr_unknown;
         };
         FINALLY {
             MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
+            MEMZERO(privateKeyData, 32);
         }
     }
     END_TRY;
