@@ -49,8 +49,8 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
 
     for (uint32_t i = 0; i < deploy_argLen; ++i) {
         //key
-        ret = copy_item_into_charbuffer(ctx, buffer, sizeof(buffer));
-        if (ret == parser_ok && (strcmp(buffer, argstr) == 0)) {
+        CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+        if (strcmp(buffer, argstr) == 0) {
               //value
             CHECK_PARSER_ERR(parse_item(ctx));
 
