@@ -3,6 +3,7 @@ import Transport from '@ledgerhq/hw-transport';
 export const CLA = 0x11;
 export const CHUNK_SIZE = 250;
 export const APP_KEY = 'DFN';
+export const ADDRESS_LEN = 68;
 
 export const INS = {
     GET_VERSION: 0x00,
@@ -22,7 +23,7 @@ export const P1_VALUES = {
 };
 
 export const PKLEN = 33;
-export const SIGLEN = 64;
+export const SIGLEN = 65;
 
 export enum LedgerError {
     U2FUnknown = 1,

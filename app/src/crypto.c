@@ -53,6 +53,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
     if (pubKeyLen < SECP256K1_PK_LEN) {
         return zxerr_invalid_crypto_settings;
     }
+    zxerr_t err = zxerr_ok;
 
     BEGIN_TRY
     {
@@ -65,16 +66,19 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
             cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey);
             cx_ecfp_init_public_key(CX_CURVE_256K1, NULL, 0, &cx_publicKey);
             cx_ecfp_generate_pair(CX_CURVE_256K1, &cx_publicKey, &cx_privateKey, 1);
+            cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
+            memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
         }
+        CATCH_ALL {
+            err = zxerr_unknown;
+        };
         FINALLY {
             MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
             MEMZERO(privateKeyData, 32);
         }
     }
     END_TRY;
-    cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
-    memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
-    return zxerr_ok;
+    return err;
 }
 
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
@@ -172,7 +176,9 @@ zxerr_t crypto_sign(uint8_t *signature,
                 MEMZERO(signature, signatureMaxlen);
                 err = zxerr_unknown;
             }else{
-                *sigSize = SIG_RS_LEN;
+                *sigSize = sizeof_field(signature_t, r) +
+                    sizeof_field(signature_t, s) +
+                    sizeof_field(signature_t, v);
             }
         }
         CATCH_ALL {
@@ -207,6 +213,7 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
 
 typedef struct {
     uint8_t publicKey[SECP256K1_PK_LEN];
+    uint8_t address[68];
 
 } __attribute__((packed)) answer_t;
 
@@ -223,9 +230,20 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     zxerr_t err = crypto_extractPublicKey(hdPath, answer->publicKey, sizeof_field(answer_t, publicKey));
     if (err != zxerr_ok) {
         return err;
+     }
+
+    uint8_t addr_plus_prefix[1 + SECP256K1_PK_LEN];
+    MEMCPY(addr_plus_prefix + 1, answer->publicKey, SECP256K1_PK_LEN);
+    addr_plus_prefix[0] = 02;
+
+    err = encode_addr((char *)addr_plus_prefix, SECP256K1_PK_LEN+1, (char *)answer->address);
+
+    if (err != zxerr_ok) {
+        return err;
     }
 
-    *addrLen = sizeof_field(answer_t, publicKey);
+    *addrLen = sizeof_field(answer_t, address) +
+        sizeof_field(answer_t, publicKey);
     return zxerr_ok;
 }
 

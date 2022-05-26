@@ -5,6 +5,7 @@ export interface ResponseBase {
 
 export interface ResponseAddress extends ResponseBase {
   publicKey: Buffer;
+  Address:  String;
 }
 
 export interface ResponseVersion extends ResponseBase {
@@ -28,5 +29,5 @@ export interface ResponseAppInfo extends ResponseBase {
 }
 
 export interface ResponseSign extends ResponseBase {
-  signatureRS: Buffer,
+  signatureRSV: Buffer,
 }
