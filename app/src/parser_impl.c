@@ -246,6 +246,11 @@ const CL_TYPE_TAG_PUBLIC_KEY: u8 = 22;
 
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
+        // types bellow are for the new type
+        // that ID/amount can be in generic transactions
+        case 5:
+        case 6:
+        case 7:
         case 8: {
             return parser_ok;
         }
@@ -286,7 +291,9 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
 
         default : {
             // we support now generic arguments
-            return parser_ok;
+            // in transactions but we only support
+            // the types define above
+            return parser_unexpected_type;
         }
     }
 }
