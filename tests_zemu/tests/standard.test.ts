@@ -92,7 +92,7 @@ describe('Standard', function () {
             const expected_address = "02028b2ddbe59976AD2f4138CA46553866De5124d13dB4e13611CA751EeddE9E0297";
 
             expect(resp.publicKey.toString('hex')).toEqual(expected_pk);
-            expect(resp.address).toEqual(expected_address);
+            expect(resp.Address).toEqual(expected_address);
         } finally {
             await sim.close();
         }
@@ -261,10 +261,11 @@ describe('Standard', function () {
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
             const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
-            const signature = Uint8Array.from(signatureResponse.signatureRS);
-            expect(signature.byteLength).toEqual(64);
+            const signature = Uint8Array.from(signatureResponse.signatureRSV);
+            expect(signature.byteLength).toEqual(65);
 
-            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            const signatureOk = secp256k1.ecdsaVerify(signature.slice(0, 64), digest, pk);
+
             expect(signatureOk).toEqual(true);
 
         } finally {
@@ -310,10 +311,10 @@ describe('Standard', function () {
             const pk = Uint8Array.from(Buffer.from(expected_pk, 'hex'))
             expect(pk.byteLength).toEqual(33);
             const digest = Uint8Array.from(Buffer.from(hash, 'hex'));
-            const signature = Uint8Array.from(signatureResponse.signatureRS);
-            expect(signature.byteLength).toEqual(64);
+            const signature = Uint8Array.from(signatureResponse.signatureRSV);
+            expect(signature.byteLength).toEqual(65);
 
-            const signatureOk = secp256k1.ecdsaVerify(signature, digest, pk);
+            const signatureOk = secp256k1.ecdsaVerify(signature.slice(0, 64), digest, pk);
             expect(signatureOk).toEqual(true);
 
         } finally {
