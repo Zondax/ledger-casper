@@ -198,6 +198,7 @@ zxerr_t crypto_sign(uint8_t *signature,
 #else
 
 #include "blake2.h"
+#include "hexutils.h"
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                      unsigned char *out){
@@ -207,6 +208,13 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
     } else {
         return zxerr_ok;
     }
+}
+
+zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
+    const char *tmp = "7f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c03779";
+    parseHexString(pubKey, pubKeyLen, tmp);
+
+    return zxerr_ok;
 }
 
 #endif

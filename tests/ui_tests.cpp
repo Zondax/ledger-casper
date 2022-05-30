@@ -24,13 +24,6 @@
 #include "parser.h"
 #include "common.h"
 
-zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
-    const char *tmp = "7f747b67bd3fe63c2a736739dfe40156d622347346e70f68f51c178a75ce5537a087c03779";
-    parseHexString(pubKey, pubKeyLen, tmp);
-
-    return zxerr_ok;
-}
-
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
     const char *tmp = "24749ecb377e548d114538c2d5504d77645257e21b2b8ee430170c74ab3ddc6d";
     parseHexString(out, 32, tmp);

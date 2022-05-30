@@ -1595,8 +1595,11 @@
     eslint-visitor-keys "^2.0.0"
 
 "@zondax/ledger-casper@link:../js":
-  version "0.0.0"
-  uid ""
+  version "0.1.0"
+  dependencies:
+    "@babel/runtime" "^7.14.8"
+    "@ledgerhq/hw-transport" "^6.2.0"
+    "@types/ledgerhq__hw-transport" "^4.21.4"
 
 "@zondax/zemu@^0.27.0-rc2":
   version "0.27.4"
