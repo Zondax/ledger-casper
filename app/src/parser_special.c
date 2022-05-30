@@ -80,7 +80,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
             uint32_t len = ctx->offset - start;
             // blake2b of runtime args
             ctx->offset = start;
-            CHECK_PARSER_ERR(showGenericRuntimeArgs(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(showRuntimeArgsHash(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
 
             ctx->offset = end;
             return parser_ok;
@@ -304,7 +304,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
             uint32_t len = ctx->offset - start;
             // blake2b of runtime args
             ctx->offset = start;
-            CHECK_PARSER_ERR(showGenericRuntimeArgs(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(showRuntimeArgsHash(item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
 
             ctx->offset = end;
             return parser_ok;
@@ -534,7 +534,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             uint32_t len = ctx->offset - start;
             // blake2b of runtime args
             ctx->offset = start;
-            CHECK_PARSER_ERR(showGenericRuntimeArgs( *item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(showRuntimeArgsHash( *item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
 
             ctx->offset = end;
             return parser_ok;

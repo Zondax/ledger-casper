@@ -71,7 +71,7 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     return parser_runtimearg_notfound;
 }
 
-parser_error_t showGenericRuntimeArgs(__Z_UNUSED ExecutableDeployItem item, parser_context_t *ctx,
+parser_error_t showRuntimeArgsHash(__Z_UNUSED ExecutableDeployItem item, parser_context_t *ctx,
                                           uint32_t bytes_len, char *name, uint8_t name_len,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
