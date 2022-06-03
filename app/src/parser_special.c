@@ -269,13 +269,13 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
     ctx->offset++;
-    uint32_t start = ctx->offset;
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
     if(dataLen > ctx->bufferLen - ctx->offset){
         return parser_unexpected_buffer_end;
     }
     ctx->offset += dataLen;
+    uint32_t start = ctx->offset;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
 
     uint8_t new_displayIdx = displayIdx - item.UI_fixed_items;
@@ -295,7 +295,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
             char *name = "payment";
             uint32_t name_len = strlen(name);
             // move offset to the end of args
-            CHECK_PARSER_ERR(parseRuntimeArgs(ctx, item.UI_runtime_items));
+            CHECK_PARSER_ERR(parseRuntimeArgs(ctx, dataLen));
             uint32_t end = ctx->offset;
             uint32_t len = ctx->offset - start;
             // blake2b of runtime args
