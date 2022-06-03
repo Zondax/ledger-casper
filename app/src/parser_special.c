@@ -33,6 +33,18 @@ uint16_t entry_point_offset;
     PARSER_ASSERT_OR_ERROR((CONDITION), parser_unexpected_type);                                      \
 }
 
+#define COUNT_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
+    type = 255;                     \
+    internal_type = 255;                                           \
+    parser_error_t __err = parser_ok;                                \
+    __err = searchRuntimeArgs((STR), &type, &internal_type, (NUM_ITEMS), (CTX)) ;          \
+    if (__err == parser_ok && ( CONDITION)) \
+        num_args_found += 1;  \
+    else if (__err != parser_runtimearg_notfound && __err != parser_unexpected_type)  \
+        return __err;  \
+}
+
+
 
 parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_context_t *ctx,
                                             uint8_t displayIdx,
@@ -163,32 +175,18 @@ parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED Executa
     uint8_t type = 0;
     uint8_t internal_type = 0;
     *fitems = 0;
-    parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
+    uint16_t num_args_found = 0;
 
-    if (err == parser_ok && (type == 8 || type == 4 || type == 5) ) {
-        *fitems += 1;
-    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
-        return err;
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == 8 || type == 4 || type == 5))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == 13 && internal_type == 5) || type == 5))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == 11 || type == 12 || type == 15 || type == 22))
 
-    err = searchRuntimeArgs("id", &type, &internal_type, num_items, ctx);
-    if (err == parser_ok && ((type == 13 && internal_type == 5) || type == 5) ) {
-        *fitems += 1;
-    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
-        return err;
 
-    err = searchRuntimeArgs("target", &type, &internal_type, num_items, ctx);
-    if (err == parser_ok && (type == 11 || type == 12 || type == 15 || type == 22) ) {
-        *fitems += 1;
-    } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
-        return err;
 
     if(num_items == 4){
-        err = searchRuntimeArgs("source", &type, &internal_type, num_items, ctx);
-        if (err == parser_ok && (type == 11 || type == 12 || type == 15 || type == 22) ) {
-            *fitems += 1;
-        } else if (err != parser_runtimearg_notfound && err != parser_unexpected_type)
-            return err;
+        COUNT_RUNTIME_ARGTYPE(ctx, num_items, "source", (type == 11 || type == 12 || type == 15 || type == 22))
     }
+    *fitems = num_args_found;
 
     return parser_ok;
 }
