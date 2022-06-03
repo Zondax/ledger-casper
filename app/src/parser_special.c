@@ -177,14 +177,12 @@ parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED Executa
     *fitems = 0;
     uint16_t num_args_found = 0;
 
-    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == 8 || type == 4 || type == 5))
-    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == 13 && internal_type == 5) || type == 5))
-    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == 11 || type == 12 || type == 15 || type == 22))
-
-
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512 || type == TAG_U32 || type == TAG_U64))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == TAG_OPTION && internal_type == TAG_U64) || type == TAG_U64))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
 
     if(num_items == 4){
-        COUNT_RUNTIME_ARGTYPE(ctx, num_items, "source", (type == 11 || type == 12 || type == 15 || type == 22))
+        COUNT_RUNTIME_ARGTYPE(ctx, num_items, "source", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
     }
     *fitems = num_args_found;
 
@@ -237,7 +235,7 @@ parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED Execu
     uint8_t internal_type = 0;
 
     PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8 || type == 5  ); // also type 5
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U64  ); // also type 5
 
     return parser_ok;
 }
@@ -604,9 +602,9 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == 22  );
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == 22  );
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == 8 || type == 4 || type == 5  );
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == TAG_PUBLIC_KEY  );
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == TAG_PUBLIC_KEY  );
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
 
     if (item->special_type == Generic) {
         item->UI_runtime_items += 2; // amount and hash
@@ -615,7 +613,7 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     }
 
     if (item->type == ReDelegate) {
-        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == 22); // also type 5
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == TAG_PUBLIC_KEY);
         item->UI_runtime_items += 4;
     } else {
         item->UI_runtime_items += 3;
@@ -647,7 +645,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         char buffer[100];
         MEMZERO(buffer,sizeof(buffer));
         PARSER_ASSERT_OR_ERROR(dataLength < sizeof(buffer) && ctx->bufferLen > ctx->offset + dataLength, parser_unexpected_buffer_end);
-        PARSER_ASSERT_OR_ERROR(type == 10, parser_unexpected_type);
+        PARSER_ASSERT_OR_ERROR(type == TAG_STRING, parser_unexpected_type);
         uint32_t stringLength = 0;
         CHECK_PARSER_ERR(readU32(ctx, &stringLength))
         MEMCPY(buffer, ctx->buffer + ctx->offset, stringLength);
