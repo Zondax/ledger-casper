@@ -361,7 +361,6 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     if (strcmp(buffer, "redelegate") == 0) {
         redelegation = true;
     }
-    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
 
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
@@ -374,6 +373,8 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     }else {
         item->special_type = Generic;
     }
+
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
     *num_runs = deploy_argLen;
     // set the offset for later retrival
     entry_point_offset = offset;
