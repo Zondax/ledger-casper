@@ -617,6 +617,11 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == TAG_PUBLIC_KEY  );
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
 
+    // this check may be seen redundant
+    // but is intended for cases where this function
+    // returns ok. meaning, there are the expected args, but
+    // the entry point is generic also in the case ModuleBytes is
+    // present
     if (item->special_type == Generic) {
         item->UI_runtime_items += 2; // amount and hash
         item->with_generic_args = 1;
@@ -702,7 +707,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     // always render the execution type
     // and the value for example, if the execution
     // is of the type, by-name, we render the name
-    item->UI_fixed_items += 2;
+    item->UI_fixed_items = 2;
 
     // render the contract-hash or name
     // of the execution
@@ -715,5 +720,6 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         }
     }
 
+    uint32_t total = item->UI_fixed_items + item->UI_runtime_items;
     return parser_ok;
 }
