@@ -220,11 +220,8 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
 
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
-        // types bellow are for the new type
-        // that ID/amount can be in generic transactions
+        case TAG_U32:
         case TAG_U64:
-        case TAG_U128:
-        case TAG_U256:
         case TAG_U512: {
             return parser_ok;
         }
@@ -369,11 +366,15 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = UnDelegate;
     }else if (strcmp(buffer, "redelegate") == 0) {
         item->special_type = ReDelegate;
-    // anything else is generic
-    }else {
-        item->special_type = Generic;
     }
 
+    // anything else is generic
+    if (!redelegation)
+        item->special_type = Generic;
+
+    zemu_log("entry_point-->: ");
+    zemu_log(buffer);
+    zemu_log("\n");
     CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
     *num_runs = deploy_argLen;
     // set the offset for later retrival
