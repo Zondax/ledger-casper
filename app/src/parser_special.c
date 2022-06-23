@@ -512,7 +512,10 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             uint32_t dlen = 0;
             uint8_t dtyp = 255;
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dlen, &dtyp, dataLen, ctx))
-            return parser_display_runtimeArg(dtyp, dlen, ctx,
+            // use TAG_U512 for amount to render it as an normal amount,
+            // although we support other types, we have special formatting for amounts
+            // which expects this type
+            return parser_display_runtimeArg(TAG_U512, dlen, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -567,9 +570,14 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                              pageIdx, pageCount);
         }
         if(new_displayIdx == 3) {
+
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
+
+            // use TAG_U512 for amount to render it as an normal amount,
+            // although we support other types, we have special formatting for amounts
+            // which expects this type
+            return parser_display_runtimeArg(TAG_U512, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -588,7 +596,10 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         if(new_displayIdx == 2) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
+            // use TAG_U512 for amount to render it as an normal amount,
+            // although we support other types, we have special formatting for amounts
+            // which expects this type
+            return parser_display_runtimeArg(TAG_U512, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
 
@@ -598,7 +609,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     return parser_no_data;
 }
 
-parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
+parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegate) {
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
@@ -612,7 +623,7 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
         return parser_ok;
     }
 
-    if (item->type == ReDelegate) {
+    if (redelegate) {
         CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == TAG_PUBLIC_KEY);
         item->UI_runtime_items += 4;
     } else {
@@ -663,10 +674,10 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     }
 
     // lets track the number of expected items we found
-    err = checkForDelegationItems(ctx, item, num_items);
+    err = checkForDelegationItems(ctx, item, num_items, redelegation);
 
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
-        bool add_amount = 0;
+        uint8_t add_amount = 0;
 
         if (item->special_type == Generic) {
             // we should show amount(if present) and the runtime args hash
@@ -689,15 +700,19 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     }
 
     // always render the execution type
-    // and the value for example, the hash if the execution
-    // is of the type, by-hash
-    item->UI_fixed_items = 2;
+    // and the value for example, if the execution
+    // is of the type, by-name, we render the name
+    item->UI_fixed_items += 2;
 
     // render the contract-hash or name
     // of the execution
     if(app_mode_expert()){
         uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
-        item->UI_fixed_items += has_version + 1; // entry-point
+        item->UI_fixed_items += has_version ;
+        // entry-point only if we hash the arguments
+        if (item->with_generic_args){
+            item->UI_fixed_items += 1;
+        }
     }
 
     return parser_ok;
