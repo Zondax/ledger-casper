@@ -244,7 +244,9 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return parser_ok;
         }
 
-        //option with U64 inside for ID
+        // parse any option as long as the inner type is not a container
+        // to be clear, the presentation layer only support
+        // OPtion<u64> and Option<uref>
         case TAG_OPTION: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
@@ -270,6 +272,10 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return parser_ok;
         }
 
+        // Parse any list as long as inner type is not a container
+        // presentation layer do not support list though, this is intended
+        // to support generic runtime-args in transactions
+        // so arguments of this type are hashed
         case TAG_LIST: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
@@ -280,6 +286,28 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
                 return parse_additional_typebytes(ctx, inner_type, &inner_type);
             }
         }
+
+        // Parse any result as long as ok and error types are not a container
+        // presentation layer do not support result though, this is intended
+        // to support generic runtime-args in transactions
+        // so arguments of this type are hashed
+        case TAG_RESULT: {
+            uint8_t ok_type = 0;
+            uint8_t err_type = 0;
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &ok_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &err_type));
+            if(is_container_type(ok_type) || is_container_type(err_type)){
+                return parser_unexpected_type;
+            }else{
+                // here we have to optianl types, what we should mark here?
+                *option_type = ok_type;
+                parser_error_t err = parse_additional_typebytes(ctx, ok_type, &inner_type);
+                inner_type = 0;
+                return err | parse_additional_typebytes(ctx, err_type, &inner_type);
+            }
+        }
+
 
        default : {
             // we support now generic arguments
