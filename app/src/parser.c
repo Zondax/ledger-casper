@@ -26,6 +26,7 @@
 #include "timeutils.h"
 #include "parser_common.h"
 #include "parser_special.h"
+#include "runtime_arg.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 // For some reason NanoX requires this function
@@ -225,36 +226,36 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         return parser_unexpected_buffer_end;
     }
     switch(type) {
-        case 4: {
+        case TAG_U32: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
             DISPLAY_RUNTIMEARG_U32(ctx);
 
         }
-        case 5: {
+        case TAG_U64: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
             DISPLAY_RUNTIMEARG_U64(ctx);
         }
-        case 8: {
+        case TAG_U512: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
             DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
         }
 
-        case 11 : {
+        case TAG_KEY : {
             ctx->offset++;                              //skip internal type for key
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
         }
 
-        case 12 : {
+        case TAG_UREF: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-1);
         }
 
-        case 13 : {
+        case TAG_OPTION: {
             uint8_t optiontype = 0;
             CHECK_PARSER_ERR(readU8(ctx, &optiontype));
             if (optiontype == 0x00) {
@@ -275,11 +276,11 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             }
         }
 
-        case 15 : {
+        case TAG_BYTE_ARRAY: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
 
-        case 22: {
+        case TAG_PUBLIC_KEY: {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
             DISPLAY_RUNTIMEARG_ADDRESS(ctx, 1 + pubkeyLen)
