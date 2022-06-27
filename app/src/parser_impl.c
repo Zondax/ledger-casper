@@ -218,6 +218,11 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
     }
 }
 
+bool is_container_type(uint8_t cl_type) {
+    return cl_type == TAG_OPTION || cl_type == TAG_LIST
+    || (cl_type >= TAG_RESULT && cl_type <= TAG_ANY);
+}
+
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
         case TAG_U32:
@@ -243,11 +248,16 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         case TAG_OPTION: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
-            if(inner_type != TAG_U64 && inner_type != TAG_UREF){
+            // keep commented code just to clarify that we now parse any Option
+            // as long as the inner type is not a container type,
+            // in the presentation layer the only valid options are
+            // the one commented bellow
+            /*if(inner_type != TAG_U64 && inner_type != TAG_UREF){*/
+            if(is_container_type(inner_type)){
                 return parser_unexpected_type;
             }else{
                 *option_type = inner_type;
-                return parser_ok;
+                return parse_additional_typebytes(ctx, inner_type, &inner_type);
             }
         }
 
@@ -260,7 +270,18 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return parser_ok;
         }
 
-        default : {
+        case TAG_LIST: {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            if(is_container_type(inner_type)){
+                return parser_unexpected_type;
+            }else{
+                *option_type = inner_type;
+                return parse_additional_typebytes(ctx, inner_type, &inner_type);
+            }
+        }
+
+       default : {
             // we support now generic arguments
             // in transactions but we only support
             // the types define above
