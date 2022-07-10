@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <zxmacros.h>
 #include <zxformat.h>
+#include "runtime_arg.h"
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -65,10 +66,20 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
     return parser_ok;
 }
 
+parser_error_t parser_printU32(uint32_t value, char *outVal,
+                               uint16_t outValLen, uint8_t pageIdx,
+                               uint8_t *pageCount) {
+    char tmpBuffer[30];
+    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
+
 parser_error_t parser_printU64(uint64_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
-    char tmpBuffer[100];
+    char tmpBuffer[30];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
@@ -116,6 +127,12 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     uint64_t value = 0;                                                     \
     CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
+}
+
+#define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
+    uint32_t value = 0;                                                     \
+    CHECK_PARSER_ERR(readU32(CTX, &value));                                                   \
+    return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
 #define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
@@ -209,23 +226,36 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         return parser_unexpected_buffer_end;
     }
     switch(type) {
-        case 8 : {
+        case TAG_U32: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_U32(ctx);
+
+        }
+        case TAG_U64: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_U64(ctx);
+        }
+        case TAG_U512: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
             DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
         }
 
-        case 11 : {
+        case TAG_KEY : {
             ctx->offset++;                              //skip internal type for key
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
         }
 
-        case 12 : {
+        case TAG_UREF: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-1);
         }
 
-        case 13 : {
+        case TAG_OPTION: {
             uint8_t optiontype = 0;
             CHECK_PARSER_ERR(readU8(ctx, &optiontype));
             if (optiontype == 0x00) {
@@ -236,9 +266,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                     return parser_unexpected_buffer_end;
                 }
                 type = *(ctx->buffer + ctx->offset + dataLen);
-                if(type == 5){
+                if(type == TAG_U64){
                     DISPLAY_RUNTIMEARG_U64(ctx)
-                }else if(type == 12){
+                }else if(type == TAG_UREF){
                     DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-2);
                 }else{
                     return parser_unexepected_error;
@@ -246,17 +276,18 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             }
         }
 
-        case 15 : {
+        case TAG_BYTE_ARRAY: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
 
-        case 22: {
+        case TAG_PUBLIC_KEY: {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
             DISPLAY_RUNTIMEARG_ADDRESS(ctx, 1 + pubkeyLen)
         }
 
         default : {
+            zemu_log("unsupported type");
             return parser_unexpected_type;
         }
     }
@@ -554,14 +585,14 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Type");
         if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
             snprintf(outVal, outValLen, "Token transfer");
-        } else if (parser_tx_obj.session.special_type == Delegate){
+        } else if (parser_tx_obj.session.special_type == Delegate && parser_tx_obj.session.with_generic_args == 0 ){
             snprintf(outVal, outValLen, "Delegate");
-        }else if (parser_tx_obj.session.special_type == UnDelegate) {
+        }else if (parser_tx_obj.session.special_type == UnDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Undelegate");
-        }else if (parser_tx_obj.session.special_type == ReDelegate) {
+        }else if (parser_tx_obj.session.special_type == ReDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Redelegate");
-        }else{
-            return parser_unexpected_type;
+        }else {
+            snprintf(outVal, outValLen, "Contract execution");
         }
         return parser_ok;
     }
@@ -636,7 +667,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         special_deploy_e special_type = parser_tx_obj.session.special_type;
         if(special_type == NativeTransfer){
             return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate){
+        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate || special_type == Generic){
             return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         }else{
             return parser_unexpected_type;
