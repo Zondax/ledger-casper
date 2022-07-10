@@ -225,9 +225,22 @@ bool is_container_type(uint8_t cl_type) {
 
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
+        case TAG_BOOL: {
+            return parser_ok;
+        }
+
+        case TAG_U8:
         case TAG_U32:
         case TAG_U64:
+        case TAG_U128:
+        case TAG_U256:
+        case TAG_I32:
+        case TAG_I64:
         case TAG_U512: {
+            return parser_ok;
+        }
+
+        case TAG_UNIT: {
             return parser_ok;
         }
 
@@ -259,7 +272,8 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
                 return parser_unexpected_type;
             }else{
                 *option_type = inner_type;
-                return parse_additional_typebytes(ctx, inner_type, &inner_type);
+                uint8_t dummy_inner = 255;
+                return parse_additional_typebytes(ctx, inner_type, &dummy_inner);
             }
         }
 
@@ -301,11 +315,62 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
                 return parser_unexpected_type;
             }else{
                 // here we have to optianl types, what we should mark here?
-                *option_type = ok_type;
+                /**option_type = ok_type;*/
                 parser_error_t err = parse_additional_typebytes(ctx, ok_type, &inner_type);
                 inner_type = 0;
                 return err | parse_additional_typebytes(ctx, err_type, &inner_type);
             }
+        }
+        case TAG_TUPLE1: {
+            uint8_t element_0 = 0;
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
+            if(is_container_type(element_0)){
+                return parser_unexpected_type;
+            }else{
+                // here we have to optianl types, what we should mark here?
+                *option_type = element_0;
+                inner_type = 0;
+                return parse_additional_typebytes(ctx, element_0, &inner_type);
+            }
+
+        }
+        case TAG_TUPLE2: {
+            uint8_t element_0 = 0;
+            uint8_t element_1 = 0;
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_1));
+            if(is_container_type(element_0) || is_container_type(element_1)){
+                return parser_unexpected_type;
+            }else{
+                // here we have to optianl types, what we should mark here?
+                /**option_type = ok_type;*/
+                parser_error_t err = parse_additional_typebytes(ctx, element_0, &inner_type);
+                inner_type = 0;
+                return err | parse_additional_typebytes(ctx, element_1, &inner_type);
+            }
+
+        }
+        case TAG_TUPLE3: {
+            uint8_t element_0 = 0;
+            uint8_t element_1 = 0;
+            uint8_t element_2 = 0;
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_1));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &element_2));
+            if(is_container_type(element_0) || is_container_type(element_1) || is_container_type(element_2)){
+                return parser_unexpected_type;
+            }else{
+                // here we have to optianl types, what we should mark here?
+                /**option_type = ok_type;*/
+                parser_error_t err = parse_additional_typebytes(ctx, element_0, &inner_type);
+                err |= parse_additional_typebytes(ctx, element_1, &inner_type);
+                inner_type = 0;
+                return err | parse_additional_typebytes(ctx, element_2, &inner_type);
+            }
+
         }
 
 
@@ -313,6 +378,7 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             // we support now generic arguments
             // in transactions but we only support
             // the types define above
+             zemu_log("type not supported\n");
             return parser_unexpected_type;
         }
     }
@@ -478,6 +544,7 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->UI_runtime_items = 0;
     item->num_runtime_args = 0;
     item->with_generic_args = 0;
+    item->special_type = 255;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
