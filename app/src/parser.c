@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <zxmacros.h>
 #include <zxformat.h>
+#include "runtime_arg.h"
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -26,7 +27,6 @@
 #include "timeutils.h"
 #include "parser_common.h"
 #include "parser_special.h"
-#include "runtime_arg.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 // For some reason NanoX requires this function
@@ -266,9 +266,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                     return parser_unexpected_buffer_end;
                 }
                 type = *(ctx->buffer + ctx->offset + dataLen);
-                if(type == 5){
+                if(type == TAG_U64){
                     DISPLAY_RUNTIMEARG_U64(ctx)
-                }else if(type == 12){
+                }else if(type == TAG_UREF){
                     DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-2);
                 }else{
                     return parser_unexepected_error;
@@ -287,6 +287,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         }
 
         default : {
+            zemu_log("unsupported type");
             return parser_unexpected_type;
         }
     }
