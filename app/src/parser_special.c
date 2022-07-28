@@ -241,6 +241,7 @@ parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED Execu
 }
 
 parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+    zemu_log_stack("parseSystemPayment");
 
     if (num_items == 0 )
         return parser_unexpected_number_items;
@@ -337,12 +338,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
     // this are not generic args and are part of valid contract transactions
     switch (item->type){
         case ModuleBytes : {
-            if(displayIdx == 0 ) {
+            if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "contract");
                 return parser_ok;
             }
-            if(displayIdx == 1 ){
+            if(displayIdx == 1 && app_mode_expert() ){
                 snprintf(outKey, outKeyLen, "Cntrct hash");
                 uint32_t dataLength = 0;
                 CHECK_PARSER_ERR(readU32(ctx, &dataLength))
@@ -362,12 +363,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByHash: {
-            if(displayIdx == 0 ) {
+            if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash");
                 return parser_ok;
             }
-            if(displayIdx == 1 ) {
+            if(displayIdx == 1 && app_mode_expert()  ) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -381,12 +382,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             break;
         }
         case StoredVersionedContractByHash: {
-            if(displayIdx == 0 ) {
+            if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash-versioned");
                 return parser_ok;
             }
-            if(displayIdx == 1 ) {
+            if(displayIdx == 1 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -412,13 +413,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByName: {
-            if(displayIdx == 0 ) {
+            if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 ) {
+            if (displayIdx == 1 && app_mode_expert() ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -436,13 +437,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredVersionedContractByName: {
-            if(displayIdx == 0 ) {
+            if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name-versioned");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 ) {
+            if (displayIdx == 1 && app_mode_expert() ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -570,7 +571,6 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                              pageIdx, pageCount);
         }
         if(new_displayIdx == 3) {
-
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
 
@@ -639,7 +639,7 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
 }
 
 parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegation){
-
+    zemu_log("parseDelegation\n");
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
@@ -707,11 +707,13 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     // always render the execution type
     // and the value for example, if the execution
     // is of the type, by-name, we render the name
-    item->UI_fixed_items = 2;
+    /*item->UI_fixed_items = 2;*/
 
     // render the contract-hash or name
     // of the execution
     if(app_mode_expert()){
+        // render execution type and the value
+        item->UI_fixed_items = 2;
         uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
         item->UI_fixed_items += has_version ;
         // entry-point only if we hash the arguments
