@@ -13,6 +13,7 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 ********************************************************************************/
+#include <algorithm>
 #include <parser.h>
 #include <sstream>
 #include <string>
@@ -55,8 +56,12 @@ std::vector<std::string> dumpUI(parser_context_t *ctx,
             } else {
                 ss << parser_getErrorDescription(err);
             }
+            auto str = ss.str();
+            std::for_each(str.begin(), str.end(), [](char & c){
+                c = ::tolower(c);
+            });
 
-            answer.push_back(ss.str());
+            answer.push_back(str);
 
             pageIdx++;
         }
