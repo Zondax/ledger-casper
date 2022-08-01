@@ -725,6 +725,5 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         }
     }
 
-    uint32_t total = item->UI_fixed_items + item->UI_runtime_items;
     return parser_ok;
 }

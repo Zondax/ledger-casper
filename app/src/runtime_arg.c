@@ -45,7 +45,6 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
     MEMZERO(buffer, 300);
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
-    uint8_t ret = parser_ok;
 
     for (uint32_t i = 0; i < deploy_argLen; ++i) {
         //key
