@@ -484,7 +484,7 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     }
 
     // anything else is generic
-    if (!redelegation)
+    if (!redelegation && item->special_type == 255)
         item->special_type = Generic;
 
     zemu_log("entry_point-->: ");

@@ -121,7 +121,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         if(new_displayIdx == 1) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
+            return parser_display_runtimeArgMotes(datatype, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -152,7 +152,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         if(new_displayIdx == 1) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype,num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
+            return parser_display_runtimeArgMotes(datatype, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -289,7 +289,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
         if (item.with_generic_args == 0) {
             snprintf(outKey, outKeyLen, "Fee");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item.UI_runtime_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx,
+            return parser_display_runtimeArgMotes(datatype, dataLength, ctx,
                     outVal, outValLen,
                     pageIdx, pageCount);
         } else {
@@ -516,7 +516,10 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             // use TAG_U512 for amount to render it as an normal amount,
             // although we support other types, we have special formatting for amounts
             // which expects this type
-            return parser_display_runtimeArg(TAG_U512, dlen, ctx,
+            /*return parser_display_runtimeArg(TAG_U512, dlen, ctx,*/
+                                             /*outVal, outValLen,*/
+                                             /*pageIdx, pageCount);*/
+            return parser_display_runtimeArgMotes(dtyp, dlen, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -577,7 +580,10 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             // use TAG_U512 for amount to render it as an normal amount,
             // although we support other types, we have special formatting for amounts
             // which expects this type
-            return parser_display_runtimeArg(TAG_U512, dataLength, ctx,
+            /*return parser_display_runtimeArg(TAG_U512, dataLength, ctx,*/
+                                             /*outVal, outValLen,*/
+                                             /*pageIdx, pageCount);*/
+            return parser_display_runtimeArgMotes(datatype, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
         }
@@ -599,7 +605,10 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             // use TAG_U512 for amount to render it as an normal amount,
             // although we support other types, we have special formatting for amounts
             // which expects this type
-            return parser_display_runtimeArg(TAG_U512, dataLength, ctx,
+            /*return parser_display_runtimeArg(TAG_U512, dataLength, ctx,*/
+                                             /*outVal, outValLen,*/
+                                             /*pageIdx, pageCount);*/
+            return parser_display_runtimeArgMotes(datatype, dataLength, ctx,
                                              outVal, outValLen,
                                              pageIdx, pageCount);
 
@@ -684,12 +693,10 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
         uint8_t add_amount = 0;
 
-        if (item->special_type == Generic) {
-            // we should show amount(if present) and the runtime args hash
-            parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
-            if(err == parser_ok){
-                add_amount += 1;
-            }
+        // we should show amount(if present) and the runtime args hash
+        parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
+        if(err == parser_ok){
+            add_amount += 1;
         }
         item->UI_runtime_items += 1 + add_amount;
         item->with_generic_args = 1;
@@ -704,13 +711,9 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         item->with_generic_args = 1;
     }
 
-    // always render the execution type
-    // and the value for example, if the execution
-    // is of the type, by-name, we render the name
-    /*item->UI_fixed_items = 2;*/
 
     // render the contract-hash or name
-    // of the execution
+    // of the execution only in expert mode
     if(app_mode_expert()){
         // render execution type and the value
         item->UI_fixed_items = 2;
