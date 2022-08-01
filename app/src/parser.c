@@ -246,7 +246,7 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
-            CHECK_PARSER_ERR(readU32(ctx, &value));
+            CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)(&value)));
             DISPLAY_RUNTIMEARG_AMOUNT_INT(ctx, value);
         }
         case TAG_U64: {
@@ -274,7 +274,6 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
     char buffer[400];
-    uint64_t value = 0;
     MEMZERO(buffer, sizeof(buffer));
     if(ctx->offset + dataLen >= ctx->bufferLen){
         return parser_unexpected_buffer_end;
@@ -284,14 +283,12 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
-            /*DISPLAY_RUNTIMEARG_AMOUNT_INT(ctx, value);*/
             DISPLAY_RUNTIMEARG_U32(ctx)
         }
         case TAG_U64: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
-            /*DISPLAY_RUNTIMEARG_AMOUNT_INT(ctx, value);*/
             DISPLAY_RUNTIMEARG_U64(ctx)
         }
         case TAG_U512: {

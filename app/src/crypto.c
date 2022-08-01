@@ -283,7 +283,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
         }
         char c = HEX_CHARS[char_index];
         if(is_alphabetic(c)) {
-            get_next_hash_bit(hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+            get_next_hash_bit((char *)hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
         }
         encodedAddr[i] = c;
     }
