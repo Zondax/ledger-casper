@@ -29,9 +29,6 @@ bool isTestnet() {
 const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 'a', 'b', 'c', 'd', 'e', 'f'};
 
-static bool is_alphabetic(const char byte);
-static void to_uppercase(char* letter);
-static void to_lowercase(char* letter);
 static bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset);
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)

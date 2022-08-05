@@ -218,7 +218,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
 }
 
 // render alternative amounts of type u64, u32
-#define DISPLAY_RUNTIMEARG_AMOUNT_INT(CTX, VALUE){ \
+#define DISPLAY_RUNTIMEARG_AMOUNT_INT(VALUE){ \
     fpuint64_to_str(buffer, sizeof(buffer), (uint64_t)(VALUE), 0); \
     uint16_t numsize = 0;                                                           \
     CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &numsize))          \
@@ -247,14 +247,14 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
                 return parser_unexepected_error;
             }
             CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)(&value)));
-            DISPLAY_RUNTIMEARG_AMOUNT_INT(ctx, value);
+            DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U64: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
             CHECK_PARSER_ERR(readU64(ctx, &value));
-            DISPLAY_RUNTIMEARG_AMOUNT_INT(ctx, value);
+            DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U512: {
             if(dataLen == 0){

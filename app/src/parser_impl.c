@@ -321,56 +321,27 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
                 return err | parse_additional_typebytes(ctx, err_type, &inner_type);
             }
         }
-        case TAG_TUPLE1: {
-            uint8_t element_0 = 0;
-            uint8_t inner_type = 0;
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
-            if(is_container_type(element_0)){
-                return parser_unexpected_type;
-            }else{
-                // here we have to optianl types, what we should mark here?
-                *option_type = element_0;
-                inner_type = 0;
-                return parse_additional_typebytes(ctx, element_0, &inner_type);
-            }
 
-        }
-        case TAG_TUPLE2: {
-            uint8_t element_0 = 0;
-            uint8_t element_1 = 0;
-            uint8_t inner_type = 0;
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_1));
-            if(is_container_type(element_0) || is_container_type(element_1)){
-                return parser_unexpected_type;
-            }else{
-                // here we have to optianl types, what we should mark here?
-                /**option_type = ok_type;*/
-                parser_error_t err = parse_additional_typebytes(ctx, element_0, &inner_type);
-                inner_type = 0;
-                return err | parse_additional_typebytes(ctx, element_1, &inner_type);
-            }
-
-        }
+        case TAG_TUPLE1:
+        case TAG_TUPLE2:
         case TAG_TUPLE3: {
-            uint8_t element_0 = 0;
-            uint8_t element_1 = 0;
-            uint8_t element_2 = 0;
+            const uint8_t elements_len = type - TAG_TUPLE1 + 1;
+            uint8_t element[elements_len];
             uint8_t inner_type = 0;
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_0));
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_1));
-            CHECK_PARSER_ERR(_readUInt8(ctx, &element_2));
-            if(is_container_type(element_0) || is_container_type(element_1) || is_container_type(element_2)){
-                return parser_unexpected_type;
-            }else{
-                // here we have to optianl types, what we should mark here?
-                /**option_type = ok_type;*/
-                parser_error_t err = parse_additional_typebytes(ctx, element_0, &inner_type);
-                err |= parse_additional_typebytes(ctx, element_1, &inner_type);
-                inner_type = 0;
-                return err | parse_additional_typebytes(ctx, element_2, &inner_type);
+            parser_error_t err = parser_ok;
+
+            for(uint8_t i = 0; i < elements_len; i++) {
+                CHECK_PARSER_ERR(_readUInt8(ctx, &element[i]));
+                if (is_container_type(element[i])) {
+                    return parser_unexpected_type;
+                }
             }
 
+            for(uint8_t i = 0; i < elements_len; i++) {
+                err |= parse_additional_typebytes(ctx, element[i], &inner_type);
+            }
+
+            return err;
         }
 
 
@@ -465,7 +436,9 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
 parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
-    uint16_t offset = ctx->offset;
+    // set the offset for later retrival
+    entry_point_offset = ctx->offset;
+
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
@@ -492,8 +465,7 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     zemu_log("\n");
     CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
     *num_runs = deploy_argLen;
-    // set the offset for later retrival
-    entry_point_offset = offset;
+
     return parser_ok;
 }
 

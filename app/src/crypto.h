@@ -64,6 +64,10 @@ zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output);
 
 void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles);
 
+bool is_alphabetic(const char byte);
+void to_uppercase(char* letter);
+void to_lowercase(char* letter);
+
 #ifdef __cplusplus
 }
 #endif
