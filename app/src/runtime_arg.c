@@ -41,8 +41,7 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
 
 parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
     uint16_t start = ctx->offset;
-    char buffer[300];
-    MEMZERO(buffer, 300);
+    char buffer[300] = {0};
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
 
@@ -108,8 +107,7 @@ parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outK
 
     uint32_t start = ctx->offset;
 
-    char buffer[300];
-    MEMZERO(buffer, 300);
+    char buffer[300] = {0};
 
     uint32_t dataLength = 0;
     uint8_t dataType = 0;
@@ -126,9 +124,8 @@ parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outK
             } else {
                 MEMCPY(outKey, buffer, key_len);
                 // convert first character to upper case
-                if ( 'a' <= outKey[0] || outKey[0] <= 'z') {
-                    char c = outKey[0];
-                    outKey[0] = c - 32;
+                if(is_alphabetic(outKey[0])) {
+                    to_uppercase(&outKey[0]);
                 }
             }
 
