@@ -68,7 +68,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
     uint32_t num_items = 0;
     CHECK_PARSER_ERR(readU32(ctx, &num_items));
 
-    if(item.UI_runtime_items > num_items){
+    if(item.UI_runtime_items > num_items) {
         return parser_unexpected_number_items;
     }
 
@@ -82,7 +82,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
     }
 
     // generic
-    if (item.with_generic_args > 0){
+    if (item.with_generic_args > 0) {
         if (new_displayIdx == 0) {
             char *name = "native-transfer";
             uint32_t name_len = strlen(name);
@@ -136,7 +136,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
                                              pageIdx, pageCount);
         }
 
-        if(item.UI_runtime_items == 4){
+        if(item.UI_runtime_items == 4) {
             new_displayIdx -= 1;
         }
 
@@ -177,11 +177,14 @@ parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED Executa
     *fitems = 0;
     uint16_t num_args_found = 0;
 
-    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512 || type == TAG_U32 || type == TAG_U64))
+    // Amount is mandatory
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512))
+
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == TAG_OPTION && internal_type == TAG_U64) || type == TAG_U64))
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
 
-    if(num_items == 4){
+    if(num_items == 4) {
         COUNT_RUNTIME_ARGTYPE(ctx, num_items, "source", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
     }
     *fitems = num_args_found;
@@ -204,7 +207,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
 
     // normal tx, target, id, source(optional) and amount
     if (uitems == 0 && expected_items) {
-        if(app_mode_expert()){
+        if(app_mode_expert()) {
             item->UI_runtime_items += num_items;
         }else{
             item->UI_runtime_items += 2; //amount and target only
@@ -217,7 +220,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     if (uitems == 0 && !expected_items) {
         item->UI_runtime_items += found_items;
         item->with_generic_args = 0;
-        return parser_ok;
+        return parser_unexpected_number_items;
     }
     // generic with hash
     if (uitems > 0) {
@@ -229,29 +232,33 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
     return parser_unexepected_error;
 }
 
-parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED ExecutableDeployItem *item, uint32_t num_items){
+parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED ExecutableDeployItem *item, uint32_t num_items) {
 
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
     PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U64  ); // also type 5
+    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U64  ); // also type 5
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 ); // also type 5
+//    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
 
     return parser_ok;
 }
 
-parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items){
+parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
     zemu_log_stack("parseSystemPayment");
 
     if (num_items == 0 )
         return parser_unexpected_number_items;
 
     parser_error_t ret = parser_ok;
+    uint32_t found_items = 0;
     ret = checkForSystemPaymentArgs(ctx, item, num_items);
 
     if (ret == parser_ok) {
         item->with_generic_args = 0;
         item->UI_runtime_items += 1;// Amount arg
+        // item->UI_runtime_items += found_items + 2;// Amount arg
         return ret;
     } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
         return ret;
@@ -272,7 +279,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
     ctx->offset++;
     uint32_t dataLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &dataLen));
-    if(dataLen > ctx->bufferLen - ctx->offset){
+    if(dataLen > ctx->bufferLen - ctx->offset) {
         return parser_unexpected_buffer_end;
     }
     ctx->offset += dataLen;
@@ -335,15 +342,16 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
                                             char *outVal, uint16_t outValLen,
                                             uint8_t pageIdx, uint8_t *pageCount) {
 
+    const bool hasAmount = (item->UI_fixed_items == 3);
     // this are not generic args and are part of valid contract transactions
-    switch (item->type){
+    switch (item->type) {
         case ModuleBytes : {
             if(displayIdx == 0 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "contract");
                 return parser_ok;
             }
-            if(displayIdx == 1 && app_mode_expert() ){
+            if(displayIdx == 1 && app_mode_expert() ) {
                 snprintf(outKey, outKeyLen, "Cntrct hash");
                 uint32_t dataLength = 0;
                 CHECK_PARSER_ERR(readU32(ctx, &dataLength))
@@ -352,7 +360,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
                 uint8_t hash[32];
                 MEMZERO(hash, sizeof(hash));
                 MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
-                if (blake2b_hash(ctx->buffer + ctx->offset,dataLength,hash) != zxerr_ok){
+                if (blake2b_hash(ctx->buffer + ctx->offset,dataLength,hash) != zxerr_ok) {
                     return parser_unexepected_error;
                 };
                 return parser_printBytes(hash, 32, outVal, outValLen,
@@ -363,12 +371,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByHash: {
-            if(displayIdx == 0 && app_mode_expert() ) {
+            if(displayIdx == 0 && (app_mode_expert() || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash");
                 return parser_ok;
             }
-            if(displayIdx == 1 && app_mode_expert()  ) {
+            if(displayIdx == 1 && (app_mode_expert()  || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -382,12 +390,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             break;
         }
         case StoredVersionedContractByHash: {
-            if(displayIdx == 0 && app_mode_expert() ) {
+            if(displayIdx == 0 && (app_mode_expert() || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash-versioned");
                 return parser_ok;
             }
-            if(displayIdx == 1 && app_mode_expert() ) {
+            if(displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -413,13 +421,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByName: {
-            if(displayIdx == 0 && app_mode_expert() ) {
+            if(displayIdx == 0 && (app_mode_expert() || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 && app_mode_expert() ) {
+            if (displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -437,13 +445,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredVersionedContractByName: {
-            if(displayIdx == 0 && app_mode_expert() ) {
+            if(displayIdx == 0 && (app_mode_expert() || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name-versioned");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 && app_mode_expert() ) {
+            if (displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -481,18 +489,16 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                             char *outKey, uint16_t outKeyLen,
                                             char *outVal, uint16_t outValLen,
                                             uint8_t pageIdx, uint8_t *pageCount) {
-    ctx->offset++;
+
 
     // call fixed items rendering and move offset if items
     // have been already rendered
-    CHECK_PARSER_ERR(render_fixed_delegation_items(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
-    if (displayIdx < item->UI_fixed_items)
-        return parser_ok;
+    ctx->offset++;
+    if( displayIdx < item->UI_fixed_items) {
+        return render_fixed_delegation_items(item, ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    }
 
-    uint32_t dataLen = 0;
-    uint32_t start = ctx->offset;
-
-    CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+    ctx->offset = item->itemOffset;
 
     uint8_t new_displayIdx = displayIdx - item->UI_fixed_items;
 
@@ -502,6 +508,9 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
 
     // get hash and show it
     if (item->with_generic_args) {
+        uint32_t dataLen = 0;
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+
         // two cases
         // 1. special_type == Generic -> amount(if present) + hash
         // 2. special_type != Generic -> only hash
@@ -534,9 +543,9 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             // move offset to the end of args
             CHECK_PARSER_ERR(parseRuntimeArgs(ctx, dataLen));
             uint32_t end = ctx->offset;
-            uint32_t len = ctx->offset - start;
+            uint32_t len = ctx->offset - item->itemOffset;
             // blake2b of runtime args
-            ctx->offset = start;
+            ctx->offset = item->itemOffset;
             CHECK_PARSER_ERR(showRuntimeArgsHash( *item, ctx, len, name, name_len, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount));
 
             ctx->offset = end;
@@ -548,6 +557,11 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
 
+   uint32_t dataLen = 0;
+   if(item->type != ModuleBytes) {
+        CHECK_PARSER_ERR(readU32(ctx, &dataLen));
+   }
+
     // Normal transaction
     if(new_displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Delegator");
@@ -557,7 +571,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
                                          pageIdx, pageCount);
 
     }
-    if(item->special_type == ReDelegate){
+    if(item->special_type == ReDelegate) {
         if(new_displayIdx == 1) {
             snprintf(outKey, outKeyLen, "Old");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, item->UI_runtime_items, ctx))
@@ -618,13 +632,22 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
     return parser_no_data;
 }
 
-parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegate) {
+parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegate, uint32_t *fitems) {
     uint8_t type = 0;
     uint8_t internal_type = 0;
+    uint16_t num_args_found = 0;
+
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "delegator", (type == TAG_PUBLIC_KEY))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "validator", (type == TAG_PUBLIC_KEY))
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512 || type == TAG_U32 ))
+    *fitems = num_args_found;
 
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == TAG_PUBLIC_KEY  );
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == TAG_PUBLIC_KEY  );
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 );
+
+    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
+    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 );
 
     // this check may be seen redundant
     // but is intended for cases where this function
@@ -633,6 +656,7 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     // present
     if (item->special_type == Generic) {
         item->UI_runtime_items += 2; // amount and hash
+        item->UI_fixed_items = num_args_found - 1;
         item->with_generic_args = 1;
         return parser_ok;
     }
@@ -647,61 +671,62 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     return parser_ok;
 }
 
-parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegation){
-    zemu_log("parseDelegation\n");
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items, bool redelegation) {
+    ZEMU_LOGF(50, "parseDelegation\n")
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
     // for calls coming from parseModuleBytes, we need to check again
-    uint16_t start = ctx->offset;
-    parser_error_t err = searchRuntimeArgs(("new_validator"), &type, &internal_type, (num_items), (ctx));
-    if(err == parser_ok){
-        redelegation = true;
-    }
-    ctx->offset = start;
+    redelegation = (searchRuntimeArgs(("new_validator"), &type, &internal_type, (num_items), (ctx)) == parser_ok);
 
-    if(item->type == ModuleBytes){
-        start = ctx->offset;
+    if(item->type == ModuleBytes) {
+        item->itemOffset = ctx->offset;
+        uint16_t start = ctx->offset;
 
         uint32_t dataLength = 0;
         // this should be present in any transaction of this type
         CHECK_PARSER_ERR(parser_runtimeargs_getData("auction", &dataLength, &type, num_items, ctx));
-
-        char buffer[100];
-        MEMZERO(buffer,sizeof(buffer));
-        PARSER_ASSERT_OR_ERROR(dataLength < sizeof(buffer) && ctx->bufferLen > ctx->offset + dataLength, parser_unexpected_buffer_end);
         PARSER_ASSERT_OR_ERROR(type == TAG_STRING, parser_unexpected_type);
+
+        char buffer[100] = {0};
+        PARSER_ASSERT_OR_ERROR(dataLength <= sizeof(buffer) && ctx->bufferLen >= ctx->offset + dataLength, parser_unexpected_buffer_end);
+
         uint32_t stringLength = 0;
         CHECK_PARSER_ERR(readU32(ctx, &stringLength))
         MEMCPY(buffer, ctx->buffer + ctx->offset, stringLength);
 
-        if (strcmp(buffer, "delegate") == 0){
+        // Default generic type
+        item->special_type = Generic;
+        if (stringLength == strlen(DELEGATE_STR) && strncmp(buffer, DELEGATE_STR, stringLength) == 0) {
             item->special_type = Delegate;
-        }else if (strcmp(buffer, "undelegate") == 0){
-            item->special_type = UnDelegate;
-        }else if (strcmp(buffer, "redelegate") == 0){
-            item->special_type = ReDelegate;
-        }else {
-            item->special_type = Generic;
+        } else if (stringLength == strlen(UNDELEGATE_STR)) {
+            if (strncmp(buffer, UNDELEGATE_STR, stringLength) == 0) {
+                item->special_type = UnDelegate;
+            } else if (strncmp(buffer, REDELEGATE_STR, stringLength) == 0) {
+                item->special_type = ReDelegate;
+            }
         }
         ctx->offset = start;
     }
 
     // lets track the number of expected items we found
-    err = checkForDelegationItems(ctx, item, num_items, redelegation);
+    uint32_t found_items = 0;
+    parser_error_t err = checkForDelegationItems(ctx, item, num_items, redelegation, &found_items);
 
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
         uint8_t add_amount = 0;
 
         // we should show amount(if present) and the runtime args hash
         parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
-        if(err == parser_ok){
+        if(err == parser_ok) {
             add_amount += 1;
         }
         item->UI_runtime_items += 1 + add_amount;
+        item->UI_fixed_items = 2;
         item->with_generic_args = 1;
-    } else if (err != parser_ok)
+    } else if (err != parser_ok) {
         return err;
+    }
 
     // if the entry-point is invalid or generic,
     // we should show only the hash of the runtime args
@@ -711,16 +736,15 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         item->with_generic_args = 1;
     }
 
-
     // render the contract-hash or name
     // of the execution only in expert mode
-    if(app_mode_expert()){
+    if(app_mode_expert()) {
         // render execution type and the value
         item->UI_fixed_items = 2;
         uint8_t has_version = item->type == StoredVersionedContractByHash ||  item->type == StoredVersionedContractByName ? 1 : 0;
         item->UI_fixed_items += has_version ;
         // entry-point only if we hash the arguments
-        if (item->with_generic_args){
+        if (item->with_generic_args) {
             item->UI_fixed_items += 1;
         }
     }
