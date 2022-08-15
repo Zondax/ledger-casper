@@ -41,7 +41,7 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    return _read(ctx, &parser_tx_obj);
+    return _read(ctx, ctx->tx_obj);
 }
 
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
@@ -351,6 +351,7 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
     uint32_t dataLen = 0;
     uint8_t dummyType = 0;
     uint8_t dummyInternal = 0;
+
     for (uint32_t index = 0; index < num_items; index++) {
         CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, keystr) == 0) {
@@ -512,7 +513,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     value /= 1000;                                                            \
     char buffer[300];                                           \
     MEMZERO(buffer,sizeof(buffer));                             \
-    PARSER_ASSERT_OR_ERROR(printTime(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
+    PARSER_ASSERT_OR_ERROR(printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
     return parser_ok;                                                                \
 }

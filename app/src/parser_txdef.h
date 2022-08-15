@@ -26,6 +26,10 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
+#define DELEGATE_STR    "delegate"
+#define UNDELEGATE_STR  "undelegate"
+#define REDELEGATE_STR  "redelegate"
+
 typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
@@ -68,6 +72,7 @@ typedef struct {
     uint32_t UI_fixed_items;
     uint32_t UI_runtime_items;
     uint32_t totalLength;
+    uint32_t itemOffset;
 } ExecutableDeployItem;
 
 typedef struct {

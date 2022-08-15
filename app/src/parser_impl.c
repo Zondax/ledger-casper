@@ -129,6 +129,7 @@ parser_error_t parser_init_context(parser_context_t *ctx,
         return parser_init_context_empty;
     }
 
+    ctx->tx_obj = &parser_tx_obj;
     ctx->buffer = buffer;
     ctx->bufferLen = bufferSize;
     return parser_ok;
@@ -434,12 +435,12 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
 }
 
 parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
-    char buffer[100];
-    MEMZERO(buffer, sizeof(buffer));
+    char buffer[100] = {0};
     // set the offset for later retrival
     entry_point_offset = ctx->offset;
 
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    item->itemOffset = ctx->offset;
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     bool redelegation = false;
@@ -463,7 +464,7 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     zemu_log("entry_point-->: ");
     zemu_log(buffer);
     zemu_log("\n");
-    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation))
     *num_runs = deploy_argLen;
 
     return parser_ok;
