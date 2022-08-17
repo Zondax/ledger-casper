@@ -26,6 +26,7 @@ import {
     P1_VALUES,
     PAYLOAD_TYPE,
     PKLEN,
+    ADDRESS_LEN,
     processErrorResponse,
     serializePath, SIGLEN,
 } from './common';
@@ -41,7 +42,9 @@ function processGetAddrResponse(response: Buffer) {
 
     const publicKey = Buffer.from(partialResponse.slice(0, PKLEN));
 
-    const address = Buffer.concat([Buffer.from("02", 'hex'), Buffer.from(publicKey)]);
+    partialResponse = partialResponse.slice(PKLEN);
+
+    const address = Buffer.from(partialResponse.slice(0, -2)).toString();
 
     return {
         publicKey,
@@ -176,7 +179,7 @@ export default class CasperApp {
                 const returnCode = errorCodeData[0] * 256 + errorCodeData[1];
                 let errorMessage = errorCodeToString(returnCode);
 
-                let signatureRS = Buffer.alloc(0);
+                let signatureRSV = Buffer.alloc(0);
 
                 if (returnCode === LedgerError.BadKeyHandle ||
                     returnCode === LedgerError.DataIsInvalid ||
@@ -187,9 +190,9 @@ export default class CasperApp {
                 }
 
                 if (returnCode === LedgerError.NoErrors && response.length > 2) {
-                    signatureRS = response.slice(0, SIGLEN);
+                    signatureRSV = response.slice(0, SIGLEN);
                     return {
-                        signatureRS,
+                        signatureRSV,
                         returnCode: returnCode,
                         errorMessage: errorMessage,
                     };
@@ -209,7 +212,7 @@ export default class CasperApp {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
-                    signatureRS: null as null | Buffer,
+                    signatureRSV: null as null | Buffer,
                 };
                 for (let i = 1; i < chunks.length; i += 1) {
                     // eslint-disable-next-line no-await-in-loop
