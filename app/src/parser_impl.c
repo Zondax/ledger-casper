@@ -132,6 +132,9 @@ parser_error_t parser_init_context(parser_context_t *ctx,
     ctx->tx_obj = &parser_tx_obj;
     ctx->buffer = buffer;
     ctx->bufferLen = bufferSize;
+
+    memset(&parser_tx_obj, 0, sizeof(parser_tx_obj));
+
     return parser_ok;
 }
 
@@ -444,9 +447,6 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     bool redelegation = false;
-    if (strcmp(buffer, "redelegate") == 0) {
-        redelegation = true;
-    }
 
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
@@ -455,6 +455,7 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = UnDelegate;
     }else if (strcmp(buffer, "redelegate") == 0) {
         item->special_type = ReDelegate;
+        redelegation = true;
     }
 
     // anything else is generic
@@ -563,11 +564,16 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->payment));
 
+    if (v->payment.special_type == SystemPayment && !v->payment.hasAmount) {
+        return parser_no_data;
+    }
+
     type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     v->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
+
     return parser_ok;
 }
 
@@ -578,7 +584,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     MEMZERO(hash, sizeof(hash));
     if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
         return parser_unexepected_error;
-    };
+    }
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
     //check bodyhash
@@ -587,7 +593,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     uint32_t size = v->payment.totalLength + v->session.totalLength;
     if (blake2b_hash(c->buffer + index,size,hash) != zxerr_ok){
         return parser_unexepected_error;
-    };
+    }
 
     index = 0;
     CHECK_PARSER_ERR(index_headerpart(v->header,header_bodyhash, &index));
