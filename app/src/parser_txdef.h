@@ -25,6 +25,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define DELEGATE_STR    "delegate"
 #define UNDELEGATE_STR  "undelegate"
@@ -73,6 +74,7 @@ typedef struct {
     uint32_t UI_runtime_items;
     uint32_t totalLength;
     uint32_t itemOffset;
+    bool hasAmount;
 } ExecutableDeployItem;
 
 typedef struct {

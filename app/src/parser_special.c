@@ -238,9 +238,8 @@ parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED Execu
     uint8_t internal_type = 0;
 
     PARSER_ASSERT_OR_ERROR(num_items == 1, parser_unexpected_number_items);
-    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U64  ); // also type 5
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 ); // also type 5
-//    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 );
+    item->hasAmount = true;
 
     return parser_ok;
 }
@@ -258,9 +257,9 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
     if (ret == parser_ok) {
         item->with_generic_args = 0;
         item->UI_runtime_items += 1;// Amount arg
-        // item->UI_runtime_items += found_items + 2;// Amount arg
         return ret;
-    } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
+
+     } else if (ret != parser_unexpected_number_items && ret != parser_runtimearg_notfound && ret != parser_unexpected_type ) {
         return ret;
     }
 
@@ -637,17 +636,15 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
     uint8_t internal_type = 0;
     uint16_t num_args_found = 0;
 
+    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512 || type == TAG_U32))
+    item->hasAmount = num_args_found == 1;
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "delegator", (type == TAG_PUBLIC_KEY))
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "validator", (type == TAG_PUBLIC_KEY))
-    COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512 || type == TAG_U32 ))
     *fitems = num_args_found;
 
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "delegator", type == TAG_PUBLIC_KEY  );
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "validator", type == TAG_PUBLIC_KEY  );
     CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 );
-
-    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 || type == TAG_U32 || type == TAG_U64  );
-    // CHECK_RUNTIME_ARGTYPE(ctx, num_items, "amount", type == TAG_U512 );
 
     // this check may be seen redundant
     // but is intended for cases where this function
@@ -676,12 +673,12 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     uint8_t type = 0;
     uint8_t internal_type = 0;
 
-    // for calls coming from parseModuleBytes, we need to check again
-    redelegation = (searchRuntimeArgs(("new_validator"), &type, &internal_type, (num_items), (ctx)) == parser_ok);
-
     if(item->type == ModuleBytes) {
         item->itemOffset = ctx->offset;
         uint16_t start = ctx->offset;
+
+        // for calls coming from parseModuleBytes, we need to check again
+        redelegation = (searchRuntimeArgs(("new_validator"), &type, &internal_type, (num_items), (ctx)) == parser_ok);
 
         uint32_t dataLength = 0;
         // this should be present in any transaction of this type
@@ -707,6 +704,10 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
             }
         }
         ctx->offset = start;
+    }
+
+    if (redelegation) {
+        CHECK_RUNTIME_ARGTYPE(ctx, num_items, "new_validator", type == TAG_PUBLIC_KEY);
     }
 
     // lets track the number of expected items we found
