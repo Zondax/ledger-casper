@@ -15,6 +15,7 @@
 ********************************************************************************/
 
 #include "gmock/gmock.h"
+#include <algorithm>
 
 #include <iostream>
 #include <fstream>
@@ -132,7 +133,12 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     EXPECT_EQ(output.size(), expected.size());
     for (size_t i = 0; i < expected.size(); i++) {
         if (i < output.size()) {
-            EXPECT_THAT(output[i], testing::Eq(expected[i]));
+            auto estr = expected[i];
+            std::for_each(estr.begin(), estr.end(), [](char & c){
+                c = ::tolower(c);
+            });
+
+            EXPECT_THAT(output[i], testing::Eq(estr));
         }
     }
 }

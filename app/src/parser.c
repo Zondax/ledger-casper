@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <zxmacros.h>
 #include <zxformat.h>
+#include "runtime_arg.h"
 #include "parser_impl.h"
 #include "parser.h"
 #include "coin.h"
@@ -40,7 +41,7 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    return _read(ctx, &parser_tx_obj);
+    return _read(ctx, ctx->tx_obj);
 }
 
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
@@ -65,10 +66,20 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
     return parser_ok;
 }
 
+parser_error_t parser_printU32(uint32_t value, char *outVal,
+                               uint16_t outValLen, uint8_t pageIdx,
+                               uint8_t *pageCount) {
+    char tmpBuffer[30];
+    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
+    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+    return parser_ok;
+}
+
+
 parser_error_t parser_printU64(uint64_t value, char *outVal,
                                uint16_t outValLen, uint8_t pageIdx,
                                uint8_t *pageCount) {
-    char tmpBuffer[100];
+    char tmpBuffer[30];
     fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
     pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
     return parser_ok;
@@ -116,6 +127,12 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     uint64_t value = 0;                                                     \
     CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
     return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
+}
+
+#define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
+    uint32_t value = 0;                                                     \
+    CHECK_PARSER_ERR(readU32(CTX, &value));                                                   \
+    return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
 }
 
 #define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
@@ -179,7 +196,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
-#define DISPLAY_RUNTIMEARG_AMOUNT(CTX, LEN){ \
+#define DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(CTX, LEN){ \
     uint8_t bcdOut[128];                                                     \
     MEMZERO(bcdOut, sizeof(bcdOut));         \
     uint16_t bcdOutLen = sizeof(bcdOut);                                            \
@@ -200,6 +217,59 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;                                                       \
 }
 
+// render alternative amounts of type u64, u32
+#define DISPLAY_RUNTIMEARG_AMOUNT_INT(VALUE){ \
+    fpuint64_to_str(buffer, sizeof(buffer), (uint64_t)(VALUE), 0); \
+    uint16_t numsize = 0;                                                           \
+    CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &numsize))          \
+    CHECK_PARSER_ERR(add_thousands_separators(buffer, sizeof(buffer), &numsize))    \
+    if(numsize + 6 >= sizeof(buffer)){                                               \
+        return parser_unexpected_buffer_end;\
+    }\
+    MEMCPY(buffer + numsize, (char *)" motes", 6);                                        \
+    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
+    return parser_ok;                                                       \
+}
+
+// helper function to render integers with the motes suffix at the end.
+parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
+                                         char *outVal, uint16_t outValLen,
+                                         uint8_t pageIdx, uint8_t *pageCount){
+    char buffer[400];
+    uint64_t value = 0;
+    MEMZERO(buffer, sizeof(buffer));
+    if(ctx->offset + dataLen >= ctx->bufferLen){
+        return parser_unexpected_buffer_end;
+    }
+    switch(type) {
+        case TAG_U32: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)(&value)));
+            DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
+        }
+        case TAG_U64: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            CHECK_PARSER_ERR(readU64(ctx, &value));
+            DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
+        }
+        case TAG_U512: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx,dataLen);
+        }
+
+        default : {
+            zemu_log("type is not an amount");
+            return parser_unexpected_type;
+        }
+    }
+}
+
 parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
@@ -209,23 +279,35 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         return parser_unexpected_buffer_end;
     }
     switch(type) {
-        case 8 : {
+        case TAG_U32: {
             if(dataLen == 0){
                 return parser_unexepected_error;
             }
-            DISPLAY_RUNTIMEARG_AMOUNT(ctx,dataLen);
+            DISPLAY_RUNTIMEARG_U32(ctx)
+        }
+        case TAG_U64: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_U64(ctx)
+        }
+        case TAG_U512: {
+            if(dataLen == 0){
+                return parser_unexepected_error;
+            }
+            DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx,dataLen);
         }
 
-        case 11 : {
+        case TAG_KEY : {
             ctx->offset++;                              //skip internal type for key
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
         }
 
-        case 12 : {
+        case TAG_UREF: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-1);
         }
 
-        case 13 : {
+        case TAG_OPTION: {
             uint8_t optiontype = 0;
             CHECK_PARSER_ERR(readU8(ctx, &optiontype));
             if (optiontype == 0x00) {
@@ -236,9 +318,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                     return parser_unexpected_buffer_end;
                 }
                 type = *(ctx->buffer + ctx->offset + dataLen);
-                if(type == 5){
+                if(type == TAG_U64){
                     DISPLAY_RUNTIMEARG_U64(ctx)
-                }else if(type == 12){
+                }else if(type == TAG_UREF){
                     DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-2);
                 }else{
                     return parser_unexepected_error;
@@ -246,17 +328,18 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             }
         }
 
-        case 15 : {
+        case TAG_BYTE_ARRAY: {
             DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
         }
 
-        case 22: {
+        case TAG_PUBLIC_KEY: {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
             DISPLAY_RUNTIMEARG_ADDRESS(ctx, 1 + pubkeyLen)
         }
 
         default : {
+            zemu_log("unsupported type");
             return parser_unexpected_type;
         }
     }
@@ -268,6 +351,7 @@ parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_
     uint32_t dataLen = 0;
     uint8_t dummyType = 0;
     uint8_t dummyInternal = 0;
+
     for (uint32_t index = 0; index < num_items; index++) {
         CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
         if (strcmp(buffer, keystr) == 0) {
@@ -429,7 +513,7 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     value /= 1000;                                                            \
     char buffer[300];                                           \
     MEMZERO(buffer,sizeof(buffer));                             \
-    PARSER_ASSERT_OR_ERROR(printTime(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
+    PARSER_ASSERT_OR_ERROR(printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
     pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
     return parser_ok;                                                                \
 }
@@ -554,14 +638,14 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         snprintf(outKey, outKeyLen, "Type");
         if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
             snprintf(outVal, outValLen, "Token transfer");
-        } else if (parser_tx_obj.session.special_type == Delegate){
+        } else if (parser_tx_obj.session.special_type == Delegate && parser_tx_obj.session.with_generic_args == 0 ){
             snprintf(outVal, outValLen, "Delegate");
-        }else if (parser_tx_obj.session.special_type == UnDelegate) {
+        }else if (parser_tx_obj.session.special_type == UnDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Undelegate");
-        }else if (parser_tx_obj.session.special_type == ReDelegate) {
+        }else if (parser_tx_obj.session.special_type == ReDelegate && parser_tx_obj.session.with_generic_args == 0) {
             snprintf(outVal, outValLen, "Redelegate");
-        }else{
-            return parser_unexpected_type;
+        }else {
+            snprintf(outVal, outValLen, "Contract execution");
         }
         return parser_ok;
     }
@@ -636,7 +720,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
         special_deploy_e special_type = parser_tx_obj.session.special_type;
         if(special_type == NativeTransfer){
             return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate){
+        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate || special_type == Generic){
             return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         }else{
             return parser_unexpected_type;
