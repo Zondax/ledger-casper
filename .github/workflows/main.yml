@@ -1,5 +1,5 @@
 name: Build
-on: [ push ]
+on: [push]
 
 jobs:
   configure:
@@ -21,7 +21,6 @@ jobs:
         run: |
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
           make deps
-          brew install conan
       - run: cmake -DCMAKE_BUILD_TYPE=Debug . && make
       - run: GTEST_COLOR=1 ASAN_OPTIONS=detect_leaks=0 ctest -VV
 
@@ -66,7 +65,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v2
         with:
-          node-version: '14.17.0'
+          node-version: "14.17.0"
       - name: Install yarn
         run: |
           npm install -g yarn
@@ -83,7 +82,7 @@ jobs:
           make zemu_test
 
   build_package_nanos:
-    needs: [ configure, build, build_ledger, test_zemu ]
+    needs: [configure, build, build_ledger, test_zemu]
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     container:
@@ -124,7 +123,7 @@ jobs:
           prerelease: false
 
   build_package_nanosp:
-    needs: [ configure, build, build_ledger, test_zemu ]
+    needs: [configure, build, build_ledger, test_zemu]
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     container:
@@ -163,3 +162,4 @@ jobs:
           tag_name: ${{ steps.nanosp.outputs.tag_name }}
           draft: false
           prerelease: false
+
