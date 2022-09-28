@@ -44,11 +44,11 @@ function processGetAddrResponse(response: Buffer) {
 
     partialResponse = partialResponse.slice(PKLEN);
 
-    const address = Buffer.from(partialResponse.slice(0, -2)).toString();
+    const Address = Buffer.from(partialResponse.slice(0, -2)).toString();
 
     return {
         publicKey,
-        address,
+        Address,
         returnCode,
         errorMessage: errorCodeToString(returnCode),
     };

@@ -20,6 +20,7 @@
 #include "app_mode.h"
 #include "crypto.h"
 #include "parser_special.h"
+#include "runtime_arg.h"
 
 parser_tx_t parser_tx_obj;
 
@@ -128,8 +129,12 @@ parser_error_t parser_init_context(parser_context_t *ctx,
         return parser_init_context_empty;
     }
 
+    ctx->tx_obj = &parser_tx_obj;
     ctx->buffer = buffer;
     ctx->bufferLen = bufferSize;
+
+    memset(&parser_tx_obj, 0, sizeof(parser_tx_obj));
+
     return parser_ok;
 }
 
@@ -193,6 +198,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Required field nonce";
         case parser_required_method:
             return "Required field method";
+        case parser_runtimearg_notfound:
+            return "RuntimArg not found";
         default:
             return "Unrecognized error code";
     }
@@ -215,73 +222,138 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
     }
 }
 
-/*
- * const CL_TYPE_TAG_BOOL: u8 = 0;
-const CL_TYPE_TAG_I32: u8 = 1;
-const CL_TYPE_TAG_I64: u8 = 2;
-const CL_TYPE_TAG_U8: u8 = 3;
-const CL_TYPE_TAG_U32: u8 = 4;
-const CL_TYPE_TAG_U64: u8 = 5;
-const CL_TYPE_TAG_U128: u8 = 6;
-const CL_TYPE_TAG_U256: u8 = 7;
-const CL_TYPE_TAG_U512: u8 = 8;
-const CL_TYPE_TAG_UNIT: u8 = 9;
-const CL_TYPE_TAG_STRING: u8 = 10;
-const CL_TYPE_TAG_KEY: u8 = 11;
-const CL_TYPE_TAG_UREF: u8 = 12;
-const CL_TYPE_TAG_OPTION: u8 = 13;
-const CL_TYPE_TAG_LIST: u8 = 14;
-const CL_TYPE_TAG_BYTE_ARRAY: u8 = 15;
-const CL_TYPE_TAG_RESULT: u8 = 16;
-const CL_TYPE_TAG_MAP: u8 = 17;
-const CL_TYPE_TAG_TUPLE1: u8 = 18;
-const CL_TYPE_TAG_TUPLE2: u8 = 19;
-const CL_TYPE_TAG_TUPLE3: u8 = 20;
-const CL_TYPE_TAG_ANY: u8 = 21;
-const CL_TYPE_TAG_PUBLIC_KEY: u8 = 22;
- */
+bool is_container_type(uint8_t cl_type) {
+    return cl_type == TAG_OPTION || cl_type == TAG_LIST
+    || (cl_type >= TAG_RESULT && cl_type <= TAG_ANY);
+}
 
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
-        case 8: {
+        case TAG_BOOL: {
             return parser_ok;
         }
 
-        case 10 : {
+        case TAG_U8:
+        case TAG_U32:
+        case TAG_U64:
+        case TAG_U128:
+        case TAG_U256:
+        case TAG_I32:
+        case TAG_I64:
+        case TAG_U512: {
+            return parser_ok;
+        }
+
+        case TAG_UNIT: {
+            return parser_ok;
+        }
+
+        case TAG_STRING: {
             return parser_ok;
         }
 
         //only account_hash for "from" supported
-        case 11 : {
+        case TAG_KEY: {
             return parser_ok;
         }
 
-        case 12 : {
+        case TAG_UREF: {
             return parser_ok;
         }
 
-        //option with U64 inside for ID
-        case 13: {
+        // parse any option as long as the inner type is not a container
+        // to be clear, the presentation layer only support
+        // OPtion<u64> and Option<uref>
+        case TAG_OPTION: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
-            if(inner_type != 5 && inner_type != 12){
+            // keep commented code just to clarify that we now parse any Option
+            // as long as the inner type is not a container type,
+            // in the presentation layer the only valid options are
+            // the one commented bellow
+            /*if(inner_type != TAG_U64 && inner_type != TAG_UREF){*/
+            if(is_container_type(inner_type)){
                 return parser_unexpected_type;
             }else{
                 *option_type = inner_type;
-                return parser_ok;
+                uint8_t dummy_inner = 255;
+                return parse_additional_typebytes(ctx, inner_type, &dummy_inner);
             }
         }
 
-        case 15: {
+        case TAG_BYTE_ARRAY: {
             uint32_t num_bytes = 0;
             return _readUInt32(ctx, &num_bytes);
         }
 
-        case 22: {
+        case TAG_PUBLIC_KEY: {
             return parser_ok;
         }
 
-        default : {
+        // Parse any list as long as inner type is not a container
+        // presentation layer do not support list though, this is intended
+        // to support generic runtime-args in transactions
+        // so arguments of this type are hashed
+        case TAG_LIST: {
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+            if(is_container_type(inner_type)){
+                return parser_unexpected_type;
+            }else{
+                *option_type = inner_type;
+                return parse_additional_typebytes(ctx, inner_type, &inner_type);
+            }
+        }
+
+        // Parse any result as long as ok and error types are not a container
+        // presentation layer do not support result though, this is intended
+        // to support generic runtime-args in transactions
+        // so arguments of this type are hashed
+        case TAG_RESULT: {
+            uint8_t ok_type = 0;
+            uint8_t err_type = 0;
+            uint8_t inner_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &ok_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &err_type));
+            if(is_container_type(ok_type) || is_container_type(err_type)){
+                return parser_unexpected_type;
+            }else{
+                // here we have to optianl types, what we should mark here?
+                /**option_type = ok_type;*/
+                parser_error_t err = parse_additional_typebytes(ctx, ok_type, &inner_type);
+                inner_type = 0;
+                return err | parse_additional_typebytes(ctx, err_type, &inner_type);
+            }
+        }
+
+        case TAG_TUPLE1:
+        case TAG_TUPLE2:
+        case TAG_TUPLE3: {
+            const uint8_t elements_len = type - TAG_TUPLE1 + 1;
+            uint8_t element[elements_len];
+            uint8_t inner_type = 0;
+            parser_error_t err = parser_ok;
+
+            for(uint8_t i = 0; i < elements_len; i++) {
+                CHECK_PARSER_ERR(_readUInt8(ctx, &element[i]));
+                if (is_container_type(element[i])) {
+                    return parser_unexpected_type;
+                }
+            }
+
+            for(uint8_t i = 0; i < elements_len; i++) {
+                err |= parse_additional_typebytes(ctx, element[i], &inner_type);
+            }
+
+            return err;
+        }
+
+
+       default : {
+            // we support now generic arguments
+            // in transactions but we only support
+            // the types define above
+             zemu_log("type not supported\n");
             return parser_unexpected_type;
         }
     }
@@ -321,22 +393,6 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
     MEMZERO(buffer, bufferLen);
     MEMCPY(buffer, (char *) (ctx->buffer + ctx->offset), part);
     ctx->offset += part;
-    return parser_ok;
-}
-
-parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
-    uint8_t dummy_type = 0;
-    uint8_t dummy_internal = 0;
-    for (uint32_t i = 0; i < deploy_argLen; i++) {
-        //key
-        CHECK_PARSER_ERR(parse_item(ctx));
-
-        //value
-        CHECK_PARSER_ERR(parse_item(ctx));
-        //type
-        CHECK_PARSER_ERR(get_type(ctx, &dummy_type, &dummy_internal));
-
-    }
     return parser_ok;
 }
 
@@ -382,16 +438,15 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version){
 }
 
 parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t *num_runs){
-    char buffer[100];
-    MEMZERO(buffer, sizeof(buffer));
+    char buffer[100] = {0};
+    // set the offset for later retrival
+    entry_point_offset = ctx->offset;
+
     CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
+    item->itemOffset = ctx->offset;
     uint32_t deploy_argLen = 0;
     CHECK_PARSER_ERR(readU32(ctx, &deploy_argLen));
     bool redelegation = false;
-    if (strcmp(buffer, "redelegate") == 0) {
-        redelegation = true;
-    }
-    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation));
 
     if (strcmp(buffer, "delegate") == 0) {
         //is delegation
@@ -400,10 +455,19 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
         item->special_type = UnDelegate;
     }else if (strcmp(buffer, "redelegate") == 0) {
         item->special_type = ReDelegate;
-    }else{
-        return parser_unexepected_error;
+        redelegation = true;
     }
+
+    // anything else is generic
+    if (!redelegation && item->special_type == 255)
+        item->special_type = Generic;
+
+    zemu_log("entry_point-->: ");
+    zemu_log(buffer);
+    zemu_log("\n");
+    CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen,redelegation))
     *num_runs = deploy_argLen;
+
     return parser_ok;
 }
 
@@ -453,6 +517,8 @@ parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item) {
     item->UI_fixed_items = 0;
     item->UI_runtime_items = 0;
     item->num_runtime_args = 0;
+    item->with_generic_args = 0;
+    item->special_type = 255;
     switch (item->type) {
         case ModuleBytes : {
             return parseModuleBytes(ctx, item);
@@ -498,11 +564,16 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->payment));
 
+    if (v->payment.special_type == SystemPayment && !v->payment.hasAmount) {
+        return parser_no_data;
+    }
+
     type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     v->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
+
     return parser_ok;
 }
 
@@ -513,7 +584,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     MEMZERO(hash, sizeof(hash));
     if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
         return parser_unexepected_error;
-    };
+    }
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
     //check bodyhash
@@ -522,7 +593,7 @@ parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
     uint32_t size = v->payment.totalLength + v->session.totalLength;
     if (blake2b_hash(c->buffer + index,size,hash) != zxerr_ok){
         return parser_unexepected_error;
-    };
+    }
 
     index = 0;
     CHECK_PARSER_ERR(index_headerpart(v->header,header_bodyhash, &index));
