@@ -251,7 +251,6 @@ parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *i
         return parser_unexpected_number_items;
 
     parser_error_t ret = parser_ok;
-    uint32_t found_items = 0;
     ret = checkForSystemPaymentArgs(ctx, item, num_items);
 
     if (ret == parser_ok) {
