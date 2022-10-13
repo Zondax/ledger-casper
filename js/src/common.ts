@@ -23,7 +23,8 @@ export const P1_VALUES = {
 };
 
 export const PKLEN = 33;
-export const SIGLEN = 65;
+export const SIGLEN_RSV = 65;
+export const SIGLEN_RS = 64;
 
 export enum LedgerError {
     U2FUnknown = 1,
