@@ -7,7 +7,7 @@
   "main": "index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "jest -t 'Standard'  && jest -t 'Generic'",
+    "test": "jest tests/standard.test.ts && jest tests/generic.test.ts",
     "testDeploytypes": "jest -t 'Deploytypes'"
   },
   "repository": {
