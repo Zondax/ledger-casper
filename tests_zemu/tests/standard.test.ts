@@ -315,7 +315,7 @@ describe("Standard", function () {
     }
   });
 
-  test.each(models)("MYTEST (%s)", async function (m) {
+  test.each(models)("sign generic native transfer(%s)", async function (m) {
     const sim = new Zemu(m.path);
     try {
       await sim.start({ ...defaultOptions, model: m.name });
