@@ -28,7 +28,7 @@ import {
     PKLEN,
     ADDRESS_LEN,
     processErrorResponse,
-    serializePath, SIGLEN,
+    serializePath, SIGLEN_RS, SIGLEN_RSV,
 } from './common';
 
 export {LedgerError};
@@ -44,11 +44,11 @@ function processGetAddrResponse(response: Buffer) {
 
     partialResponse = partialResponse.slice(PKLEN);
 
-    const address = Buffer.from(partialResponse.slice(0, -2)).toString();
+    const Address = Buffer.from(partialResponse.slice(0, -2)).toString();
 
     return {
         publicKey,
-        address,
+        Address,
         returnCode,
         errorMessage: errorCodeToString(returnCode),
     };
@@ -180,6 +180,7 @@ export default class CasperApp {
                 let errorMessage = errorCodeToString(returnCode);
 
                 let signatureRSV = Buffer.alloc(0);
+                let signatureRS = Buffer.alloc(0);
 
                 if (returnCode === LedgerError.BadKeyHandle ||
                     returnCode === LedgerError.DataIsInvalid ||
@@ -190,8 +191,10 @@ export default class CasperApp {
                 }
 
                 if (returnCode === LedgerError.NoErrors && response.length > 2) {
-                    signatureRSV = response.slice(0, SIGLEN);
+                    signatureRSV = response.slice(0, SIGLEN_RSV);
+                    signatureRS = response.slice(0, SIGLEN_RS);
                     return {
+                        signatureRS,
                         signatureRSV,
                         returnCode: returnCode,
                         errorMessage: errorMessage,
@@ -212,6 +215,7 @@ export default class CasperApp {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
+                    signatureRS: null as null | Buffer,
                     signatureRSV: null as null | Buffer,
                 };
                 for (let i = 1; i < chunks.length; i += 1) {

@@ -29,5 +29,6 @@ export interface ResponseAppInfo extends ResponseBase {
 }
 
 export interface ResponseSign extends ResponseBase {
+  signatureRS: Buffer, // This field is added for compatibility reasons 
   signatureRSV: Buffer,
 }

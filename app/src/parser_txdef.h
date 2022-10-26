@@ -25,6 +25,11 @@ extern "C" {
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+
+#define DELEGATE_STR    "delegate"
+#define UNDELEGATE_STR  "undelegate"
+#define REDELEGATE_STR  "redelegate"
 
 typedef struct {
     uint8_t pubkeytype;
@@ -63,10 +68,13 @@ typedef struct {
     phase_type_e phase;
     deploy_type_e type;
     special_deploy_e special_type;
+    uint8_t with_generic_args;
     uint32_t num_runtime_args;
     uint32_t UI_fixed_items;
     uint32_t UI_runtime_items;
     uint32_t totalLength;
+    uint32_t itemOffset;
+    bool hasAmount;
 } ExecutableDeployItem;
 
 typedef struct {
