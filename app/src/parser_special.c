@@ -84,7 +84,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
     // generic
     if (item.with_generic_args > 0) {
         if (new_displayIdx == 0) {
-            char *name = "native-transfer";
+            const char *name = "native-transfer";
             uint32_t name_len = strlen(name);
             // move offset to the end of args
             CHECK_PARSER_ERR(parseRuntimeArgs(ctx, item.UI_runtime_items));
@@ -298,7 +298,7 @@ parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_co
                     outVal, outValLen,
                     pageIdx, pageCount);
         } else {
-            char *name = "payment";
+            const char *name = "payment";
             uint32_t name_len = strlen(name);
             // move offset to the end of args
             CHECK_PARSER_ERR(parseRuntimeArgs(ctx, dataLen));
@@ -536,7 +536,7 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         }
 
         if (new_displayIdx == 0) {
-            char *name = "execution";
+            const char *name = "execution";
             uint32_t name_len = strlen(name);
             // move offset to the end of args
             CHECK_PARSER_ERR(parseRuntimeArgs(ctx, dataLen));
@@ -711,14 +711,14 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
 
     // lets track the number of expected items we found
     uint32_t found_items = 0;
-    parser_error_t err = checkForDelegationItems(ctx, item, num_items, redelegation, &found_items);
+    const parser_error_t err = checkForDelegationItems(ctx, item, num_items, redelegation, &found_items);
 
     if (err == parser_runtimearg_notfound || err == parser_unexpected_type) {
         uint8_t add_amount = 0;
 
         // we should show amount(if present) and the runtime args hash
-        parser_error_t err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
-        if(err == parser_ok) {
+        const parser_error_t add_amount_err = searchRuntimeArgs("amount", &type, &internal_type, num_items, ctx);
+        if(add_amount_err == parser_ok) {
             add_amount += 1;
         }
         item->UI_runtime_items += 1 + add_amount;

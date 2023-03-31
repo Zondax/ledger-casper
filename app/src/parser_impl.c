@@ -330,7 +330,7 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         case TAG_TUPLE2:
         case TAG_TUPLE3: {
             const uint8_t elements_len = type - TAG_TUPLE1 + 1;
-            uint8_t element[elements_len];
+            uint8_t element[TAG_TUPLE3 - TAG_TUPLE1 + 1] = {0}; // 3
             uint8_t inner_type = 0;
             parser_error_t err = parser_ok;
 
