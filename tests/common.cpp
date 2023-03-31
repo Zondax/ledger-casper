@@ -31,8 +31,8 @@ std::vector<std::string> dumpUI(parser_context_t *ctx,
     }
 
     for (uint16_t idx = 0; idx < numItems; idx++) {
-        char keyBuffer[1000];
-        char valueBuffer[1000];
+        char keyBuffer[1000] = {0};
+        char valueBuffer[1000] = {0};
         uint8_t pageIdx = 0;
         uint8_t pageCount = 1;
 
