@@ -109,7 +109,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     parser_context_t ctx;
     parser_error_t err;
 
-    uint8_t buffer[10000];
+    uint8_t buffer[10000] = {0};
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
 
     err = parser_parse(&ctx, buffer, bufferLen);
