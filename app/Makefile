@@ -34,9 +34,7 @@ ifndef COIN
 COIN=CSPR
 endif
 
-APPVERSION_M=2
-APPVERSION_N=5
-APPVERSION_P=3
+include $(CURDIR)/Makefile.version
 
 $(info COIN  = [$(COIN)])
 
