@@ -69,6 +69,9 @@ endif
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 
+DEFINES += HAVE_HASH HAVE_BLAKE2
+INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
+
 DEFINES       += UNUSED\(x\)=\(void\)x
 # NanoX SDK does not allow += in APP_SOURCE_PATH or INCLUDES_PATH
 CFLAGS += -I$(MY_DIR)/../deps/tinycbor/src
@@ -77,9 +80,6 @@ APP_SOURCE_PATH += $(MY_DIR)/../deps/tinycbor-ledger
 .PHONY: rust
 rust:
 	@echo "No rust code"
-
-# Before linking, we need to be sure rust lib is there
-bin/app.elf: rust
 
 .PHONY: rust_clean
 rust_clean:
