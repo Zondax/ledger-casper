@@ -91,8 +91,20 @@ const char *tx_parse() {
     return NULL;
 }
 
+const char *tx_parse_message() {
+    const uint8_t err = parser_parse_message(&ctx_parsed_tx,
+                                             tx_get_buffer(),
+                                             tx_get_buffer_length());
+
+    if (err != parser_ok) {
+        return parser_getErrorDescription(err);
+    }
+
+    return NULL;
+}
+
 zxerr_t tx_getNumItems(uint8_t *num_items) {
-    parser_error_t err = parser_getNumItems(&ctx_parsed_tx, num_items);
+    const parser_error_t err = parser_getNumItems(&ctx_parsed_tx, num_items);
 
     if (err != parser_ok) {
         return zxerr_no_data;
@@ -107,7 +119,6 @@ zxerr_t tx_getItem(int8_t displayIdx,
                    uint8_t pageIdx, uint8_t *pageCount) {
     zemu_log_stack("tx_getItem\n");
     uint8_t numItems = 0;
-
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
     if (displayIdx < 0 || displayIdx > numItems) {
@@ -130,5 +141,45 @@ zxerr_t tx_getItem(int8_t displayIdx,
         return zxerr_unknown;
 
     zemu_log_stack("tx_getItem done\n");
+    return zxerr_ok;
+}
+
+zxerr_t tx_getMessageNumItems(uint8_t *num_items) {
+    if (num_items == NULL) {
+        return zxerr_no_data;
+    }
+    const parser_error_t err = parser_getMessageNumItems(num_items);
+    if (err != parser_ok) {
+        return zxerr_no_data;
+    }
+    return zxerr_ok;
+}
+
+zxerr_t tx_getMessageItem(int8_t displayIdx,
+                   char *outKey, uint16_t outKeyLen,
+                   char *outVal, uint16_t outValLen,
+                   uint8_t pageIdx, uint8_t *pageCount) {
+
+    uint8_t numItems = 0;
+    CHECK_ZXERR(tx_getMessageNumItems(&numItems))
+
+    const parser_error_t err = parser_getMessageItem(&ctx_parsed_tx,
+                                        displayIdx,
+                                        outKey, outKeyLen,
+                                        outVal, outValLen,
+                                        pageIdx, pageCount);
+
+    // Convert error codes
+    if (err == parser_no_data ||
+        err == parser_display_idx_out_of_range ||
+        err == parser_display_page_out_of_range) {
+        return zxerr_no_data;
+    }
+
+
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
+
     return zxerr_ok;
 }

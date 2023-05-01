@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 #include "parser_impl.h"
+#include "parser_message.h"
 
 const char *parser_getErrorDescription(parser_error_t err);
 

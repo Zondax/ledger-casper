@@ -64,6 +64,12 @@ typedef enum {
     Session = 1,
 } phase_type_e;
 
+typedef enum {
+    Transaction = 0,
+    Message = 1,
+    RawWasm = 2,
+} transaction_type_e;
+
 typedef struct {
     phase_type_e phase;
     deploy_type_e type;
@@ -81,6 +87,7 @@ typedef struct {
     parser_header_t header;
     ExecutableDeployItem payment;
     ExecutableDeployItem session;
+    transaction_type_e type;
 } parser_tx_t;
 
 #ifdef __cplusplus

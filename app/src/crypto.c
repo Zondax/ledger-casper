@@ -35,6 +35,8 @@ static bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset)
 
 #if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 #include "cx.h"
+#include "cx_blake2b.h"
+static cx_blake2b_t body_hash_ctx;
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                           unsigned char *out) {
@@ -135,11 +137,21 @@ zxerr_t crypto_sign(uint8_t *signature,
 
     MEMZERO(signature, signatureMaxlen);
 
-    const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+    uint8_t hash[CX_SHA256_SIZE] = {0};
+    switch (parser_tx_obj.type) {
+        case RawWasm:
+        case Transaction: {
+            const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+            cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
+            break;
+        }
+        case Message:
+            cx_hash_sha256(message, messageLen, hash, CX_SHA256_SIZE);
+            break;
 
-    uint8_t hash[CX_SHA256_SIZE];
-    MEMCPY(hash, message_digest, CX_SHA256_SIZE);
-    cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
+        default:
+            return zxerr_unknown;
+    }
 
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];
@@ -192,6 +204,31 @@ zxerr_t crypto_sign(uint8_t *signature,
     END_TRY;
 
     return err;
+}
+
+zxerr_t crypto_hashChunk(const uint8_t *buffer, uint32_t bufferLen,
+                         uint8_t *output, uint16_t outputLen,
+                         hash_chunk_operation_e operation) {
+    if ((operation == hash_update && buffer == NULL) ||
+        (operation == hash_finish && (output == NULL || outputLen < CX_SHA256_SIZE))) {
+        return zxerr_no_data;
+    }
+
+    switch (operation) {
+        case hash_start:
+            cx_blake2b_init2(&body_hash_ctx, 256, NULL, 0, NULL, 0);
+            break;
+
+        case hash_update:
+            cx_blake2b_update(&body_hash_ctx, buffer, bufferLen);
+            break;
+
+        case hash_finish:
+            cx_blake2b_final(&body_hash_ctx, output);
+            break;
+    }
+
+    return zxerr_ok;
 }
 
 #else

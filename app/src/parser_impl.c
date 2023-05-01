@@ -574,14 +574,14 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
 
+    v->type = Transaction;
     return parser_ok;
 }
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
-    uint8_t hash[BLAKE2B_256_SIZE];
+    uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
     //check headerhash
-    MEMZERO(hash, sizeof(hash));
     if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
         return parser_unexepected_error;
     }
