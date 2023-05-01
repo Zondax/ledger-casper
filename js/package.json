@@ -21,7 +21,7 @@
   "homepage": "https://github.com/zondax/ledger-casper",
   "dependencies": {
     "@babel/runtime": "^7.21.0",
-    "@ledgerhq/hw-transport": "^6.28.1",
+    "@ledgerhq/hw-transport": "^6.28.2",
     "@types/ledgerhq__hw-transport": "^4.21.4"
   },
   "devDependencies": {
@@ -33,16 +33,16 @@
     "babel-eslint": "^10.1.0",
     "bip32": "^4.0.0",
     "bip39": "^3.1.0",
-    "core-js": "^3.29.1",
+    "core-js": "^3.30.1",
     "crypto-js": "4.1.1",
-    "eslint": "^8.37.0",
+    "eslint": "^8.38.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^4.2.1",
     "index.js": "^0.0.3",
     "prettier": "^2.8.7",
     "secp256k1": "^5.0.0",
-    "typescript": "^5.0.3"
+    "typescript": "^5.0.4"
   },
   "scripts": {
     "build": "tsc"
