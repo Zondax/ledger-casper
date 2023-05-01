@@ -88,6 +88,7 @@ typedef struct {
     ExecutableDeployItem payment;
     ExecutableDeployItem session;
     transaction_type_e type;
+    uint8_t *wasmHash;
 } parser_tx_t;
 
 #ifdef __cplusplus

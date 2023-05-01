@@ -22,6 +22,7 @@ extern "C" {
 
 #include "parser_impl.h"
 #include "parser_message.h"
+#include "parser_wasm.h"
 
 const char *parser_getErrorDescription(parser_error_t err);
 

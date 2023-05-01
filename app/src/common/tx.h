@@ -18,6 +18,7 @@
 #include "os.h"
 #include "coin.h"
 #include "zxerror.h"
+#include "crypto.h"
 
 void tx_initialize();
 
@@ -60,3 +61,13 @@ zxerr_t tx_getMessageItem(int8_t displayIdx,
                    char *outVal, uint16_t outValLen,
                    uint8_t pageIdx, uint8_t *pageCount);
 
+zxerr_t tx_parse_wasm();
+zxerr_t tx_getWasmNumItems(uint8_t *num_items);
+zxerr_t tx_getWasmItem(int8_t displayIdx,
+                       char *outKey, uint16_t outKeyLen,
+                       char *outVal, uint16_t outValLen,
+                       uint8_t pageIdx, uint8_t *pageCount);
+
+zxerr_t tx_hashChunk(uint8_t *buffer, uint32_t bufferLen, hash_chunk_operation_e operation);
+
+zxerr_t tx_validate_wasm();

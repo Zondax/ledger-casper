@@ -33,6 +33,8 @@
 #include "view_internal.h"
 
 static bool tx_initialized = false;
+static bool tx_bufferFull = false;
+static uint32_t wasm_counter = 0;
 
 static void extractHDPath(uint32_t rx, uint32_t offset) {
     if ((rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
@@ -96,6 +98,92 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
     }
     tx_initialized = false;
     THROW(APDU_CODE_INVALIDP1P2);
+}
+
+static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
+    UNUSED(tx);
+    const uint8_t payloadType = G_io_apdu_buffer[OFFSET_PAYLOAD_TYPE];
+
+    if (G_io_apdu_buffer[OFFSET_P2] != 0) {
+        THROW(APDU_CODE_INVALIDP1P2);
+    }
+
+    if (rx < OFFSET_DATA) {
+        THROW(APDU_CODE_WRONG_LENGTH);
+    }
+
+    uint32_t added;
+    switch (payloadType) {
+        case P1_INIT:
+            tx_initialize();
+            tx_reset();
+            extractHDPath(rx, OFFSET_DATA);
+            tx_initialized = true;
+            tx_bufferFull = false;
+            wasm_counter = 0;
+            return false;
+
+        case P1_ADD:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            if (!tx_bufferFull && (added != rx - OFFSET_DATA)) {
+                if (tx_parse_wasm() != zxerr_ok) {
+                    THROW(APDU_CODE_EXECUTION_ERROR);
+                }
+                tx_bufferFull = true;
+            }
+            return false;
+
+        case P1_LAST:
+            if (!tx_initialized) {
+                THROW(APDU_CODE_TX_NOT_INITIALIZED);
+            }
+            added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
+            if (!tx_bufferFull && (added != rx - OFFSET_DATA)) {
+                ZEMU_LOGF(50, "START PARSING WASM!!!!\n")
+                if (tx_parse_wasm() != zxerr_ok) {
+                    THROW(APDU_CODE_EXECUTION_ERROR);
+                }
+                tx_bufferFull = true;
+            }
+            return true;
+    }
+
+    tx_initialized = false;
+    THROW(APDU_CODE_INVALIDP1P2);
+}
+
+__Z_INLINE void handleSignWasm(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
+    wasm_counter++;
+    if (!process_wasm_chunk(tx, rx)) {
+        char message[50] = {0};
+        snprintf(message, sizeof(message), "Chunk %d\n", wasm_counter);
+        // Don't refresh too fast
+        if ((wasm_counter % 5) == 0) {
+            view_message_show("Raw Wasm", message);
+            #if !defined(TARGET_STAX)
+            UX_WAIT_DISPLAYED();
+            #endif
+        }
+        THROW(APDU_CODE_OK);
+    }
+
+    view_idle_show(0, NULL);
+    // If not done before, parse transaction
+    if (!tx_bufferFull && (tx_parse_wasm() != zxerr_ok)) {
+        THROW(APDU_CODE_EXECUTION_ERROR);
+    }
+
+    if (tx_validate_wasm() != zxerr_ok) {
+        THROW(APDU_CODE_EXECUTION_ERROR);
+    }
+
+    CHECK_APP_CANARY()
+    view_review_init(tx_getWasmItem, tx_getWasmNumItems, app_sign);
+    view_review_show(REVIEW_TXN);
+    *flags |= IO_ASYNCH_REPLY;
 }
 
 __Z_INLINE void handle_getversion(volatile uint32_t *flags, volatile uint32_t *tx) {
@@ -221,6 +309,12 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
                 case INS_SIGN_MSG: {
                     CHECK_PIN_VALIDATED()
                     handleSignMessage(flags, tx, rx);
+                    break;
+                }
+
+                case INS_SIGN_WASM: {
+                    CHECK_PIN_VALIDATED()
+                    handleSignWasm(flags, tx, rx);
                     break;
                 }
 

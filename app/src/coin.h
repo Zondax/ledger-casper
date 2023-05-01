@@ -55,6 +55,7 @@ typedef enum {
 } header_part_e;
 
 #define INS_SIGN_MSG                        0x03
+#define INS_SIGN_WASM                       0x04
 
 #define CBOR_PARSER_MAX_RECURSIONS          4
 #define COIN_SECRET_REQUIRED_CLICKS         0

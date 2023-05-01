@@ -43,6 +43,7 @@ storage_t NV_CONST N_appdata_impl __attribute__ ((aligned(64)));
 #endif
 
 parser_context_t ctx_parsed_tx;
+extern uint8_t wasmBodyHash[HASH_LENGTH];
 
 void tx_initialize() {
     buffering_init(
@@ -182,4 +183,59 @@ zxerr_t tx_getMessageItem(int8_t displayIdx,
     }
 
     return zxerr_ok;
+}
+
+zxerr_t tx_parse_wasm() {
+    const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx,
+                                          tx_get_buffer(),
+                                          tx_get_buffer_length());
+     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
+}
+
+zxerr_t tx_validate_wasm() {
+    const parser_error_t err = parser_validate_wasm(&ctx_parsed_tx,
+                                                    ctx_parsed_tx.tx_obj);
+    return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
+}
+
+zxerr_t tx_getWasmNumItems(uint8_t *num_items) {
+    if (num_items == NULL) {
+        return zxerr_no_data;
+    }
+    const parser_error_t err = parser_getWasmNumItems(num_items);
+    if (err != parser_ok) {
+        return zxerr_no_data;
+    }
+    return zxerr_ok;
+}
+
+zxerr_t tx_getWasmItem(int8_t displayIdx,
+                   char *outKey, uint16_t outKeyLen,
+                   char *outVal, uint16_t outValLen,
+                   uint8_t pageIdx, uint8_t *pageCount) {
+
+    const parser_error_t err = parser_getWasmItem(&ctx_parsed_tx,
+                                                  displayIdx,
+                                                  outKey, outKeyLen,
+                                                  outVal, outValLen,
+                                                  pageIdx, pageCount);
+
+    // Convert error codes
+    if (err == parser_no_data ||
+        err == parser_display_idx_out_of_range ||
+        err == parser_display_page_out_of_range) {
+        return zxerr_no_data;
+    }
+
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
+
+    return zxerr_ok;
+}
+
+zxerr_t tx_hashChunk(uint8_t *buffer, uint32_t bufferLen, hash_chunk_operation_e operation) {
+    return crypto_hashChunk(buffer, bufferLen,
+                            wasmBodyHash, sizeof(wasmBodyHash),
+                            operation);
 }
