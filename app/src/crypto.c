@@ -18,7 +18,9 @@
 #include "coin.h"
 #include "zxmacros.h"
 #include "parser_impl.h"
+#include "zxformat.h"
 
+#define MAX_NIBBLE_LEN  100
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
 bool isTestnet() {
@@ -31,8 +33,10 @@ const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 
 static bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset);
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 #include "cx.h"
+#include "cx_blake2b.h"
+static cx_blake2b_t body_hash_ctx;
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
                           unsigned char *out) {
@@ -133,11 +137,21 @@ zxerr_t crypto_sign(uint8_t *signature,
 
     MEMZERO(signature, signatureMaxlen);
 
-    const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+    uint8_t hash[CX_SHA256_SIZE] = {0};
+    switch (parser_tx_obj.type) {
+        case RawWasm:
+        case Transaction: {
+            const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+            cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
+            break;
+        }
+        case Message:
+            cx_hash_sha256(message, messageLen, hash, CX_SHA256_SIZE);
+            break;
 
-    uint8_t hash[CX_SHA256_SIZE];
-    MEMCPY(hash, message_digest, CX_SHA256_SIZE);
-    cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
+        default:
+            return zxerr_unknown;
+    }
 
     cx_ecfp_private_key_t cx_privateKey;
     uint8_t privateKeyData[32];
@@ -190,6 +204,31 @@ zxerr_t crypto_sign(uint8_t *signature,
     END_TRY;
 
     return err;
+}
+
+zxerr_t crypto_hashChunk(const uint8_t *buffer, uint32_t bufferLen,
+                         uint8_t *output, uint16_t outputLen,
+                         hash_chunk_operation_e operation) {
+    if ((operation == hash_update && buffer == NULL) ||
+        (operation == hash_finish && (output == NULL || outputLen < CX_SHA256_SIZE))) {
+        return zxerr_no_data;
+    }
+
+    switch (operation) {
+        case hash_start:
+            cx_blake2b_init2(&body_hash_ctx, 256, NULL, 0, NULL, 0);
+            break;
+
+        case hash_update:
+            cx_blake2b_update(&body_hash_ctx, buffer, bufferLen);
+            break;
+
+        case hash_finish:
+            cx_blake2b_final(&body_hash_ctx, output);
+            break;
+    }
+
+    return zxerr_ok;
 }
 
 #else
@@ -263,9 +302,11 @@ zxerr_t encode_addr(char* address, const uint8_t addressLen, char* encodedAddr) 
 
 zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     const uint8_t nibblesLen = 2 * addressLen;
-    uint8_t input_nibbles[nibblesLen];
-    uint8_t hash_input[BLAKE2B_256_SIZE];
-    MEMZERO(input_nibbles, nibblesLen);
+    if (nibblesLen > MAX_NIBBLE_LEN) {
+        return zxerr_encoding_failed;
+    }
+    uint8_t input_nibbles[MAX_NIBBLE_LEN] = {0};
+    uint8_t hash_input[BLAKE2B_256_SIZE] = {0};
 
     bytes_to_nibbles((uint8_t*)address, addressLen, input_nibbles);
     blake2b_hash((uint8_t*)address, addressLen, hash_input);
@@ -280,7 +321,7 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
         }
         char c = HEX_CHARS[char_index];
         if(is_alphabetic(c)) {
-            get_next_hash_bit((char *)hash_input, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+            get_next_hash_bit((char *)hash_input, &index, &offset) ? to_uppercase((uint8_t*) &c) : to_lowercase((uint8_t*) &c);
         }
         encodedAddr[i] = c;
     }
@@ -289,7 +330,10 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
 
 zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
     const uint8_t nibblesLen = 2 * bytesLen;
-    uint8_t input_nibbles[nibblesLen];
+    if (bytesLen > BLAKE2B_256_SIZE) {
+        return zxerr_encoding_failed;
+    }
+    uint8_t input_nibbles[2 * BLAKE2B_256_SIZE] = {0};
 
     bytes_to_nibbles((uint8_t*)bytes, bytesLen, input_nibbles);
 
@@ -303,7 +347,7 @@ zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
         }
         char c = HEX_CHARS[char_index];
         if(is_alphabetic(c)) {
-            get_next_hash_bit(bytes, &index, &offset) ? to_uppercase(&c) : to_lowercase(&c);
+            get_next_hash_bit(bytes, &index, &offset) ? to_uppercase((uint8_t*) &c) : to_lowercase((uint8_t*) &c);
         }
         output[i] = c;
     }
@@ -324,20 +368,6 @@ bool get_next_hash_bit(char* hash_input, uint8_t* index, uint8_t* offset) {
 bool is_alphabetic(const char byte) {
     return  (byte >= 0x61  && byte <= 0x7A) ||
             (byte >= 0x41  && byte <= 0x5A);
-}
-
-void to_uppercase(char* letter) {
-    //Check if lowercase letter
-    if(*letter >= 0x61  && *letter <= 0x7A) {
-        *letter = *letter - 0x20;
-    }
-}
-
-void to_lowercase(char* letter) {
-    //Check if uppercase letter
-    if(*letter >= 0x41  && *letter <= 0x5A) {
-        *letter = *letter + 0x20;
-    }
 }
 
 void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles) {

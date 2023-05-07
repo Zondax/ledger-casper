@@ -28,7 +28,7 @@
 #include "parser_common.h"
 #include "parser_special.h"
 
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 // For some reason NanoX requires this function
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function){
     UNUSED(assertion);
@@ -345,7 +345,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
     }
 }
 
-parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
+parser_error_t parser_runtimeargs_getData(const char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
     char buffer[300];
     //loop to the correct index
     uint32_t dataLen = 0;

@@ -158,7 +158,7 @@ export default class CasperApp {
             .then(processGetAddrResponse, processErrorResponse);
     }
 
-    async signSendChunk(chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponseSign> {
+    async signSendChunk(chunkIdx: number, chunkNum: number, chunk: Buffer, instruction: number): Promise<ResponseSign> {
         let payloadType = PAYLOAD_TYPE.ADD;
         if (chunkIdx === 1) {
             payloadType = PAYLOAD_TYPE.INIT;
@@ -168,7 +168,7 @@ export default class CasperApp {
         }
 
         return this.transport
-            .send(CLA, INS.SIGN_SECP256K1, payloadType, 0, chunk, [
+            .send(CLA, instruction, payloadType, 0, chunk, [
                 LedgerError.NoErrors,
                 LedgerError.DataIsInvalid,
                 LedgerError.BadKeyHandle,
@@ -211,7 +211,7 @@ export default class CasperApp {
 
     async sign(path: string, message: Buffer) {
         return this.signGetChunks(path, message).then(chunks => {
-            return this.signSendChunk(1, chunks.length, chunks[0]).then(async response => {
+            return this.signSendChunk(1, chunks.length, chunks[0], INS.SIGN_SECP256K1).then(async response => {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
@@ -220,7 +220,49 @@ export default class CasperApp {
                 };
                 for (let i = 1; i < chunks.length; i += 1) {
                     // eslint-disable-next-line no-await-in-loop
-                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i]);
+                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i], INS.SIGN_SECP256K1);
+                    if (result.returnCode !== LedgerError.NoErrors) {
+                        break;
+                    }
+                }
+                return result;
+            }, processErrorResponse);
+        }, processErrorResponse);
+    }
+
+    async signMessage(path: string, message: Buffer) {
+        return this.signGetChunks(path, message).then(chunks => {
+            return this.signSendChunk(1, chunks.length, chunks[0], INS.SIGN_MESSAGE).then(async response => {
+                let result = {
+                    returnCode: response.returnCode,
+                    errorMessage: response.errorMessage,
+                    signatureRS: null as null | Buffer,
+                    signatureRSV: null as null | Buffer,
+                };
+                for (let i = 1; i < chunks.length; i += 1) {
+                    // eslint-disable-next-line no-await-in-loop
+                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i], INS.SIGN_MESSAGE);
+                    if (result.returnCode !== LedgerError.NoErrors) {
+                        break;
+                    }
+                }
+                return result;
+            }, processErrorResponse);
+        }, processErrorResponse);
+    }
+
+    async signRawWasm(path: string, message: Buffer) {
+        return this.signGetChunks(path, message).then(chunks => {
+            return this.signSendChunk(1, chunks.length, chunks[0], INS.SIGN_RAW_WASM).then(async response => {
+                let result = {
+                    returnCode: response.returnCode,
+                    errorMessage: response.errorMessage,
+                    signatureRS: null as null | Buffer,
+                    signatureRSV: null as null | Buffer,
+                };
+                for (let i = 1; i < chunks.length; i += 1) {
+                    // eslint-disable-next-line no-await-in-loop
+                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i], INS.SIGN_RAW_WASM);
                     if (result.returnCode !== LedgerError.NoErrors) {
                         break;
                     }

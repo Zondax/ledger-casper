@@ -54,6 +54,9 @@ typedef enum {
     header_chainname = 6,
 } header_part_e;
 
+#define INS_SIGN_MSG                        0x03
+#define INS_SIGN_WASM                       0x04
+
 #define CBOR_PARSER_MAX_RECURSIONS          4
 #define COIN_SECRET_REQUIRED_CLICKS         0
 #define COIN_AMOUNT_DECIMAL_PLACES          0                              // FIXME: Adjust this

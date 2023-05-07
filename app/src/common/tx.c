@@ -21,7 +21,7 @@
 #include <string.h>
 #include "zxmacros.h"
 
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
 #elif defined(TARGET_NANOS)
@@ -37,12 +37,13 @@ typedef struct {
     uint8_t buffer[FLASH_BUFFER_SIZE];
 } storage_t;
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 storage_t NV_CONST N_appdata_impl __attribute__ ((aligned(64)));
 #define N_appdata (*(NV_VOLATILE storage_t *)PIC(&N_appdata_impl))
 #endif
 
 parser_context_t ctx_parsed_tx;
+extern uint8_t wasmBodyHash[HASH_LENGTH];
 
 void tx_initialize() {
     buffering_init(
@@ -91,8 +92,20 @@ const char *tx_parse() {
     return NULL;
 }
 
+const char *tx_parse_message() {
+    const uint8_t err = parser_parse_message(&ctx_parsed_tx,
+                                             tx_get_buffer(),
+                                             tx_get_buffer_length());
+
+    if (err != parser_ok) {
+        return parser_getErrorDescription(err);
+    }
+
+    return NULL;
+}
+
 zxerr_t tx_getNumItems(uint8_t *num_items) {
-    parser_error_t err = parser_getNumItems(&ctx_parsed_tx, num_items);
+    const parser_error_t err = parser_getNumItems(&ctx_parsed_tx, num_items);
 
     if (err != parser_ok) {
         return zxerr_no_data;
@@ -107,7 +120,6 @@ zxerr_t tx_getItem(int8_t displayIdx,
                    uint8_t pageIdx, uint8_t *pageCount) {
     zemu_log_stack("tx_getItem\n");
     uint8_t numItems = 0;
-
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
     if (displayIdx < 0 || displayIdx > numItems) {
@@ -131,4 +143,99 @@ zxerr_t tx_getItem(int8_t displayIdx,
 
     zemu_log_stack("tx_getItem done\n");
     return zxerr_ok;
+}
+
+zxerr_t tx_getMessageNumItems(uint8_t *num_items) {
+    if (num_items == NULL) {
+        return zxerr_no_data;
+    }
+    const parser_error_t err = parser_getMessageNumItems(num_items);
+    if (err != parser_ok) {
+        return zxerr_no_data;
+    }
+    return zxerr_ok;
+}
+
+zxerr_t tx_getMessageItem(int8_t displayIdx,
+                   char *outKey, uint16_t outKeyLen,
+                   char *outVal, uint16_t outValLen,
+                   uint8_t pageIdx, uint8_t *pageCount) {
+
+    uint8_t numItems = 0;
+    CHECK_ZXERR(tx_getMessageNumItems(&numItems))
+
+    const parser_error_t err = parser_getMessageItem(&ctx_parsed_tx,
+                                        displayIdx,
+                                        outKey, outKeyLen,
+                                        outVal, outValLen,
+                                        pageIdx, pageCount);
+
+    // Convert error codes
+    if (err == parser_no_data ||
+        err == parser_display_idx_out_of_range ||
+        err == parser_display_page_out_of_range) {
+        return zxerr_no_data;
+    }
+
+
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
+
+    return zxerr_ok;
+}
+
+zxerr_t tx_parse_wasm() {
+    const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx,
+                                          tx_get_buffer(),
+                                          tx_get_buffer_length());
+     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
+}
+
+zxerr_t tx_validate_wasm() {
+    const parser_error_t err = parser_validate_wasm(&ctx_parsed_tx,
+                                                    ctx_parsed_tx.tx_obj);
+    return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
+}
+
+zxerr_t tx_getWasmNumItems(uint8_t *num_items) {
+    if (num_items == NULL) {
+        return zxerr_no_data;
+    }
+    const parser_error_t err = parser_getWasmNumItems(num_items);
+    if (err != parser_ok) {
+        return zxerr_no_data;
+    }
+    return zxerr_ok;
+}
+
+zxerr_t tx_getWasmItem(int8_t displayIdx,
+                   char *outKey, uint16_t outKeyLen,
+                   char *outVal, uint16_t outValLen,
+                   uint8_t pageIdx, uint8_t *pageCount) {
+
+    const parser_error_t err = parser_getWasmItem(&ctx_parsed_tx,
+                                                  displayIdx,
+                                                  outKey, outKeyLen,
+                                                  outVal, outValLen,
+                                                  pageIdx, pageCount);
+
+    // Convert error codes
+    if (err == parser_no_data ||
+        err == parser_display_idx_out_of_range ||
+        err == parser_display_page_out_of_range) {
+        return zxerr_no_data;
+    }
+
+    if (err != parser_ok) {
+        return zxerr_unknown;
+    }
+
+    return zxerr_ok;
+}
+
+zxerr_t tx_hashChunk(uint8_t *buffer, uint32_t bufferLen, hash_chunk_operation_e operation) {
+    return crypto_hashChunk(buffer, bufferLen,
+                            wasmBodyHash, sizeof(wasmBodyHash),
+                            operation);
 }

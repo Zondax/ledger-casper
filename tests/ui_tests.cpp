@@ -32,32 +32,9 @@ zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out){
     return zxerr_ok;
 }
 
-
-
 using ::testing::TestWithParam;
-
-typedef struct {
-    uint64_t index;
-    std::string name;
-    std::string blob;
-    bool valid_regular;
-    bool valid_expert;
-    std::vector<std::string> expected;
-    std::vector<std::string> expected_expert;
-} testcase_t;
-
-class JsonTests : public ::testing::TestWithParam<testcase_t> {
-public:
-    struct PrintToStringParamName {
-        template<class ParamType>
-        std::string operator()(const testing::TestParamInfo<ParamType> &info) const {
-            auto p = static_cast<testcase_t>(info.param);
-            std::stringstream ss;
-            ss << p.index << "_" << p.name;
-            return ss.str();
-        }
-    };
-};
+class JsonTests : public JsonTests_Base {};
+class JsonTestsSignMessage : public JsonTests_Base {};
 
 std::vector<testcase_t> GetJsonTestCases(const std::string &jsonFile) {
     auto answer = std::vector<testcase_t>();
@@ -103,16 +80,27 @@ std::vector<testcase_t> GetJsonTestCases(const std::string &jsonFile) {
     return answer;
 }
 
-void check_testcase(const testcase_t &tc, bool expert_mode) {
+void check_testcase(const testcase_t &tc, bool expert_mode, transaction_type_e type) {
     app_mode_set_expert(expert_mode);
 
     parser_context_t ctx;
     parser_error_t err;
 
-    uint8_t buffer[10000];
+    uint8_t buffer[10000] = {0};
     uint16_t bufferLen = parseHexString(buffer, sizeof(buffer), tc.blob.c_str());
 
-    err = parser_parse(&ctx, buffer, bufferLen);
+    switch (type)
+    {
+    case Transaction:
+        err = parser_parse(&ctx, buffer, bufferLen);
+        break;
+    case Message:
+        err = parser_parse_message(&ctx, buffer, bufferLen);
+        break;
+
+    default:
+        return;
+    }
 
     if (tc.valid_regular && tc.valid_expert) {
         ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
@@ -121,7 +109,7 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
         return;
     }
 
-    auto output = dumpUI(&ctx, 40, 35);
+    auto output = dumpUI(&ctx, 40, 35, type);
 
     std::cout << std::endl;
     for (const auto &i : output) {
@@ -134,9 +122,11 @@ void check_testcase(const testcase_t &tc, bool expert_mode) {
     for (size_t i = 0; i < expected.size(); i++) {
         if (i < output.size()) {
             auto estr = expected[i];
-            std::for_each(estr.begin(), estr.end(), [](char & c){
-                c = ::tolower(c);
-            });
+            if (type == Transaction) {
+                std::for_each(estr.begin(), estr.end(), [](char & c){
+                        c = ::tolower(c);
+                });
+            }
 
             EXPECT_THAT(output[i], testing::Eq(estr));
         }
@@ -151,6 +141,18 @@ INSTANTIATE_TEST_SUITE_P (
 );
 
 // Parametric test using current runtime:
-TEST_P(JsonTests, CheckUIOutput_CurrentTX_Normal) { check_testcase(GetParam(), false); }
+TEST_P(JsonTests, CheckUIOutput_CurrentTX_Normal) { check_testcase(GetParam(), false, Transaction); }
 
-TEST_P(JsonTests, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true); }
+TEST_P(JsonTests, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true, Transaction); }
+
+INSTANTIATE_TEST_SUITE_P (
+        JsonTestCasesSignMessage,
+        JsonTestsSignMessage,
+        ::testing::ValuesIn(GetJsonTestCases("sign_message.json")),
+        JsonTestsSignMessage::PrintToStringParamName()
+);
+
+// Parametric test using current runtime:
+TEST_P(JsonTestsSignMessage, CheckUIOutput_CurrentTX_Normal) { check_testcase(GetParam(), false, Message); }
+
+TEST_P(JsonTestsSignMessage, CheckUIOutput_CurrentTX_Expert) { check_testcase(GetParam(), true, Message); }

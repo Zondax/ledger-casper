@@ -1,0 +1,98 @@
+[
+  {
+    "index": 1,
+    "name": "valid_casper_message",
+    "valid_regular": true,
+    "valid_expert": true,
+    "testnet": true,
+    "blob": "436173706572204d6573736167653a0a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : 14454e19804a72966fe92ae0ebc9846e0c",
+      "0 | Msg hash [2/2] : 8bb5b4d706e7e809a82b3cc99488b6"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : 14454e19804a72966fe92ae0ebc9846e0c",
+      "0 | Msg hash [2/2] : 8bb5b4d706e7e809a82b3cc99488b6"
+    ]
+  },
+  {
+    "index": 2,
+    "name": "invalid_casper_message",
+    "valid_regular": false,
+    "valid_expert": false,
+    "testnet": true,
+    "blob": "4361737065723a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : 2931dc5c6d6745a221b98a04951d7c2c86",
+      "0 | Msg hash [2/2] : f5a9e92a8dbffe30abb19ec7ff9ee0"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : 2931dc5c6d6745a221b98a04951d7c2c86",
+      "0 | Msg hash [2/2] : f5a9e92a8dbffe30abb19ec7ff9ee0"
+    ]
+  },
+  {
+    "index": 3,
+    "name": "invalid_casper_message",
+    "valid_regular": false,
+    "valid_expert": false,
+    "testnet": true,
+    "blob": "4361737065724d6573736167653a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : 6f0ad8b6b380b90a36c0e9052750861925",
+      "0 | Msg hash [2/2] : 9b19d11d359968eafb78f92a939d2f"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : 6f0ad8b6b380b90a36c0e9052750861925",
+      "0 | Msg hash [2/2] : 9b19d11d359968eafb78f92a939d2f"
+    ]
+  },
+  {
+    "index": 4,
+    "name": "invalid_casper_message",
+    "valid_regular": false,
+    "valid_expert": false,
+    "testnet": true,
+    "blob": "4361737065723a0a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : 114d55ed2ccbe8345cb9a223810927a0a8",
+      "0 | Msg hash [2/2] : 6aed94a262d82de89890bc2686dfc8"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : 114d55ed2ccbe8345cb9a223810927a0a8",
+      "0 | Msg hash [2/2] : 6aed94a262d82de89890bc2686dfc8"
+    ]
+  },
+  {
+    "index": 5,
+    "name": "invalid_casper_message",
+    "valid_regular": false,
+    "valid_expert": false,
+    "testnet": true,
+    "blob": "636173706572206d6573736167653a0a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : e7e876a45dbdc504553cf4775b1c4a166e",
+      "0 | Msg hash [2/2] : 0e6d69c1268a0f773f4cbb62916fa1"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : e7e876a45dbdc504553cf4775b1c4a166e",
+      "0 | Msg hash [2/2] : 0e6d69c1268a0f773f4cbb62916fa1"
+    ]
+  },
+  {
+    "index": 6,
+    "name": "invalid_casper_message",
+    "valid_regular": false,
+    "valid_expert": false,
+    "testnet": true,
+    "blob": "436173706572206d6573736167653a0a506c65617365207369676e2074686973204353505220746f6b656e20646f6e6174696f6e",
+    "output": [
+      "0 | Msg hash [1/2] : 7704cdabfdafae206340ee4bd960bf3de0",
+      "0 | Msg hash [2/2] : e28cc543d15a6a033594cd2f18ca34"
+    ],
+    "output_expert": [
+      "0 | Msg hash [1/2] : 7704cdabfdafae206340ee4bd960bf3de0",
+      "0 | Msg hash [2/2] : e28cc543d15a6a033594cd2f18ca34"
+    ]
+  }
+]
