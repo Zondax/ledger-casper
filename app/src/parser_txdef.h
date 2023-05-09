@@ -67,7 +67,7 @@ typedef enum {
 typedef enum {
     Transaction = 0,
     Message = 1,
-    RawWasm = 2,
+    WasmDeploy = 2,
 } transaction_type_e;
 
 typedef struct {

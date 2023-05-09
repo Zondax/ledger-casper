@@ -10,7 +10,7 @@ export const INS = {
     GET_ADDR_SECP256K1: 0x01,
     SIGN_SECP256K1: 0x02,
     SIGN_MESSAGE: 0x03,
-    SIGN_RAW_WASM: 0x04,
+    SIGN_WASM_DEPLOY: 0x04,
 };
 
 export const PAYLOAD_TYPE = {

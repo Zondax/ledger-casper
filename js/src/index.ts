@@ -251,9 +251,9 @@ export default class CasperApp {
         }, processErrorResponse);
     }
 
-    async signRawWasm(path: string, message: Buffer) {
+    async signWasmDeploy(path: string, message: Buffer) {
         return this.signGetChunks(path, message).then(chunks => {
-            return this.signSendChunk(1, chunks.length, chunks[0], INS.SIGN_RAW_WASM).then(async response => {
+            return this.signSendChunk(1, chunks.length, chunks[0], INS.SIGN_WASM_DEPLOY).then(async response => {
                 let result = {
                     returnCode: response.returnCode,
                     errorMessage: response.errorMessage,
@@ -262,7 +262,7 @@ export default class CasperApp {
                 };
                 for (let i = 1; i < chunks.length; i += 1) {
                     // eslint-disable-next-line no-await-in-loop
-                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i], INS.SIGN_RAW_WASM);
+                    result = await this.signSendChunk(1 + i, chunks.length, chunks[i], INS.SIGN_WASM_DEPLOY);
                     if (result.returnCode !== LedgerError.NoErrors) {
                         break;
                     }
