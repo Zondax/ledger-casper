@@ -54,7 +54,7 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *txObj) {
     CHECK_PARSER_ERR(readU8(ctx, &type));
     txObj->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &txObj->session.type));
-    // RawWasm type must be ModuleBytes and
+    // WasmDeploy type must be ModuleBytes and
     const parser_error_t err = parseDeployItem(ctx, &txObj->session);
     if (txObj->session.type == ModuleBytes &&  (err == parser_no_data || err == parser_unexpected_buffer_end)) {
         return parser_ok;
@@ -66,7 +66,7 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *txObj) {
 parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
 
-    ctx->tx_obj->type = RawWasm;
+    ctx->tx_obj->type = WasmDeploy;
     ctx->tx_obj->wasmHash = wasmBodyHash;
     return readHeader(ctx, ctx->tx_obj);
 }

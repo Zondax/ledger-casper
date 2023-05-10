@@ -13,7 +13,7 @@ async function main() {
   const PATH = "m/44'/506'/0'/0/0"
 
   const txBlob = Buffer.from(txBlobStrNormal, "hex");
-  const respRequest = await app.signRawWasm(PATH, txBlob);
+  const respRequest = await app.signWasmDeploy(PATH, txBlob);
   console.log(respRequest)
 }
 
