@@ -87,12 +87,14 @@ parser_error_t showRuntimeArgsHash(__Z_UNUSED ExecutableDeployItem item, parser_
     // name-hash
     // name + '-' + hex-hash + 'null-terminator'
     uint8_t output[MAX_ARGNAME_LEN] = {0};
-    if (name_len >= MAX_ARGNAME_LEN) {
+    if (name_len >= (MAX_ARGNAME_LEN - 2 * BLAKE2B_256_SIZE - 1)) {
         return parser_value_out_of_range;
     }
 
     char hex_hash[BLAKE2B_256_SIZE * 2] = {0};
-    encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash);
+    if (encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash, sizeof(hex_hash)) != zxerr_ok) {
+        return parser_unexepected_error;
+    }
 
     MEMCPY(output, name, name_len);
     output[name_len] = '-';

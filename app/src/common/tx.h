@@ -68,6 +68,4 @@ zxerr_t tx_getWasmItem(int8_t displayIdx,
                        char *outVal, uint16_t outValLen,
                        uint8_t pageIdx, uint8_t *pageCount);
 
-zxerr_t tx_hashChunk(uint8_t *buffer, uint32_t bufferLen, hash_chunk_operation_e operation);
-
 zxerr_t tx_validate_wasm();

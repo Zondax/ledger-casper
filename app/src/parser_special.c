@@ -24,7 +24,7 @@
 #include "app_mode.h"
 #include "runtime_arg.h"
 
-uint16_t entry_point_offset;
+uint16_t entry_point_offset = 0;
 
 #define CHECK_RUNTIME_ARGTYPE(CTX, NUM_ITEMS, STR, CONDITION) { \
     type = 255;                     \
@@ -341,15 +341,16 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
                                             uint8_t pageIdx, uint8_t *pageCount) {
 
     const bool hasAmount = (item->UI_fixed_items == 3);
+    const bool appExpertMode = app_mode_expert();
     // this are not generic args and are part of valid contract transactions
     switch (item->type) {
         case ModuleBytes : {
-            if(displayIdx == 0 && app_mode_expert() ) {
+            if(displayIdx == 0 && appExpertMode ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "contract");
                 return parser_ok;
             }
-            if(displayIdx == 1 && app_mode_expert() ) {
+            if(displayIdx == 1 && appExpertMode ) {
                 snprintf(outKey, outKeyLen, "Cntrct hash");
                 uint32_t dataLength = 0;
                 CHECK_PARSER_ERR(readU32(ctx, &dataLength))
@@ -369,12 +370,12 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByHash: {
-            if(displayIdx == 0 && (app_mode_expert() || !hasAmount)) {
+            if(displayIdx == 0 && (appExpertMode || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash");
                 return parser_ok;
             }
-            if(displayIdx == 1 && (app_mode_expert()  || !hasAmount)) {
+            if(displayIdx == 1 && (appExpertMode  || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -382,18 +383,18 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             ctx->offset += HASH_LENGTH;
             CHECK_PARSER_ERR(parse_item(ctx))
 
-            if(displayIdx == 2 && app_mode_expert()) {
+            if(displayIdx == 2 && appExpertMode) {
                 return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             }
             break;
         }
         case StoredVersionedContractByHash: {
-            if(displayIdx == 0 && (app_mode_expert() || !hasAmount) ) {
+            if(displayIdx == 0 && (appExpertMode || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-hash-versioned");
                 return parser_ok;
             }
-            if(displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
+            if(displayIdx == 1 && (appExpertMode || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Address");
                 return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
@@ -403,7 +404,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             uint32_t version = 0;
             CHECK_PARSER_ERR(parse_version(ctx, &version))
 
-            if(displayIdx == 2 && app_mode_expert()) {
+            if(displayIdx == 2 && appExpertMode) {
                 uint64_t value = 0;
                 MEMCPY(&value, &version, 4);
                 snprintf(outKey, outKeyLen, "Version");
@@ -411,7 +412,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             }
             CHECK_PARSER_ERR(parse_item(ctx))
 
-            if(displayIdx == 3 && app_mode_expert()) {
+            if(displayIdx == 3 && appExpertMode) {
                 return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             }
 
@@ -419,13 +420,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredContractByName: {
-            if(displayIdx == 0 && (app_mode_expert() || !hasAmount)) {
+            if(displayIdx == 0 && (appExpertMode || !hasAmount)) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
+            if (displayIdx == 1 && (appExpertMode || !hasAmount) ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -435,7 +436,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             CHECK_PARSER_ERR(parse_item(ctx));
             CHECK_PARSER_ERR(parse_item(ctx))
 
-            if(displayIdx == 2 && app_mode_expert()) {
+            if(displayIdx == 2 && appExpertMode) {
                 return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             }
 
@@ -443,13 +444,13 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
         }
 
         case StoredVersionedContractByName: {
-            if(displayIdx == 0 && (app_mode_expert() || !hasAmount) ) {
+            if(displayIdx == 0 && (appExpertMode || !hasAmount) ) {
                 snprintf(outKey, outKeyLen, "Execution");
                 snprintf(outVal, outValLen, "by-name-versioned");
                 return parser_ok;
             }
 
-            if (displayIdx == 1 && (app_mode_expert() || !hasAmount) ) {
+            if (displayIdx == 1 && (appExpertMode || !hasAmount) ) {
                 char buffer[300];
                 CHECK_PARSER_ERR(copy_item_into_charbuffer(ctx, buffer, sizeof(buffer)));
                 snprintf(outKey, outKeyLen, "Name");
@@ -461,7 +462,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             uint32_t version = 0;
             CHECK_PARSER_ERR(parse_version(ctx, &version))
 
-            if(displayIdx == 2 && app_mode_expert()) {
+            if(displayIdx == 2 && appExpertMode) {
                 uint64_t value = 0;
                 MEMCPY(&value, &version, 4);
                 snprintf(outKey, outKeyLen, "Version");
@@ -469,7 +470,7 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
             }
             CHECK_PARSER_ERR(parse_item(ctx))
 
-            if(displayIdx == 3 && app_mode_expert()) {
+            if(displayIdx == 3 && appExpertMode) {
                 return render_entry_point(ctx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             }
 

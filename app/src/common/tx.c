@@ -43,7 +43,6 @@ storage_t NV_CONST N_appdata_impl __attribute__ ((aligned(64)));
 #endif
 
 parser_context_t ctx_parsed_tx;
-extern uint8_t wasmBodyHash[HASH_LENGTH];
 
 void tx_initialize() {
     buffering_init(
@@ -232,10 +231,4 @@ zxerr_t tx_getWasmItem(int8_t displayIdx,
     }
 
     return zxerr_ok;
-}
-
-zxerr_t tx_hashChunk(uint8_t *buffer, uint32_t bufferLen, hash_chunk_operation_e operation) {
-    return crypto_hashChunk(buffer, bufferLen,
-                            wasmBodyHash, sizeof(wasmBodyHash),
-                            operation);
 }
