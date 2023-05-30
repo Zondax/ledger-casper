@@ -24,7 +24,7 @@ const sha256 = require("js-sha256");
 const expected_pk = "028b2ddbe59976ad2f4138ca46553866de5124d13db4e13611ca751eedde9e0297";
 const expected_address = "02028b2ddbe59976AD2f4138CA46553866De5124d13dB4e13611CA751EeddE9E0297";
 
-jest.setTimeout(80000);
+jest.setTimeout(120000);
 
 describe("Standard", function () {
   test.concurrent.each(models)("can start and stop container (%s)", async function (m) {

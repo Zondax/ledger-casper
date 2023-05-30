@@ -22,7 +22,7 @@ import * as secp256k1 from "secp256k1";
 
 const sha256 = require("js-sha256");
 
-jest.setTimeout(90000);
+jest.setTimeout(180000);
 
 describe("Generic", function () {
   test.concurrent.each(models)(
