@@ -240,25 +240,19 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
     if(ctx->offset + dataLen >= ctx->bufferLen){
         return parser_unexpected_buffer_end;
     }
+    if (dataLen == 0) {
+        return parser_unexepected_error;
+    }
     switch(type) {
         case TAG_U32: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)(&value)));
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U64: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             CHECK_PARSER_ERR(readU64(ctx, &value));
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U512: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx,dataLen);
         }
 
