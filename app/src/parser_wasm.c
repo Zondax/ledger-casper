@@ -20,8 +20,6 @@
 #include "parser.h"
 #include "crypto.h"
 
-uint8_t wasmBodyHash[HASH_LENGTH];
-
 static parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *txObj) {
     txObj->header.pubkeytype = ctx->buffer[0];
     PARSER_ASSERT_OR_ERROR(txObj->header.pubkeytype == 0x01 || txObj->header.pubkeytype == 0x02, parser_context_unknown_prefix);
@@ -54,8 +52,14 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *txObj) {
     CHECK_PARSER_ERR(readU8(ctx, &type));
     txObj->session.phase = Session;
     CHECK_PARSER_ERR(parseDeployType(type, &txObj->session.type));
-    // WasmDeploy type must be ModuleBytes and
     const parser_error_t err = parseDeployItem(ctx, &txObj->session);
+    // WasmDeploy type must be ModuleBytes and
+    // parseDeployItem won't return parser_ok for these kind of blobs.
+    // We expect blobs from some kBs up to 1MB. In such cases, the device is not able to store the transaction
+    // and parsing it. If parseDeployItem returns parser_ok, then we are not processing a WasmDeploy and therefore,
+    // we consider that case as an error.
+    // We expect that the parser moves until parser_runtimeargs_getData method and get here one of these errors:
+    // parser_unexpected_buffer_end (cannot store all the param within input buffer) or parser_no_data (parameter not found)
     if (txObj->session.type == ModuleBytes &&  (err == parser_no_data || err == parser_unexpected_buffer_end)) {
         return parser_ok;
     }
@@ -67,7 +71,6 @@ parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, siz
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
 
     ctx->tx_obj->type = WasmDeploy;
-    ctx->tx_obj->wasmHash = wasmBodyHash;
     return readHeader(ctx, ctx->tx_obj);
 }
 

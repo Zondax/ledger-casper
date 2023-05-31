@@ -49,7 +49,7 @@ zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen,
 zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t *pubKey, uint16_t pubKeyLen) {
     cx_ecfp_public_key_t cx_publicKey;
     cx_ecfp_private_key_t cx_privateKey;
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[32] = {0};
 
     if (pubKeyLen < SECP256K1_PK_LEN) {
         return zxerr_invalid_crypto_settings;
@@ -133,8 +133,10 @@ zxerr_t crypto_sign(uint8_t *signature,
                     const uint8_t *message,
                     uint16_t messageLen,
                     uint16_t *sigSize) {
-    UNUSED(messageLen);
 
+    if (signature == NULL || message == NULL || sigSize == NULL || signatureMaxlen < sizeof(signature_t)) {
+        return zxerr_unknown;
+    }
     MEMZERO(signature, signatureMaxlen);
 
     uint8_t hash[CX_SHA256_SIZE] = {0};
@@ -153,12 +155,12 @@ zxerr_t crypto_sign(uint8_t *signature,
             return zxerr_unknown;
     }
 
-    cx_ecfp_private_key_t cx_privateKey;
-    uint8_t privateKeyData[32];
+    cx_ecfp_private_key_t cx_privateKey = {0};
+    uint8_t privateKeyData[32] = {0};
     unsigned int info = 0;
 
     signature_t *const signature_object = (signature_t *) signature;
-    zxerr_t err = zxerr_ok;
+    volatile zxerr_t err = zxerr_unknown;
     BEGIN_TRY
     {
         TRY
@@ -190,6 +192,7 @@ zxerr_t crypto_sign(uint8_t *signature,
                 *sigSize = sizeof_field(signature_t, r) +
                     sizeof_field(signature_t, s) +
                     sizeof_field(signature_t, v);
+                err = zxerr_ok;
             }
         }
         CATCH_ALL {
@@ -328,9 +331,9 @@ zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr) {
     return zxerr_ok;
 }
 
-zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output) {
+zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output, uint16_t outputLen) {
     const uint8_t nibblesLen = 2 * bytesLen;
-    if (bytesLen > BLAKE2B_256_SIZE) {
+    if (bytesLen > BLAKE2B_256_SIZE || outputLen < 2 * bytesLen) {
         return zxerr_encoding_failed;
     }
     uint8_t input_nibbles[2 * BLAKE2B_256_SIZE] = {0};

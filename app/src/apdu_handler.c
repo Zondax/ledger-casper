@@ -130,6 +130,7 @@ static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
             if (!tx_bufferFull && (added != rx - OFFSET_DATA)) {
                 if (tx_parse_wasm() != zxerr_ok) {
+                    tx_initialized = false;
                     THROW(APDU_CODE_EXECUTION_ERROR);
                 }
                 tx_bufferFull = true;
@@ -144,6 +145,7 @@ static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
             if (!tx_bufferFull && (added != rx - OFFSET_DATA)) {
                 ZEMU_LOGF(50, "START PARSING WASM!!!!\n")
                 if (tx_parse_wasm() != zxerr_ok) {
+                    tx_initialized = false;
                     THROW(APDU_CODE_EXECUTION_ERROR);
                 }
                 tx_bufferFull = true;
@@ -169,6 +171,7 @@ __Z_INLINE void handleSignWasm(volatile uint32_t *flags, volatile uint32_t *tx, 
         }
         THROW(APDU_CODE_OK);
     }
+    tx_initialized = false;
 
     view_idle_show(0, NULL);
     // If not done before, parse transaction
@@ -231,6 +234,7 @@ __Z_INLINE void handleSign(volatile uint32_t *flags, volatile uint32_t *tx, uint
     if (!process_chunk(tx, rx)) {
         THROW(APDU_CODE_OK);
     }
+    tx_initialized = false;
 
     CHECK_APP_CANARY()
 
