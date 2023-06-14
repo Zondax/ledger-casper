@@ -21,29 +21,57 @@
 
 std::vector<std::string> dumpUI(parser_context_t *ctx,
                                 uint16_t maxKeyLen,
-                                uint16_t maxValueLen) {
+                                uint16_t maxValueLen,
+                                transaction_type_e type) {
     auto answer = std::vector<std::string>();
 
     uint8_t numItems;
-    parser_error_t err = parser_getNumItems(ctx, &numItems);
+    parser_error_t err;
+    switch (type) {
+        case Transaction:
+            err = parser_getNumItems(ctx, &numItems);
+            break;
+        case Message:
+            err = parser_getMessageNumItems(&numItems);
+            break;
+
+        default:
+            err = parser_unexepected_error;
+    }
+
     if (err != parser_ok) {
         return answer;
     }
 
     for (uint16_t idx = 0; idx < numItems; idx++) {
-        char keyBuffer[1000];
-        char valueBuffer[1000];
+        char keyBuffer[1000] = {0};
+        char valueBuffer[1000] = {0};
         uint8_t pageIdx = 0;
         uint8_t pageCount = 1;
 
         while (pageIdx < pageCount) {
             std::stringstream ss;
 
-            err = parser_getItem(ctx,
-                                 idx,
-                                 keyBuffer, maxKeyLen,
-                                 valueBuffer, maxValueLen,
-                                 pageIdx, &pageCount);
+            switch (type) {
+            case Transaction:
+                err = parser_getItem(ctx,
+                        idx,
+                        keyBuffer, maxKeyLen,
+                        valueBuffer, maxValueLen,
+                        pageIdx, &pageCount);
+                break;
+            case Message:
+                err = parser_getMessageItem(ctx,
+                            idx,
+                            keyBuffer, maxKeyLen,
+                            valueBuffer, maxValueLen,
+                            pageIdx, &pageCount);
+                break;
+
+            default:
+                break;
+            }
+
 
             ss << idx << " | " << keyBuffer;
             if (pageCount > 1) {
@@ -57,10 +85,11 @@ std::vector<std::string> dumpUI(parser_context_t *ctx,
                 ss << parser_getErrorDescription(err);
             }
             auto str = ss.str();
-            std::for_each(str.begin(), str.end(), [](char & c){
-                c = ::tolower(c);
-            });
-
+            if (type == Transaction) {
+                std::for_each(str.begin(), str.end(), [](char & c){
+                    c = ::tolower(c);
+                });
+            }
             answer.push_back(str);
 
             pageIdx++;

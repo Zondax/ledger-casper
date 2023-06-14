@@ -28,7 +28,7 @@
 #include "parser_common.h"
 #include "parser_special.h"
 
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX)
 // For some reason NanoX requires this function
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function){
     UNUSED(assertion);
@@ -235,31 +235,24 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
 parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
-    char buffer[400];
+    char buffer[400] = {0};
     uint64_t value = 0;
-    MEMZERO(buffer, sizeof(buffer));
     if(ctx->offset + dataLen >= ctx->bufferLen){
         return parser_unexpected_buffer_end;
     }
+    if (dataLen == 0) {
+        return parser_unexepected_error;
+    }
     switch(type) {
         case TAG_U32: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)(&value)));
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U64: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             CHECK_PARSER_ERR(readU64(ctx, &value));
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U512: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx,dataLen);
         }
 
@@ -273,28 +266,21 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
 parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
                                          uint8_t pageIdx, uint8_t *pageCount){
-    char buffer[400];
-    MEMZERO(buffer, sizeof(buffer));
+    char buffer[400] = {0};
     if(ctx->offset + dataLen >= ctx->bufferLen){
         return parser_unexpected_buffer_end;
     }
+    if (dataLen == 0) {
+        return parser_unexepected_error;
+    }
     switch(type) {
         case TAG_U32: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             DISPLAY_RUNTIMEARG_U32(ctx)
         }
         case TAG_U64: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             DISPLAY_RUNTIMEARG_U64(ctx)
         }
         case TAG_U512: {
-            if(dataLen == 0){
-                return parser_unexepected_error;
-            }
             DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx,dataLen);
         }
 
@@ -314,14 +300,12 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
                 snprintf(outVal, outValLen, "None");
                 return parser_ok;
             } else {
-                if(ctx->offset + dataLen >= ctx->bufferLen){
-                    return parser_unexpected_buffer_end;
-                }
                 type = *(ctx->buffer + ctx->offset + dataLen);
                 if(type == TAG_U64){
                     DISPLAY_RUNTIMEARG_U64(ctx)
                 }else if(type == TAG_UREF){
-                    DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen-2);
+                    if (dataLen < 2) return parser_unexpected_value;
+                    DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 2);
                 }else{
                     return parser_unexepected_error;
                 }
@@ -345,7 +329,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
     }
 }
 
-parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
+parser_error_t parser_runtimeargs_getData(const char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx) {
     char buffer[300];
     //loop to the correct index
     uint32_t dataLen = 0;

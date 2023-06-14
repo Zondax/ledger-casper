@@ -1,11 +1,20 @@
 # Ledger Casper app
 ![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CircleCI](https://circleci.com/gh/Zondax/ledger-casper.svg?style=shield&circle-token=daa1081578b321bcb30431f81a17ad65d7de4c84)](https://circleci.com/gh/Zondax/ledger-casper)
+[![GithubActions](https://github.com/zondax/ledger-casper/actions/workflows/main.yml/badge.svg)](https://github.com/Zondax/ledger-casper/blob/main/.github/workflows/main.yaml)
+
+---
+
+![zondax_light](docs/zondax_light.png#gh-light-mode-only)
+![zondax_dark](docs/zondax_dark.png#gh-dark-mode-only)
+
+_Please visit our website at [zondax.ch](https://www.zondax.ch)_
+
+---
 
 This repository contains:
 
-- Ledger Nano S/X BOLOS app
+- Ledger Nano S/SP/X BOLOS app
 - Specs / Documentation
 - C++ unit tests
 - Zemu tests

@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2019 Zondax GmbH
+*   (c) 2018 - 2023 Zondax AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -17,9 +17,33 @@
 
 #include <vector>
 #include <string>
+#include "gmock/gmock.h"
 
 #define EXPECT_EQ_STR(_STR1, _STR2, _errorMessage) { if (_STR1 != nullptr & _STR2 != nullptr) \
 EXPECT_TRUE(!strcmp(_STR1, _STR2)) << _errorMessage << ", expected: " << _STR2 << ", received: " << _STR1; \
 else FAIL() << "One of the strings is null"; }
 
-std::vector<std::string> dumpUI(parser_context_t *ctx, uint16_t maxKeyLen, uint16_t maxValueLen);
+std::vector<std::string> dumpUI(parser_context_t *ctx, uint16_t maxKeyLen, uint16_t maxValueLen, transaction_type_e type);
+
+typedef struct {
+    uint64_t index;
+    std::string name;
+    std::string blob;
+    bool valid_regular;
+    bool valid_expert;
+    std::vector<std::string> expected;
+    std::vector<std::string> expected_expert;
+} testcase_t;
+
+class JsonTests_Base : public ::testing::TestWithParam<testcase_t> {
+public:
+    struct PrintToStringParamName {
+        template<class ParamType>
+        std::string operator()(const testing::TestParamInfo<ParamType> &info) const {
+            auto p = static_cast<testcase_t>(info.param);
+            std::stringstream ss;
+            ss << p.index << "_" << p.name;
+            return ss.str();
+        }
+    };
+};

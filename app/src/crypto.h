@@ -34,6 +34,12 @@ extern uint32_t hdPath[HDPATH_LEN_DEFAULT];
 
 #define BLAKE2B_256_SIZE            32
 
+typedef enum {
+    hash_start = 0,
+    hash_update = 1,
+    hash_finish = 2,
+} hash_chunk_operation_e;
+
 uint16_t formatProtocol(const uint8_t *addressBytes, uint16_t addressSize,
                         uint8_t *formattedAddress,
                         uint16_t formattedAddressSize);
@@ -60,13 +66,14 @@ zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out);
 
 zxerr_t encode(char* address, const uint8_t addressLen, char* encodedAddr);
 zxerr_t encode_addr(char* address, const uint8_t addressLen, char* encodedAddr);
-zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output);
+zxerr_t encode_hex(char* bytes, const uint8_t bytesLen, char* output, uint16_t outputLen);
 
 void bytes_to_nibbles(uint8_t* bytes,uint8_t bytesLen, uint8_t* nibbles);
 
 bool is_alphabetic(const char byte);
-void to_uppercase(char* letter);
-void to_lowercase(char* letter);
+
+zxerr_t crypto_hashChunk(const uint8_t *buffer, uint32_t bufferLen, uint8_t *output, uint16_t outputLen,
+                         hash_chunk_operation_e operation);
 
 #ifdef __cplusplus
 }

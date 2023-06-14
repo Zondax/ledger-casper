@@ -55,6 +55,10 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
 
 parser_error_t parse_version(parser_context_t *ctx, uint32_t *version);
 
+parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype);
+
+parser_error_t parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item);
+
 #ifdef __cplusplus
 }
 #endif

@@ -22,6 +22,7 @@
 #include "crypto.h"
 #include "zxformat.h"
 
+#define MAX_ARGNAME_LEN 100
 parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
     uint8_t dummy_type = 0;
     uint8_t dummy_internal = 0;
@@ -39,7 +40,7 @@ parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen) {
 }
 
 
-parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
+parser_error_t searchRuntimeArgs(const char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen, parser_context_t *ctx) {
     uint16_t start = ctx->offset;
     char buffer[300] = {0};
     uint8_t dummy_type = 0;
@@ -70,28 +71,30 @@ parser_error_t searchRuntimeArgs(char *argstr, uint8_t *type, uint8_t *internal_
 }
 
 parser_error_t showRuntimeArgsHash(__Z_UNUSED ExecutableDeployItem item, parser_context_t *ctx,
-                                          uint32_t bytes_len, char *name, uint8_t name_len,
+                                          uint32_t bytes_len, const char *name, uint8_t name_len,
                                           char *outKey, uint16_t outKeyLen,
                                           char *outVal, uint16_t outValLen,
                                           uint8_t pageIdx, uint8_t *pageCount) {
 
-    uint8_t hash[BLAKE2B_256_SIZE];
-    MEMZERO(hash, BLAKE2B_256_SIZE);
-
+    uint8_t hash[BLAKE2B_256_SIZE] = {0};
     if (blake2b_hash(ctx->buffer + ctx->offset, bytes_len, hash) != zxerr_ok){
         return parser_unexepected_error;
     };
 
     snprintf(outKey, outKeyLen, "Args hash");
+    MEMZERO(outVal, outValLen);
 
     // name-hash
     // name + '-' + hex-hash + 'null-terminator'
-    uint32_t output_len = name_len + 1 + (BLAKE2B_256_SIZE * 2) + 1;
-    uint8_t output[output_len];
-    MEMZERO(output, output_len);
+    uint8_t output[MAX_ARGNAME_LEN] = {0};
+    if (name_len >= (MAX_ARGNAME_LEN - 2 * BLAKE2B_256_SIZE - 1)) {
+        return parser_value_out_of_range;
+    }
 
-    char hex_hash[BLAKE2B_256_SIZE * 2];
-    encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash);
+    char hex_hash[BLAKE2B_256_SIZE * 2] = {0};
+    if (encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash, sizeof(hex_hash)) != zxerr_ok) {
+        return parser_unexepected_error;
+    }
 
     MEMCPY(output, name, name_len);
     output[name_len] = '-';
@@ -125,7 +128,7 @@ parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outK
                 MEMCPY(outKey, buffer, key_len);
                 // convert first character to upper case
                 if(is_alphabetic(outKey[0])) {
-                    to_uppercase(&outKey[0]);
+                    to_uppercase((uint8_t*) &outKey[0]);
                 }
             }
 

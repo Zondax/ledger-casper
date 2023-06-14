@@ -78,6 +78,7 @@ cmake-build-fuzz/
 /app/obj/
 /build
 .vscode/
+app/build/*
 
 \deps/*
 !\deps/nanos-secure-sdk

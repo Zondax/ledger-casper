@@ -133,6 +133,8 @@ parser_error_t parser_init_context(parser_context_t *ctx,
     ctx->buffer = buffer;
     ctx->bufferLen = bufferSize;
 
+    entry_point_offset = 0;
+
     memset(&parser_tx_obj, 0, sizeof(parser_tx_obj));
 
     return parser_ok;
@@ -312,17 +314,13 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         case TAG_RESULT: {
             uint8_t ok_type = 0;
             uint8_t err_type = 0;
-            uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &ok_type));
             CHECK_PARSER_ERR(_readUInt8(ctx, &err_type));
             if(is_container_type(ok_type) || is_container_type(err_type)){
                 return parser_unexpected_type;
             }else{
-                // here we have to optianl types, what we should mark here?
-                /**option_type = ok_type;*/
-                parser_error_t err = parse_additional_typebytes(ctx, ok_type, &inner_type);
-                inner_type = 0;
-                return err | parse_additional_typebytes(ctx, err_type, &inner_type);
+                parser_error_t err = parse_additional_typebytes(ctx, ok_type, option_type);
+                return err | parse_additional_typebytes(ctx, err_type, option_type);
             }
         }
 
@@ -330,7 +328,7 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         case TAG_TUPLE2:
         case TAG_TUPLE3: {
             const uint8_t elements_len = type - TAG_TUPLE1 + 1;
-            uint8_t element[elements_len];
+            uint8_t element[TAG_TUPLE3 - TAG_TUPLE1 + 1] = {0}; // 3
             uint8_t inner_type = 0;
             parser_error_t err = parser_ok;
 
@@ -574,14 +572,14 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_PARSER_ERR(parseDeployType(type, &v->session.type));
     CHECK_PARSER_ERR(parseDeployItem(ctx, &v->session));
 
+    v->type = Transaction;
     return parser_ok;
 }
 
 parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v) {
-    uint8_t hash[BLAKE2B_256_SIZE];
+    uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
     //check headerhash
-    MEMZERO(hash, sizeof(hash));
     if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
         return parser_unexepected_error;
     }

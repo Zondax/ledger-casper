@@ -21,6 +21,8 @@ extern "C" {
 #endif
 
 #include "parser_impl.h"
+#include "parser_message.h"
+#include "parser_wasm.h"
 
 const char *parser_getErrorDescription(parser_error_t err);
 
@@ -42,7 +44,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
 
 parser_error_t parse_TTL(uint64_t value, char *buffer, uint16_t bufferSize);
 
-parser_error_t parser_runtimeargs_getData(char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx);
+parser_error_t parser_runtimeargs_getData(const char *keystr, uint32_t *length, uint8_t *runtype, uint32_t num_items, parser_context_t *ctx);
 
 parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx,
                                          char *outVal, uint16_t outValLen,
