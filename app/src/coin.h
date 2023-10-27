@@ -35,7 +35,7 @@ extern "C" {
 #define HDPATH_0_TESTNET     (0x80000000u | 0x2cu)
 #define HDPATH_1_TESTNET     (0x80000000u | 0x1fau)
 
-#define SIG_RS_LEN                     64u
+#define SIG_RS_LEN                  64u
 #define SECP256K1_PK_LEN            33u
 #define ED25519_PK_LEN              32u
 #define HASH_LENGTH                 32u
