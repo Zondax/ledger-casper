@@ -72,7 +72,6 @@ include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 DEFINES += HAVE_HASH HAVE_BLAKE2
 INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
 
-DEFINES       += UNUSED\(x\)=\(void\)x
 # NanoX SDK does not allow += in APP_SOURCE_PATH or INCLUDES_PATH
 CFLAGS += -I$(MY_DIR)/../deps/tinycbor/src
 APP_SOURCE_PATH += $(MY_DIR)/../deps/tinycbor-ledger
