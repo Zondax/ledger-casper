@@ -346,7 +346,21 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return err;
         }
 
+        case TAG_MAP: {
+            uint8_t key_type = 0;
+            uint8_t value_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &key_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &value_type));
 
+            // do not support complex types as fields of another complex type
+            // this would increase ram usage.
+            if(is_container_type(key_type) || is_container_type(value_type)){
+                return parser_unexpected_type;
+            }
+
+            parser_error_t err = parse_additional_typebytes(ctx, key_type, option_type);
+            return err | parse_additional_typebytes(ctx, value_type, option_type);
+        }
        default : {
             // we support now generic arguments
             // in transactions but we only support
