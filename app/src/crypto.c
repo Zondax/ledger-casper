@@ -216,17 +216,15 @@ zxerr_t crypto_hashChunk(const uint8_t *buffer, uint32_t bufferLen,
 
     switch (operation) {
         case hash_start:
-            if (cx_blake2b_init2_no_throw(&body_hash_ctx, 256, NULL, 0, NULL, 0) != CX_OK) {
-                return zxerr_invalid_crypto_settings;
-            }
+            CHECK_CX_OK(cx_blake2b_init2_no_throw(&body_hash_ctx, 256, NULL, 0, NULL, 0));
             break;
 
         case hash_update:
-            cx_blake2b_update(&body_hash_ctx, buffer, bufferLen);
+            CHECK_CX_OK(cx_blake2b_update(&body_hash_ctx, buffer, bufferLen));
             break;
 
         case hash_finish:
-            cx_blake2b_final(&body_hash_ctx, output);
+            CHECK_CX_OK(cx_blake2b_final(&body_hash_ctx, output));
             break;
     }
 

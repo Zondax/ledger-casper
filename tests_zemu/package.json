@@ -9,7 +9,7 @@
   "scripts": {
     "try": "node try.mjs",
     "clean": "ts-node tests/pullImageKillOld.ts",
-    "test": "yarn clean && jest"
+    "test": "yarn clean && jest --maxConcurrency 2"
   },
   "repository": {
     "type": "git",
