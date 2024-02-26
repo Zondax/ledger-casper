@@ -229,6 +229,10 @@ bool is_container_type(uint8_t cl_type) {
     || (cl_type >= TAG_RESULT && cl_type <= TAG_ANY);
 }
 
+bool is_map_type(uint8_t cl_type) {
+    return cl_type == TAG_MAP;
+}
+
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, uint8_t *option_type) {
     switch (type) {
         case TAG_BOOL: {
@@ -346,7 +350,27 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             return err;
         }
 
+        case TAG_MAP: {
+            uint8_t key_type = 0;
+            uint8_t value_type = 0;
+            CHECK_PARSER_ERR(_readUInt8(ctx, &key_type));
+            CHECK_PARSER_ERR(_readUInt8(ctx, &value_type));
 
+            // do not support nested maps
+            if(is_map_type(key_type) || is_map_type(value_type)) {
+                return parser_unexpected_type;
+            }
+
+            parser_error_t err = parse_additional_typebytes(ctx, key_type, option_type);
+            return err | parse_additional_typebytes(ctx, value_type, option_type);
+        }
+
+        case TAG_ANY: {
+            // any is an empty type
+            // https://docs.rs/casper-types/4.0.1/src/casper_types/cl_type.rs.html#138
+            // nothing to do here.
+            return parser_ok;
+        }
        default : {
             // we support now generic arguments
             // in transactions but we only support
@@ -368,6 +392,7 @@ parser_error_t parse_item(parser_context_t *ctx) {
 }
 
 parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type, uint8_t *option_type) {
+    zemu_log_stack("get_type");
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(check_runtime_type(type));

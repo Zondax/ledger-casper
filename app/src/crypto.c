@@ -67,11 +67,11 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
                                                      privateKeyData,
                                                      NULL,
                                                      NULL,
-                                                     0))
+                                                     0));
 
-    CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey))
-    CATCH_CXERROR(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1, NULL, 0, &cx_publicKey))
-    CATCH_CXERROR(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, &cx_publicKey, &cx_privateKey, 1))
+    CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey));
+    CATCH_CXERROR(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1, NULL, 0, &cx_publicKey));
+    CATCH_CXERROR(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, &cx_publicKey, &cx_privateKey, 1));
     cx_publicKey.W[0] = cx_publicKey.W[64] & 1 ? 0x03 : 0x02; // "Compress" public key in place
     memcpy(pubKey, cx_publicKey.W, SECP256K1_PK_LEN);
     error = zxerr_ok;
@@ -175,16 +175,16 @@ zxerr_t crypto_sign(uint8_t *signature,
                                                      privateKeyData,
                                                      NULL,
                                                      NULL,
-                                                     0))
+                                                     0));
 
-    CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey))
+    CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey));
     CATCH_CXERROR(cx_ecdsa_sign_no_throw(&cx_privateKey,
                                          CX_RND_RFC6979 | CX_LAST,
                                          CX_SHA256,
                                          hash,
                                          CX_SHA256_SIZE,
                                          signature_object->der_signature,
-                                         &signatureLength, &tmpInfo))
+                                         &signatureLength, &tmpInfo));
 
     const err_convert_e err_c = convertDERtoRSV(signature_object->der_signature, tmpInfo,  signature_object->r, signature_object->s, &signature_object->v);
     if (err_c == no_error) {
@@ -216,17 +216,15 @@ zxerr_t crypto_hashChunk(const uint8_t *buffer, uint32_t bufferLen,
 
     switch (operation) {
         case hash_start:
-            if (cx_blake2b_init2_no_throw(&body_hash_ctx, 256, NULL, 0, NULL, 0) != CX_OK) {
-                return zxerr_invalid_crypto_settings;
-            }
+            CHECK_CX_OK(cx_blake2b_init2_no_throw(&body_hash_ctx, 256, NULL, 0, NULL, 0));
             break;
 
         case hash_update:
-            cx_blake2b_update(&body_hash_ctx, buffer, bufferLen);
+            CHECK_CX_OK(cx_blake2b_update(&body_hash_ctx, buffer, bufferLen));
             break;
 
         case hash_finish:
-            cx_blake2b_final(&body_hash_ctx, output);
+            CHECK_CX_OK(cx_blake2b_final(&body_hash_ctx, output));
             break;
     }
 
