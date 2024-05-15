@@ -77,6 +77,10 @@ DEFINES       += UNUSED\(x\)=\(void\)x
 CFLAGS += -I$(MY_DIR)/../deps/tinycbor/src
 APP_SOURCE_PATH += $(MY_DIR)/../deps/tinycbor-ledger
 
+ifeq ($(TARGET_NAME),TARGET_STAX)
+SDK_SOURCE_PATH += qrcode
+endif
+
 .PHONY: rust
 rust:
 	@echo "No rust code"
