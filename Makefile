@@ -19,7 +19,7 @@
 # BOLOS_SDK NOT DEFINED		We use a containerized build approach
 
 TESTS_JS_PACKAGE = "@zondax/ledger-casper"
-TESTS_JS_DIR = $(CURDIR)/js
+TESTS_JS_DIR = $(CURDIR)/../ledger-casper-js
 
 ifeq ($(BOLOS_SDK),)
 PRODUCTION_BUILD ?= 1
