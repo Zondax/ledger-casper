@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  ******************************************************************************* */
-import Zemu, { zondaxMainmenuNavigation, ButtonKind } from '@zondax/zemu'
+import Zemu, { zondaxMainmenuNavigation, isTouchDevice, ButtonKind } from '@zondax/zemu'
 import { defaultOptions, models, PATH } from "./common";
 import CasperApp from "@zondax/ledger-casper";
 // @ts-ignore
@@ -92,7 +92,7 @@ describe("Standard", function () {
       await sim.start({
         ...defaultOptions,
         model: m.name,
-        approveKeyword: m.name === 'stax' ? 'QR' : '',
+        approveKeyword: isTouchDevice(m.name) ? 'Confirm' : '',
         approveAction: ButtonKind.ApproveTapButton,
       })
       const app = new CasperApp(sim.getTransport());
@@ -398,7 +398,7 @@ describe("Standard", function () {
       const respRequest = app.signWasmDeploy(PATH, txBlob);
 
       // Wait until we send everything to device
-      const waitText = m.name == 'stax' ? "Review" : (m.name == 'nanos') ? "DeployHash" : "Please";
+      const waitText = m.name == 'stax' || m.name == 'flex' ? "Review" : (m.name == 'nanos') ? "DeployHash" : "Please";
       await sim.waitForText(waitText, 30000);
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_raw_wasm`)
 

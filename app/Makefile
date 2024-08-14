@@ -1,6 +1,6 @@
 #*******************************************************************************
 #  Ledger App
-#  (c) 2018 - 2023 Zondax AG
+#  (c) 2018 - 2024 Zondax AG
 #  (c) 2017 Ledger
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,28 @@ include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
 
 include $(BOLOS_SDK)/Makefile.defines
 
-$(info ************ TARGET_NAME  = [$(TARGET_NAME)])
+# Set the default value for PRODUCTION_BUILD to 0 if not already defined
+PRODUCTION_BUILD ?= 1
+
+$(info ************ CASPER_NAME  = [$(TARGET_NAME)])
+
+# Display whether this is a production build or for internal use
+ifeq ($(PRODUCTION_BUILD), 1)
+    $(info ************ PRODUCTION_BUILD  = [PRODUCTION BUILD])
+else
+    $(info ************ PRODUCTION_BUILD  = [INTERNAL USE])
+endif
+
+# Display whether swap functionality is enabled or not
+ifdef HAVE_SWAP
+    $(info ************ HAVE_SWAP  = [ENABLED])
+    DEFINES += HAVE_SWAP=$(HAVE_SWAP)
+else
+    $(info ************ HAVE_SWAP  = [DISABLED])
+endif
+
+# Add the PRODUCTION_BUILD definition to the compiler flags
+DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
 
@@ -56,6 +77,11 @@ endif
 
 APP_LOAD_PARAMS = --curve secp256k1 $(COMMON_LOAD_PARAMS) --path ${APPPATH}
 
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+	APP_STACK_MIN_SIZE := 1600
+else
+	APP_STACK_MIN_SIZE := 1752
+endif
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.devices
 

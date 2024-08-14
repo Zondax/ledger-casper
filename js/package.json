@@ -20,29 +20,29 @@
   },
   "homepage": "https://github.com/zondax/ledger-casper",
   "dependencies": {
-    "@babel/runtime": "^7.24.4",
-    "@ledgerhq/hw-transport": "^6.30.5",
+    "@babel/runtime": "^7.25.0",
+    "@ledgerhq/hw-transport": "^6.31.2",
     "@types/ledgerhq__hw-transport": "^4.21.8"
   },
   "devDependencies": {
-    "@babel/cli": "^7.24.1",
-    "@babel/core": "^7.24.4",
-    "@babel/node": "^7.23.9",
-    "@babel/plugin-transform-runtime": "^7.24.3",
-    "@babel/preset-env": "^7.24.4",
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.25.2",
+    "@babel/node": "^7.25.0",
+    "@babel/plugin-transform-runtime": "^7.24.7",
+    "@babel/preset-env": "^7.25.3",
     "babel-eslint": "^10.1.0",
     "bip32": "^4.0.0",
     "bip39": "^3.1.0",
-    "core-js": "^3.36.1",
+    "core-js": "^3.38.0",
     "crypto-js": "4.2.0",
-    "eslint": "^9.0.0",
+    "eslint": "^9.9.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-prettier": "^5.2.1",
     "index.js": "^0.0.3",
-    "prettier": "^3.2.5",
+    "prettier": "^3.3.3",
     "secp256k1": "^5.0.0",
-    "typescript": "^5.4.4"
+    "typescript": "^5.5.4"
   },
   "scripts": {
     "build": "tsc"
