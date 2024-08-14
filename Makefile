@@ -18,8 +18,8 @@
 # BOLOS_SDK IS  DEFINED	 	We use the plain Makefile for Ledger
 # BOLOS_SDK NOT DEFINED		We use a containerized build approach
 
-TESTS_JS_PACKAGE = "@zondax/ledger-casper"
-TESTS_JS_DIR = $(CURDIR)/../ledger-casper-js
+# TESTS_JS_PACKAGE = "@zondax/ledger-casper"
+# TESTS_JS_DIR = $(CURDIR)/../ledger-casper-js
 
 ifeq ($(BOLOS_SDK),)
 PRODUCTION_BUILD ?= 1

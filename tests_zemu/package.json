@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "@ledgerhq/hw-transport-node-hid": "^6.29.3",
-    "@zondax/ledger-casper": "link:../js",
+    "@zondax/ledger-casper": "^2.6.2",
     "@zondax/zemu": "^0.50.2"
   },
   "devDependencies": {
