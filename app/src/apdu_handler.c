@@ -165,7 +165,7 @@ __Z_INLINE void handleSignWasm(volatile uint32_t *flags, volatile uint32_t *tx, 
         // Don't refresh too fast
         if ((wasm_counter % 5) == 0) {
             view_message_show("Raw Wasm", message);
-            #if !defined(TARGET_STAX)
+            #if !(defined(TARGET_STAX) || defined(TARGET_FLEX))
             UX_WAIT_DISPLAYED();
             #endif
         }
