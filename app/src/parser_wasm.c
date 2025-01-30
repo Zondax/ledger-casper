@@ -24,16 +24,16 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txOb
     txObj->header.pubkeytype = ctx->buffer[0];
     PARSER_ASSERT_OR_ERROR(txObj->header.pubkeytype == 0x01 || txObj->header.pubkeytype == 0x02, parser_context_unknown_prefix);
 
-    CHECK_PARSER_ERR(index_headerpart(txObj->header, header_deps, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_deps, &ctx->offset));
     CHECK_PARSER_ERR(readU32(ctx, &txObj->header.lenDependencies));
 
-    CHECK_PARSER_ERR(index_headerpart(txObj->header, header_chainname, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_chainname, &ctx->offset));
     CHECK_PARSER_ERR(readU32(ctx, &txObj->header.lenChainName));
 
     if (ctx->bufferLen - ctx->offset < BLAKE2B_256_SIZE) {
         return parser_unexpected_buffer_end;
     }
-    ctx->offset = headerLength(txObj->header) + BLAKE2B_256_SIZE;
+    ctx->offset = header_length_deploy(txObj->header) + BLAKE2B_256_SIZE;
     uint8_t type = 0;
     CHECK_PARSER_ERR(readU8(ctx, &type));
     txObj->payment.phase = Payment;
@@ -78,10 +78,10 @@ parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx
     uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
     //check headerhash
-    if (blake2b_hash(ctx->buffer, headerLength(v->header), hash) != zxerr_ok){
+    if (blake2b_hash(ctx->buffer, header_length_deploy(v->header), hash) != zxerr_ok){
         return parser_unexepected_error;
     }
-    PARSER_ASSERT_OR_ERROR(MEMCMP(hash, ctx->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
+    PARSER_ASSERT_OR_ERROR(MEMCMP(hash, ctx->buffer + header_length_deploy(v->header), BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
 
     return parser_ok;
 }
@@ -109,12 +109,12 @@ parser_error_t parser_getWasmItem(parser_context_t *ctx,
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "DeployHash");
-            pageStringHex(outVal, outValLen, (const char*) ctx->buffer + headerLength(ctx->tx_obj->header), HASH_LENGTH, pageIdx, pageCount);
+            pageStringHex(outVal, outValLen, (const char*) ctx->buffer + header_length_deploy(ctx->tx_obj->header), HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 
         case 1:
             snprintf(outKey, outKeyLen, "BodyHash");
-            CHECK_PARSER_ERR(index_headerpart(ctx->tx_obj->header, header_bodyhash, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(ctx->tx_obj->header, header_bodyhash, &ctx->offset));
             pageStringHex(outVal, outValLen, (const char*) ctx->buffer + ctx->offset, HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 

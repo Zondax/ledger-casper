@@ -93,11 +93,21 @@ typedef struct {
 
 typedef struct {
     // TODO
-} parser_header_transactionV1_t;
+} parser_header_txnV1_t;
+
 typedef struct {
-    parser_header_transactionV1_t header;
+    uint8_t num_fields;
+    uint16_t first_field_offset;
+    uint16_t second_field_offset;
+    uint16_t third_field_offset;
+    uint16_t fields_size;
+} parser_metadata_txnV1_t;
+
+typedef struct {
+    parser_header_txnV1_t header;
+    parser_metadata_txnV1_t metadata;
     // TODO
-} parser_tx_transactionV1_t;
+} parser_tx_txnV1_t;
 
 typedef enum {
     Deploy = 0,

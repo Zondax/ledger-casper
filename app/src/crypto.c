@@ -147,7 +147,7 @@ zxerr_t crypto_sign(uint8_t *signature,
     switch (parser_tx_obj.type) {
         case WasmDeploy:
         case Transaction: {
-            const uint8_t *message_digest = message + headerLength(parser_tx_obj.header);
+            const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj.header);
             cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
             break;
         }

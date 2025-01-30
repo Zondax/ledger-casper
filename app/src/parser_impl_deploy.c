@@ -34,7 +34,7 @@ parser_tx_deploy_t parser_tx_obj_deploy;
 //pub dependencies: Vec<DeployHash>,  //4 + len*32
 //pub chain_name: String,             //4+14 = 18
 
-uint16_t headerLength(parser_header_deploy_t header) {
+uint16_t header_length_deploy(parser_header_deploy_t header) {
     uint16_t pubkeyLen = 1 + (header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
     uint16_t fixedLen = 56;
     uint16_t depsLen = 4 + header.lenDependencies * 32;
@@ -42,7 +42,7 @@ uint16_t headerLength(parser_header_deploy_t header) {
     return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
-parser_error_t index_headerpart(parser_header_deploy_t head, header_part_e part, uint16_t *index) {
+parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_e part, uint16_t *index) {
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
     uint16_t deployHashLen = 4 + head.lenDependencies * 32;
@@ -259,13 +259,13 @@ parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v) 
     v->header.pubkeytype = ctx->buffer[0];
     PARSER_ASSERT_OR_ERROR(v->header.pubkeytype == 0x01 || v->header.pubkeytype == 0x02, parser_context_unknown_prefix);
 
-    CHECK_PARSER_ERR(index_headerpart(v->header, header_deps, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_deps, &ctx->offset));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenDependencies));
 
-    CHECK_PARSER_ERR(index_headerpart(v->header, header_chainname, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_chainname, &ctx->offset));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
-    ctx->offset = headerLength(v->header) + BLAKE2B_256_SIZE;
+    ctx->offset = header_length_deploy(v->header) + BLAKE2B_256_SIZE;
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     v->payment.phase = Payment;
@@ -294,21 +294,21 @@ parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_depl
     uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
     //check headerhash
-    if (blake2b_hash(c->buffer,headerLength(v->header),hash) != zxerr_ok){
+    if (blake2b_hash(c->buffer,header_length_deploy(v->header),hash) != zxerr_ok){
         return parser_unexepected_error;
     }
-    PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + headerLength(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
+    PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + header_length_deploy(v->header), BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
     //check bodyhash
     MEMZERO(hash, sizeof(hash));
-    uint16_t index = headerLength(v->header) + BLAKE2B_256_SIZE;
+    uint16_t index = header_length_deploy(v->header) + BLAKE2B_256_SIZE;
     uint32_t size = v->payment.totalLength + v->session.totalLength;
     if (blake2b_hash(c->buffer + index,size,hash) != zxerr_ok){
         return parser_unexepected_error;
     }
 
     index = 0;
-    CHECK_PARSER_ERR(index_headerpart(v->header,header_bodyhash, &index));
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header,header_bodyhash, &index));
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash,c->buffer + index, BLAKE2B_256_SIZE) == 0,parser_context_mismatch);
 
     return parser_ok;
@@ -340,7 +340,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
 
     if (displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Txn hash");
-        ctx->offset = headerLength(parser_tx_obj.header);
+        ctx->offset = header_length_deploy(parser_tx_obj.header);
         return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), 32, outVal, outValLen,
                                  pageIdx, pageCount);
     }
@@ -362,13 +362,13 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
     }
 
     if (displayIdx == 2) {
-        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_chainname, &ctx->offset));
         DISPLAY_STRING("Chain ID", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
     }
 
     if (displayIdx == 3) {
         snprintf(outKey, outKeyLen, "Account");
-        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_pubkey, &ctx->offset));
         uint16_t pubkeyLen = 1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
         return parser_printAddress((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
                                  pageIdx, pageCount);
@@ -381,7 +381,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
 
         if (displayIdx == 5) {
             snprintf(outKey, outKeyLen, "Ttl");
-            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_ttl, &ctx->offset));
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx,&value));
             value /= 1000;
@@ -396,7 +396,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
         }
 
         if (displayIdx == 7) {
-            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_deps, &ctx->offset));
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
             snprintf(outKey, outKeyLen, "Deps #");
@@ -410,7 +410,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
     if (app_mode_expert()) {
         new_displayIdx -= 4;
     }
-    ctx->offset = headerLength(parser_tx_obj.header) + 32;
+    ctx->offset = header_length_deploy(parser_tx_obj.header) + 32;
 
     uint16_t total_payment_items = parser_tx_obj.payment.UI_fixed_items + parser_tx_obj.payment.UI_runtime_items;
     if (new_displayIdx < total_payment_items) {

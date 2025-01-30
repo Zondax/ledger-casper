@@ -142,7 +142,7 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_message.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl_deploy.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl_transaction.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl_transactionV1.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_utils.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_special.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/runtime_arg.c

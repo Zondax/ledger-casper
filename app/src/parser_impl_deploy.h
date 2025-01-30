@@ -33,9 +33,9 @@ parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_depl
 
 uint8_t _getNumItemsDeploy(const parser_context_t *c, const parser_tx_deploy_t *v);
 
-parser_error_t index_headerpart(parser_header_deploy_t head, header_part_e part, uint16_t *index);
+parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_e part, uint16_t *index);
 
-uint16_t headerLength(parser_header_deploy_t header);
+uint16_t header_length_deploy(parser_header_deploy_t header);
 
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
 
