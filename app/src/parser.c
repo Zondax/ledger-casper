@@ -18,13 +18,13 @@
 #include <zxmacros.h>
 #include <zxformat.h>
 #include "runtime_arg.h"
-#include "parser_impl.h"
+#include "parser_impl_deploy.h"
 #include "parser.h"
+#include "parser_utils.h"
 #include "coin.h"
 #include "app_mode.h"
 #include "bignum.h"
 #include "crypto.h"
-#include "timeutils.h"
 #include "parser_common.h"
 #include "parser_special.h"
 
@@ -41,53 +41,29 @@ void __assert_fail(const char * assertion, const char * file, unsigned int line,
 
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
-    return _read(ctx, ctx->tx_obj);
+
+    CHECK_PARSER_ERR(readU8(ctx, (uint8_t *) &ctx->tx_content));
+    ctx->buffer = ctx->buffer + ctx->offset;
+
+    if (ctx->tx_content == Deploy) {
+        memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
+        ctx->tx_obj = &parser_tx_obj_deploy;
+        return parser_read_deploy(ctx, (parser_tx_deploy_t *) ctx->tx_obj);
+    } else if (ctx->tx_content == TransactionV1) {
+        // TODO return parser_read_transactionV1(ctx, ctx->tx_obj);
+    } else {
+        return parser_context_unknown_prefix;
+    }
 }
-
-parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
-                                 char *outVal, uint16_t outValLen,
-                                 uint8_t pageIdx, uint8_t *pageCount) {
-    char encodedAddr[100];
-    MEMZERO(encodedAddr, sizeof(encodedAddr));
-    encode((char*)bytes, byteLength, encodedAddr);
-    pageString(outVal, outValLen, encodedAddr, pageIdx, pageCount);
-    return parser_ok;
-}
-
-parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
-                                   char *outVal, uint16_t outValLen,
-                                   uint8_t pageIdx, uint8_t *pageCount) {
-    char buffer[100];
-    MEMZERO(buffer, sizeof(buffer));
-
-    encode_addr((char*)bytes, byteLength, buffer);
-
-    pageString(outVal, outValLen, buffer, pageIdx, pageCount);
-    return parser_ok;
-}
-
-parser_error_t parser_printU32(uint32_t value, char *outVal,
-                               uint16_t outValLen, uint8_t pageIdx,
-                               uint8_t *pageCount) {
-    char tmpBuffer[30];
-    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), (uint64_t)value, 0);
-    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
-    return parser_ok;
-}
-
-
-parser_error_t parser_printU64(uint64_t value, char *outVal,
-                               uint16_t outValLen, uint8_t pageIdx,
-                               uint8_t *pageCount) {
-    char tmpBuffer[30];
-    fpuint64_to_str(tmpBuffer, sizeof(tmpBuffer), value, 0);
-    pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
-    return parser_ok;
-}
-
 
 parser_error_t parser_validate(const parser_context_t *ctx) {
-    CHECK_PARSER_ERR(_validateTx(ctx, &parser_tx_obj))
+    if (ctx->tx_content == Deploy) {
+        CHECK_PARSER_ERR(_validateTxDeploy(ctx, (parser_tx_deploy_t*) ctx->tx_obj))
+    } else if (ctx->tx_content == TransactionV1) {
+        // TODO CHECK_PARSER_ERR(_validateTxDeploy(ctx, &ctx->tx_obj))
+    } else {
+        return parser_context_unknown_prefix;
+    }
 
     // Iterate through all items to check that all can be shown and are valid
     uint8_t numItems = 0;
@@ -107,42 +83,14 @@ parser_error_t parser_validate(const parser_context_t *ctx) {
 }
 
 parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_items) {
-    *num_items = _getNumItems(ctx, &parser_tx_obj);
+    if (ctx->tx_content == Deploy) {
+        *num_items = _getNumItemsDeploy(ctx, (parser_tx_deploy_t*) ctx->tx_obj);
+    } else if (ctx->tx_content == TransactionV1) {
+        // TODO *num_items = _getNumItemsTransactionV1(ctx, &ctx->tx_obj);
+    } else {
+        return parser_context_unknown_prefix;
+    }
     return parser_ok;
-}
-
-#define DISPLAY_STRING(KEYNAME, VALUE, VALUELEN) {         \
-    snprintf(outKey, outKeyLen, KEYNAME);            \
-    char buffer[100];                               \
-    MEMZERO(buffer, sizeof(buffer));                       \
-    if ((VALUELEN) > sizeof(buffer)){                      \
-        return parser_unexpected_buffer_end;                             \
-    }                                   \
-    MEMCPY(buffer, (char *)(VALUE),VALUELEN);         \
-    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount); \
-    return parser_ok;   \
-}
-
-#define DISPLAY_RUNTIMEARG_U64(CTX){                                        \
-    uint64_t value = 0;                                                     \
-    CHECK_PARSER_ERR(readU64(CTX, &value));                                                   \
-    return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
-}
-
-#define DISPLAY_RUNTIMEARG_U32(CTX){                                        \
-    uint32_t value = 0;                                                     \
-    CHECK_PARSER_ERR(readU32(CTX, &value));                                                   \
-    return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
-}
-
-#define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN){                                        \
-    return parser_printBytes((const uint8_t *) ((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx,        \
-    pageCount);                                                                                                         \
-}
-
-#define DISPLAY_RUNTIMEARG_ADDRESS(CTX, LEN){                                        \
-    return parser_printAddress((const uint8_t *) ((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx,        \
-    pageCount);                                                                                                         \
 }
 
 parser_error_t find_end_of_number(char *buffer, uint16_t bufferSize, uint16_t *output){
@@ -481,27 +429,6 @@ parser_error_t parser_getItem_ModuleBytes(ExecutableDeployItem item, parser_cont
     return parser_no_data;
 }
 
-#define DISPLAY_HEADER_U64(KEYNAME, HEADERPART) {         \
-    snprintf(outKey, outKeyLen, KEYNAME);                                                             \
-    CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, HEADERPART, &ctx->offset));     \
-    uint64_t value = 0;                                                                         \
-    CHECK_PARSER_ERR(readU64(ctx,&value));                                             \
-    return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                   \
-}
-
-#define DISPLAY_HEADER_TIMESTAMP(KEYNAME, HEADERPART) {         \
-    snprintf(outKey, outKeyLen, KEYNAME);                                                             \
-    CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, HEADERPART, &ctx->offset));     \
-    uint64_t value = 0;                                                                         \
-    CHECK_PARSER_ERR(readU64(ctx,&value));                      \
-    value /= 1000;                                                            \
-    char buffer[300];                                           \
-    MEMZERO(buffer,sizeof(buffer));                             \
-    PARSER_ASSERT_OR_ERROR(printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok, parser_unexepected_error); \
-    pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);         \
-    return parser_ok;                                                                \
-}
-
 parser_error_t parser_getItemDeploy(ExecutableDeployItem item, parser_context_t *ctx,
                                     uint8_t displayIdx,
                                     char *outKey, uint16_t outKeyLen,
@@ -597,130 +524,12 @@ parser_error_t parser_getItem(parser_context_t *ctx,
                               char *outKey, uint16_t outKeyLen,
                               char *outVal, uint16_t outValLen,
                               uint8_t pageIdx, uint8_t *pageCount) {
-    MEMZERO(outKey, outKeyLen);
-    MEMZERO(outVal, outValLen);
-    snprintf(outKey, outKeyLen, "?");
-    snprintf(outVal, outValLen, "?");
-    *pageCount = 1;
-
-    uint8_t numItems = 0;
-    CHECK_PARSER_ERR(parser_getNumItems(ctx, &numItems))
-    CHECK_APP_CANARY()
-
-    if (displayIdx < 0 || displayIdx >= numItems) {
-        return parser_no_data;
+    if (ctx->tx_content == Deploy) {
+        return _getItemDeploy(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    } else if (ctx->tx_content == TransactionV1) {
+        // TODO return _getItemTransactionV1(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+    } else {
+        return parser_context_unknown_prefix;
     }
-
-    if (displayIdx == 0) {
-        snprintf(outKey, outKeyLen, "Txn hash");
-        ctx->offset = headerLength(parser_tx_obj.header);
-        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), 32, outVal, outValLen,
-                                 pageIdx, pageCount);
-    }
-
-    if (displayIdx == 1) {
-        snprintf(outKey, outKeyLen, "Type");
-        if (parser_tx_obj.payment.special_type == SystemPayment && parser_tx_obj.session.type == Transfer) {
-            snprintf(outVal, outValLen, "Token transfer");
-        } else if (parser_tx_obj.session.special_type == Delegate && parser_tx_obj.session.with_generic_args == 0 ){
-            snprintf(outVal, outValLen, "Delegate");
-        }else if (parser_tx_obj.session.special_type == UnDelegate && parser_tx_obj.session.with_generic_args == 0) {
-            snprintf(outVal, outValLen, "Undelegate");
-        }else if (parser_tx_obj.session.special_type == ReDelegate && parser_tx_obj.session.with_generic_args == 0) {
-            snprintf(outVal, outValLen, "Redelegate");
-        }else {
-            snprintf(outVal, outValLen, "Contract execution");
-        }
-        return parser_ok;
-    }
-
-    if (displayIdx == 2) {
-        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_chainname, &ctx->offset));
-        DISPLAY_STRING("Chain ID", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
-    }
-
-    if (displayIdx == 3) {
-        snprintf(outKey, outKeyLen, "Account");
-        CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_pubkey, &ctx->offset));
-        uint16_t pubkeyLen = 1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
-        return parser_printAddress((const uint8_t *) (ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen,
-                                 pageIdx, pageCount);
-    }
-
-    if (app_mode_expert()) {
-        if (displayIdx == 4) {
-            DISPLAY_HEADER_TIMESTAMP("Timestamp", header_timestamp)
-        }
-
-        if (displayIdx == 5) {
-            snprintf(outKey, outKeyLen, "Ttl");
-            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_ttl, &ctx->offset));
-            uint64_t value = 0;
-            CHECK_PARSER_ERR(readU64(ctx,&value));
-            value /= 1000;
-            char buffer[100];
-            CHECK_PARSER_ERR(parse_TTL(value, buffer, sizeof(buffer)));
-            pageString(outVal, outValLen, (char *) buffer, pageIdx, pageCount);
-            return parser_ok;
-        }
-
-        if (displayIdx == 6) {
-            DISPLAY_HEADER_U64("Gas price", header_gasprice)
-        }
-
-        if (displayIdx == 7) {
-            CHECK_PARSER_ERR(index_headerpart(parser_tx_obj.header, header_deps, &ctx->offset));
-            uint32_t numdeps = 0;
-            CHECK_PARSER_ERR(readU32(ctx, &numdeps));
-            snprintf(outKey, outKeyLen, "Deps #");
-            uint64_t value = 0;
-            MEMCPY(&value, &numdeps, 4);
-            return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
-
-        }
-    }
-    uint8_t new_displayIdx = displayIdx - 4;
-    if (app_mode_expert()) {
-        new_displayIdx -= 4;
-    }
-    ctx->offset = headerLength(parser_tx_obj.header) + 32;
-
-    uint16_t total_payment_items = parser_tx_obj.payment.UI_fixed_items + parser_tx_obj.payment.UI_runtime_items;
-    if (new_displayIdx < total_payment_items) {
-        if(parser_tx_obj.payment.special_type == SystemPayment){
-            return parser_getItem_SystemPayment(parser_tx_obj.payment, ctx, new_displayIdx, outKey, outKeyLen, outVal,
-                                                outValLen, pageIdx, pageCount);
-        }else{
-            return parser_unexpected_type; //only support for system payments now
-        }
-    }
-
-    new_displayIdx -= total_payment_items;
-    ctx->offset += parser_tx_obj.payment.totalLength;
-
-    uint16_t total_session_items = parser_tx_obj.session.UI_fixed_items + parser_tx_obj.session.UI_runtime_items;
-
-    if (new_displayIdx < total_session_items) {
-        special_deploy_e special_type = parser_tx_obj.session.special_type;
-        if(special_type == NativeTransfer){
-            return parser_getItem_NativeTransfer(parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else if(special_type == Delegate || special_type == UnDelegate || special_type == ReDelegate || special_type == Generic){
-            return parser_getItem_Delegation(&parser_tx_obj.session, ctx, new_displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        }else{
-            return parser_unexpected_type;
-        }
-    }
-
-    ctx->offset += parser_tx_obj.session.totalLength;
-
-    if (displayIdx == numItems - 1 && app_mode_expert()) {
-        snprintf(outKey, outKeyLen, "Approvals #");
-        uint32_t num_approvs = 0;
-        CHECK_PARSER_ERR(readU32(ctx, &num_approvs));
-        uint64_t value = 0;
-        MEMCPY(&value, &num_approvs, 4);
-        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
-    }
-
-    return parser_no_data;
 }
+

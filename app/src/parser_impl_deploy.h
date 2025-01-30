@@ -23,21 +23,19 @@
 extern "C" {
 #endif
 
-#define PARSER_ASSERT_OR_ERROR(CALL, ERROR) if (!(CALL)) return ERROR;
-
-extern parser_tx_t parser_tx_obj;
+extern parser_tx_deploy_t parser_tx_obj_deploy;
 
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
 
-parser_error_t _read(parser_context_t *c, parser_tx_t *v);
+parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v);
 
-parser_error_t _validateTx(const parser_context_t *c, const parser_tx_t *v);
+parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_deploy_t *v);
 
-uint8_t _getNumItems(const parser_context_t *c, const parser_tx_t *v);
+uint8_t _getNumItemsDeploy(const parser_context_t *c, const parser_tx_deploy_t *v);
 
-parser_error_t index_headerpart(parser_header_t head, header_part_e part, uint16_t *index);
+parser_error_t index_headerpart(parser_header_deploy_t head, header_part_e part, uint16_t *index);
 
-uint16_t headerLength(parser_header_t header);
+uint16_t headerLength(parser_header_deploy_t header);
 
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
 
@@ -58,6 +56,8 @@ parser_error_t parse_version(parser_context_t *ctx, uint32_t *version);
 parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype);
 
 parser_error_t parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item);
+
+parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 
 #ifdef __cplusplus
 }

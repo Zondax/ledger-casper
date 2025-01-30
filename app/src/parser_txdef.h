@@ -35,7 +35,7 @@ typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
     uint32_t lenChainName;
-} parser_header_t;
+} parser_header_deploy_t;
 
 #define NUM_RUNTIME_TYPES 22
 
@@ -84,12 +84,25 @@ typedef struct {
 } ExecutableDeployItem;
 
 typedef struct {
-    parser_header_t header;
+    parser_header_deploy_t header;
     ExecutableDeployItem payment;
     ExecutableDeployItem session;
     transaction_type_e type;
     uint8_t *wasmHash;
-} parser_tx_t;
+} parser_tx_deploy_t;
+
+typedef struct {
+    // TODO
+} parser_header_transactionV1_t;
+typedef struct {
+    parser_header_transactionV1_t header;
+    // TODO
+} parser_tx_transactionV1_t;
+
+typedef enum {
+    Deploy = 0,
+    TransactionV1 = 1,
+} transaction_content_e;
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#include "parser_impl.h"
+#include "parser_impl_deploy.h"
 #include "parser_message.h"
 #include "parser_wasm.h"
 

@@ -14,13 +14,13 @@
 *  limitations under the License.
 ********************************************************************************/
 #include "parser_message.h"
-#include "parser_impl.h"
+#include "parser_impl_deploy.h"
 #include "zxformat.h"
 #include "app_mode.h"
 #include "parser.h"
 #include "crypto.h"
 
-static parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *txObj) {
+static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txObj) {
     txObj->header.pubkeytype = ctx->buffer[0];
     PARSER_ASSERT_OR_ERROR(txObj->header.pubkeytype == 0x01 || txObj->header.pubkeytype == 0x02, parser_context_unknown_prefix);
 
@@ -74,7 +74,7 @@ parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, siz
     return readHeader(ctx, ctx->tx_obj);
 }
 
-parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx_t *v) {
+parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx_deploy_t *v) {
     uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
     //check headerhash

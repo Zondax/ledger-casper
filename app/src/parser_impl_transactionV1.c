@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2018 - 2023 Zondax AG
+*  (c) 2019 Zondax GmbH
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -14,24 +14,29 @@
 *  limitations under the License.
 ********************************************************************************/
 
-#pragma once
+#include <zxmacros.h>
+#include "parser_impl_transactionV1.h"
+#include "parser_txdef.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "parser_common.h"
-
-parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen);
-parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx_deploy_t *v);
-
-parser_error_t parser_getWasmNumItems(uint8_t *num_items);
-parser_error_t parser_getWasmItem(parser_context_t *ctx,
-                                     uint8_t displayIdx,
-                                     char *outKey, uint16_t outKeyLen,
-                                     char *outVal, uint16_t outValLen,
-                                     uint8_t pageIdx, uint8_t *pageCount);
-
-#ifdef __cplusplus
+uint16_t headerLength(parser_header_transactionV1_t header) {
+    // TODO
 }
-#endif
+
+parser_error_t index_headerpart(parser_header_transactionV1_t head, header_part_e part, uint16_t *index) {
+    // TODO
+}
+
+parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_transactionV1_t *v) {
+    // TODO
+    return parser_ok;
+}
+
+parser_error_t _validateTx(const parser_context_t *c, const parser_tx_transactionV1_t *v) {
+    // TODO
+    return parser_ok;
+}
+
+uint8_t _getNumItems(__Z_UNUSED const parser_context_t *c, const parser_tx_transactionV1_t *v) {
+    // TODO
+    return 0;
+}

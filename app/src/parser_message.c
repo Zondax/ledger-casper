@@ -14,7 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 #include "parser_message.h"
-#include "parser_impl.h"
+#include "parser_impl_deploy.h"
 #include "zxformat.h"
 #include "app_mode.h"
 #include "parser.h"
@@ -35,7 +35,8 @@ parser_error_t parser_parse_message(parser_context_t *ctx, const uint8_t *data, 
         return parser_context_unknown_prefix;
     }
 
-    ctx->tx_obj->type = Message;
+    parser_tx_deploy_t *tx_obj = (parser_tx_deploy_t *) ctx->tx_obj;
+    tx_obj->type = Message;
     return parser_ok;
 }
 

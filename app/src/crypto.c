@@ -17,7 +17,7 @@
 #include "crypto.h"
 #include "coin.h"
 #include "zxmacros.h"
-#include "parser_impl.h"
+#include "parser_impl_deploy.h"
 #include "zxformat.h"
 
 #define MAX_NIBBLE_LEN  100

@@ -67,7 +67,8 @@ typedef struct {
     const uint8_t *buffer;
     uint16_t bufferLen;
     uint16_t offset;
-    parser_tx_t *tx_obj;
+    void *tx_obj; // Can be either parser_tx_deploy_t or parser_tx_transactionV1_t
+    transaction_content_e tx_content;
 } parser_context_t;
 
 #ifdef __cplusplus
