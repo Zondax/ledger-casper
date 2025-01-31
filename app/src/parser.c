@@ -19,6 +19,7 @@
 #include <zxformat.h>
 #include "runtime_arg.h"
 #include "parser_impl_deploy.h"
+#include "parser_impl_transactionV1.h"
 #include "parser.h"
 #include "parser_utils.h"
 #include "coin.h"
@@ -43,14 +44,21 @@ parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t d
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
 
     CHECK_PARSER_ERR(readU8(ctx, (uint8_t *) &ctx->tx_content));
+
+    // Dirty hack to avoid rewriting deploy's parser
+    // We read the first byte, which indicates Deploy or TransactionV1
+    // and then we reset the offset to 0 and set the buffer to the rest of the data
     ctx->buffer = ctx->buffer + ctx->offset;
+    ctx->offset = 0;
 
     if (ctx->tx_content == Deploy) {
         memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
         ctx->tx_obj = &parser_tx_obj_deploy;
         return parser_read_deploy(ctx, (parser_tx_deploy_t *) ctx->tx_obj);
     } else if (ctx->tx_content == TransactionV1) {
-        // TODO return parser_read_transactionV1(ctx, ctx->tx_obj);
+        memset(&parser_tx_obj_txnV1, 0, sizeof(parser_tx_obj_txnV1));
+        ctx->tx_obj = &parser_tx_obj_txnV1;
+        return parser_read_transactionV1(ctx, (parser_tx_txnV1_t *) ctx->tx_obj);
     } else {
         return parser_context_unknown_prefix;
     }

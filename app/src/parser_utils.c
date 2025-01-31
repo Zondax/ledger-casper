@@ -308,10 +308,14 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "Unexpected value";
         case parser_unexpected_number_items:
             return "Unexpected number of items";
+        case parser_unexpected_number_fields:
+            return "Unexpected number of fields";
         case parser_unexpected_characters:
             return "Unexpected characters";
         case parser_unexpected_field:
             return "Unexpected field";
+        case parser_unexpected_field_offset:
+            return "Unexpected field offset";
         case parser_value_out_of_range:
             return "Value out of range";
         case parser_invalid_address:

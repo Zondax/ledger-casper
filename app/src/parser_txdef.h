@@ -31,6 +31,9 @@ extern "C" {
 #define UNDELEGATE_STR  "undelegate"
 #define REDELEGATE_STR  "redelegate"
 
+#define MAX_METADATA_FIELDS 3
+#define PAYLOAD_METADATA_FIELDS 6
+
 typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
@@ -92,20 +95,28 @@ typedef struct {
 } parser_tx_deploy_t;
 
 typedef struct {
-    // TODO
+    const uint8_t* initiator_address;
+    uint8_t initiator_address_len;
+    const uint8_t* chain_name;
+    uint8_t chain_name_len;
 } parser_header_txnV1_t;
 
 typedef struct {
     uint8_t num_fields;
-    uint16_t first_field_offset;
-    uint16_t second_field_offset;
-    uint16_t third_field_offset;
+    uint32_t field_offsets[MAX_METADATA_FIELDS];
     uint16_t fields_size;
 } parser_metadata_txnV1_t;
 
 typedef struct {
-    parser_header_txnV1_t header;
+    uint8_t num_fields;
+    uint32_t field_offsets[PAYLOAD_METADATA_FIELDS];
+    uint16_t fields_size;
+} parser_payload_metadata_txnV1_t;
+
+typedef struct {
     parser_metadata_txnV1_t metadata;
+    parser_header_txnV1_t header;
+    parser_payload_metadata_txnV1_t payload_metadata;
     // TODO
 } parser_tx_txnV1_t;
 

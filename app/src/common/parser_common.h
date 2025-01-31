@@ -47,8 +47,10 @@ typedef enum {
     parser_unexpected_buffer_end,
     parser_unexpected_value,
     parser_unexpected_number_items,
+    parser_unexpected_number_fields,
     parser_unexpected_characters,
     parser_unexpected_field,
+    parser_unexpected_field_offset,
     parser_value_out_of_range,
     parser_invalid_address,
     // Context related errors
