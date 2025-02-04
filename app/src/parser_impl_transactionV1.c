@@ -129,6 +129,8 @@ approvals:
 
 #define FIELD_INDEX_SIZE 2
 
+#define INCR_NUM_ITEMS(v) (v->numItems++)
+
 parser_tx_txnV1_t parser_tx_obj_txnV1;
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v);
@@ -162,16 +164,6 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_
     return parser_ok;
 }
 
-parser_error_t _validateTx(const parser_context_t *c, const parser_tx_txnV1_t *v) {
-    // TODO
-    return parser_ok;
-}
-
-uint8_t _getNumItems(__Z_UNUSED const parser_context_t *c, const parser_tx_txnV1_t *v) {
-    // TODO
-    return 0;
-}
-
 static parser_error_t read_txV1_metadata(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     parser_metadata_txnV1_t* metadata = &v->metadata;
 
@@ -188,6 +180,8 @@ static parser_error_t read_txV1_metadata(parser_context_t *ctx, parser_tx_txnV1_
 
     readU32(ctx, (uint32_t *) &metadata->fields_size);
 
+    metadata->metadata_size = ctx->offset;
+
     return parser_ok;
 }
 
@@ -197,6 +191,9 @@ static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v
     PARSER_ASSERT_OR_ERROR(0 == metadata.field_offsets[0], parser_unexpected_field_offset);
 
     ctx->offset += HASH_LENGTH;
+
+    INCR_NUM_ITEMS(v);
+
     return parser_ok;
 }
 
@@ -249,16 +246,21 @@ static parser_error_t read_txV1_header(parser_context_t *ctx, parser_tx_txnV1_t 
     // TODO: Assert ctx->offset matches with metadata.field_offsets
 
     read_initiator_address(ctx, v);
+    INCR_NUM_ITEMS(v);
 
     uint64_t timestamp;
     readU64(ctx, &timestamp);
+    INCR_NUM_ITEMS(v);
 
     uint64_t ttl;
     readU64(ctx, &ttl);
+    INCR_NUM_ITEMS(v);
 
     read_chain_name(ctx, v);
+    INCR_NUM_ITEMS(v);
 
     read_pricing_mode(ctx, v);
+    INCR_NUM_ITEMS(v);
 
     return parser_ok;
 }
@@ -315,5 +317,40 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t
         readU64(ctx, &gas_price_tolerance);
     }
 
+    return parser_ok;
+}
+
+parser_error_t _validateTxV1(const parser_context_t *c, const parser_tx_txnV1_t *v) {
+    // TODO
+    return parser_ok;
+}
+
+uint8_t _getNumItemsTxV1(__Z_UNUSED const parser_context_t *c, const parser_tx_txnV1_t *v) {
+    return v->numItems;
+}
+
+parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    MEMZERO(outKey, outKeyLen);
+    MEMZERO(outVal, outValLen);
+    snprintf(outKey, outKeyLen, "?");
+    snprintf(outVal, outValLen, "?");
+    *pageCount = 1;
+
+    uint8_t numItems = 0;
+    CHECK_PARSER_ERR(parser_getNumItems(ctx, &numItems))
+    CHECK_APP_CANARY()
+
+    if (displayIdx < 0 || displayIdx >= numItems) {
+        return parser_no_data;
+    }
+
+    parser_tx_txnV1_t parser_tx_obj = *(parser_tx_txnV1_t*) ctx->tx_obj;
+
+    if (displayIdx == 0) {
+        snprintf(outKey, outKeyLen, "Txn hash");
+        ctx->offset = parser_tx_obj.metadata.metadata_size + parser_tx_obj.metadata.field_offsets[HASH_FIELD];
+        return parser_printBytes((const uint8_t *) (ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
+                                 pageIdx, pageCount);
+    }
     return parser_ok;
 }

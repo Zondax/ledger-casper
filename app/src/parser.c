@@ -68,7 +68,7 @@ parser_error_t parser_validate(const parser_context_t *ctx) {
     if (ctx->tx_content == Deploy) {
         CHECK_PARSER_ERR(_validateTxDeploy(ctx, (parser_tx_deploy_t*) ctx->tx_obj))
     } else if (ctx->tx_content == TransactionV1) {
-        // TODO CHECK_PARSER_ERR(_validateTxDeploy(ctx, &ctx->tx_obj))
+        CHECK_PARSER_ERR(_validateTxV1(ctx, (parser_tx_txnV1_t*) ctx->tx_obj))
     } else {
         return parser_context_unknown_prefix;
     }
@@ -94,7 +94,7 @@ parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_item
     if (ctx->tx_content == Deploy) {
         *num_items = _getNumItemsDeploy(ctx, (parser_tx_deploy_t*) ctx->tx_obj);
     } else if (ctx->tx_content == TransactionV1) {
-        // TODO *num_items = _getNumItemsTransactionV1(ctx, &ctx->tx_obj);
+        *num_items = _getNumItemsTxV1(ctx, (parser_tx_txnV1_t*) ctx->tx_obj);
     } else {
         return parser_context_unknown_prefix;
     }
@@ -535,7 +535,7 @@ parser_error_t parser_getItem(parser_context_t *ctx,
     if (ctx->tx_content == Deploy) {
         return _getItemDeploy(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
     } else if (ctx->tx_content == TransactionV1) {
-        // TODO return _getItemTransactionV1(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        return _getItemTxV1(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
     } else {
         return parser_context_unknown_prefix;
     }

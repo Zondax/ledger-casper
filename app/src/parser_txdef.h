@@ -34,6 +34,10 @@ extern "C" {
 #define MAX_METADATA_FIELDS 3
 #define PAYLOAD_METADATA_FIELDS 6
 
+#define HASH_FIELD 0
+#define PAYLOAD_FIELD 1
+#define VALIDATORS_FIELD 2
+
 typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
@@ -103,6 +107,7 @@ typedef struct {
 
 typedef struct {
     uint8_t num_fields;
+    uint8_t metadata_size;
     uint32_t field_offsets[MAX_METADATA_FIELDS];
     uint16_t fields_size;
 } parser_metadata_txnV1_t;
@@ -118,6 +123,7 @@ typedef struct {
     parser_header_txnV1_t header;
     parser_payload_metadata_txnV1_t payload_metadata;
     // TODO
+    uint8_t numItems;
 } parser_tx_txnV1_t;
 
 typedef enum {
