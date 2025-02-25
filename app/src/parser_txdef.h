@@ -1,134 +1,132 @@
 /*******************************************************************************
-*  (c) 2019 Zondax GmbH
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *  (c) 2019 Zondax GmbH
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 #pragma once
 
 #include <coin.h>
-#include <zxtypes.h>
 #include <zxerror.h>
+#include <zxtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#define DELEGATE_STR    "delegate"
-#define UNDELEGATE_STR  "undelegate"
-#define REDELEGATE_STR  "redelegate"
+#define DELEGATE_STR "delegate"
+#define UNDELEGATE_STR "undelegate"
+#define REDELEGATE_STR "redelegate"
 
 #define MAX_METADATA_FIELDS 3
 #define PAYLOAD_METADATA_FIELDS 6
 
-#define HASH_FIELD 0
-#define PAYLOAD_FIELD 1
-#define VALIDATORS_FIELD 2
+#define HASH_FIELD_POS 0
+#define PAYLOAD_FIELD_POS 1
+#define VALIDATORS_FIELD_POS 2
 
 typedef struct {
-    uint8_t pubkeytype;
-    uint32_t lenDependencies;
-    uint32_t lenChainName;
+  uint8_t pubkeytype;
+  uint32_t lenDependencies;
+  uint32_t lenChainName;
 } parser_header_deploy_t;
 
 #define NUM_RUNTIME_TYPES 22
 
 #define NUM_DEPLOY_TYPES 6
 typedef enum {
-    ModuleBytes = 0,
-    StoredContractByHash = 1,
-    StoredContractByName = 2,
-    StoredVersionedContractByHash = 3,
-    StoredVersionedContractByName = 4,
-    Transfer = 5,
+  ModuleBytes = 0,
+  StoredContractByHash = 1,
+  StoredContractByName = 2,
+  StoredVersionedContractByHash = 3,
+  StoredVersionedContractByName = 4,
+  Transfer = 5,
 } deploy_type_e;
 
-//These are either Generic or special deploys that need specific handling
+// These are either Generic or special deploys that need specific handling
 typedef enum {
-    Generic = 0, //Not special: no support yet
-    SystemPayment = 1,
-    NativeTransfer = 2,
-    Delegate = 3,
-    UnDelegate = 4,
-    ReDelegate = 5,
+  Generic = 0, // Not special: no support yet
+  SystemPayment = 1,
+  NativeTransfer = 2,
+  Delegate = 3,
+  UnDelegate = 4,
+  ReDelegate = 5,
 } special_deploy_e;
 
 typedef enum {
-    Payment = 0,
-    Session = 1,
+  Payment = 0,
+  Session = 1,
 } phase_type_e;
 
 typedef enum {
-    Transaction = 0,
-    Message = 1,
-    WasmDeploy = 2,
+  Transaction = 0,
+  Message = 1,
+  WasmDeploy = 2,
 } transaction_type_e;
 
 typedef struct {
-    phase_type_e phase;
-    deploy_type_e type;
-    special_deploy_e special_type;
-    uint8_t with_generic_args;
-    uint32_t num_runtime_args;
-    uint32_t UI_fixed_items;
-    uint32_t UI_runtime_items;
-    uint32_t totalLength;
-    uint32_t itemOffset;
-    bool hasAmount;
+  phase_type_e phase;
+  deploy_type_e type;
+  special_deploy_e special_type;
+  uint8_t with_generic_args;
+  uint32_t num_runtime_args;
+  uint32_t UI_fixed_items;
+  uint32_t UI_runtime_items;
+  uint32_t totalLength;
+  uint32_t itemOffset;
+  bool hasAmount;
 } ExecutableDeployItem;
 
 typedef struct {
-    parser_header_deploy_t header;
-    ExecutableDeployItem payment;
-    ExecutableDeployItem session;
-    transaction_type_e type;
-    uint8_t *wasmHash;
+  parser_header_deploy_t header;
+  ExecutableDeployItem payment;
+  ExecutableDeployItem session;
+  transaction_type_e type;
+  uint8_t *wasmHash;
 } parser_tx_deploy_t;
 
 typedef struct {
-    const uint8_t* initiator_address;
-    uint8_t initiator_address_len;
-    const uint8_t* chain_name;
-    uint8_t chain_name_len;
+  uint8_t initiator_address_len;
+  uint8_t chain_name_len;
 } parser_header_txnV1_t;
 
 typedef struct {
-    uint8_t num_fields;
-    uint8_t metadata_size;
-    uint32_t field_offsets[MAX_METADATA_FIELDS];
-    uint16_t fields_size;
+  uint8_t num_fields;
+  uint8_t metadata_size;
+  uint32_t field_offsets[MAX_METADATA_FIELDS];
+  uint16_t fields_size;
 } parser_metadata_txnV1_t;
 
 typedef struct {
-    uint8_t num_fields;
-    uint32_t field_offsets[PAYLOAD_METADATA_FIELDS];
-    uint16_t fields_size;
+  uint8_t num_fields;
+  uint32_t field_offsets[PAYLOAD_METADATA_FIELDS];
+  uint16_t fields_size;
 } parser_payload_metadata_txnV1_t;
 
 typedef struct {
-    parser_metadata_txnV1_t metadata;
-    parser_header_txnV1_t header;
-    parser_payload_metadata_txnV1_t payload_metadata;
-    // TODO
-    uint8_t numItems;
+  parser_metadata_txnV1_t metadata;
+  parser_header_txnV1_t header;
+  parser_payload_metadata_txnV1_t payload_metadata;
+  // TODO
+  uint8_t numItems;
 } parser_tx_txnV1_t;
 
 typedef enum {
-    Deploy = 0,
-    TransactionV1 = 1,
+  Deploy = 0,
+  TransactionV1 = 1,
 } transaction_content_e;
 
 #ifdef __cplusplus
