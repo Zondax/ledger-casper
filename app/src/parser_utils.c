@@ -12,6 +12,10 @@ parser_error_t readU32(parser_context_t *ctx, uint32_t *result) {
   return _readUInt32(ctx, result);
 }
 
+parser_error_t readU16(parser_context_t *ctx, uint16_t *result) {
+  return _readUInt16(ctx, result);
+}
+
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result) {
   return _readUInt8(ctx, result);
 }

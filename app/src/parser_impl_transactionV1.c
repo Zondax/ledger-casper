@@ -186,6 +186,9 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v);
 static parser_error_t read_args(parser_context_t *ctx,
                                 parser_tx_txnV1_t *v);
+static parser_error_t read_arg_key(parser_context_t *ctx, uint32_t num_args);
+static parser_error_t read_arg_len(parser_context_t *ctx, uint32_t *len);
+static parser_error_t read_arg_value(parser_context_t *ctx, uint32_t len);
 static parser_error_t read_target(parser_context_t *ctx,
                                 parser_tx_txnV1_t *v);
 static parser_error_t read_entry_point(parser_context_t *ctx,
@@ -326,20 +329,6 @@ static parser_error_t read_txV1_approvals(parser_context_t *ctx,
   return parser_ok;
 }
 
-// Initiator Address: u8 tag + 33 or 32 bytes
-// Timestamp: uint64
-// TTL: uint64
-// Chain Name: String
-// Pricing Mode: u8 TAG followed by : Classic (0) or Fixed (1)
-//    - Classic PricingMode serializes as the u64 payment_amount followed by the
-//    u64 value of the gas_price.
-//    - Fixed PricingMode serializes as the u64 gas_price_tolerance.
-// 0300000000000000000001002000000002009f01000006020000 -> read_txV1_metadata
-// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec -> read_txV1_hash
-// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
-// 0200000000000000000001000100000023000000 -> initiator address metadata
-// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
-// a087c0377901000080ee360000000000070000006d61696e6e65740400000000000000000001000100000002000900000003000a0000000b00000000102700000000000064000400000000008d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
 static parser_error_t read_txV1_header(parser_context_t *ctx,
                                        parser_tx_txnV1_t *v) {
   parser_metadata_txnV1_t metadata = v->metadata;
@@ -423,26 +412,6 @@ static parser_error_t read_chain_name(parser_context_t *ctx,
   return parser_ok;
 }
 
-// Classic PricingMode: u8 tag (0x00) + u64 payment_amount + u64 gas_price
-// Fixed PricingMode: u8 tag (0x01) + u64 gas_price_tolerance
-// Vec<(String, CLValue)>
-// https://docs.casper.network/concepts/serialization/types#runtimeargs
-// 01
-// 0300000000000000000001002000000002009f01000006020000
-// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
-// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
-// 0200000000000000000001000100000023000000 -> initiator address metadata
-// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
-// a087c03779010000 -> timestamp
-// 80ee360000000000 -> ttl
-// 07000000 -> chain_id length
-// 6d61696e6e6574 -> chain_id
-// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
-// 00 -> pricing mode tag 
-// 1027000000000000 -> payment amount
-// 6400 -> gas price
-// 040000000000
-// 8d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v) {
   // READ METADATA
@@ -466,11 +435,13 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx,
     // Classic PricingMode
     uint64_t payment_amount;
     readU64(ctx, &payment_amount);
-    uint64_t gas_price;
+    uint8_t gas_price;
     readU8(ctx, &gas_price);
+    uint8_t standard_payment;
+    readU8(ctx, &standard_payment);
   } else {
     // Fixed PricingMode
-    uint64_t gas_price_tolerance;
+    uint8_t gas_price_tolerance;
     readU8(ctx, &gas_price_tolerance);
   }
 
@@ -500,11 +471,59 @@ static parser_error_t read_txV1_body(parser_context_t *ctx,
 // 80ee360000000000 -> ttl
 // 07000000 -> chain_id length
 // 6d61696e6e6574 -> chain_id
-// 04000000 -> number of args
-// 00000000 000001000100000002000900000003000a0000000b00000000102700000000000064000400000000008d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
+// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
+// 00 -> pricing mode tag 
+// 1027000000000000 -> payment amount
+// 64 -> gas price
+// 00 -> Standard Payment (bool) 
+// 04000000 -> num args
+// 0000 -> arg 1 K
+// 8d000000 -> arg 1 len
+// 000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f20000000 -> arg 1
+// 0100 -> arg 2 K
+// 0f000000 -> arg 2 len
+// 010000000000000000000100000000 -> arg 2
+// 0200 -> arg 3 K
+// 0f000000 -> arg 3 len
+// 010000000000000000000100000002 -> arg 3
+// 0300 -> arg 4 K
+// 0f000000 -> arg 4 len
+// 010000000000000000000100000000 -> arg 4
+// 010000000202531fe6068134503d2723133227c867...
 static parser_error_t read_args(parser_context_t *ctx,
                                 parser_tx_txnV1_t *v) {
-  // TODO
+  uint32_t num_args = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &num_args));
+
+  for (uint32_t i = 0; i < num_args; i++) {
+    CHECK_PARSER_ERR(read_arg_key(ctx, num_args));
+    uint32_t len = 0;
+    CHECK_PARSER_ERR(read_arg_len(ctx, &len));
+    CHECK_PARSER_ERR(read_arg_value(ctx, len));
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t read_arg_key(parser_context_t *ctx, uint32_t num_args) {
+  uint16_t key = 0;
+  CHECK_PARSER_ERR(readU16(ctx, &key));
+  if (key >= num_args) {
+    return parser_unexpected_value;
+  }
+  return parser_ok;
+}
+
+static parser_error_t read_arg_len(parser_context_t *ctx, uint32_t *len) {
+  CHECK_PARSER_ERR(readU32(ctx, len));
+  if (*len >= ctx->bufferLen - ctx->offset) {
+    return parser_unexpected_value;
+  }
+  return parser_ok;
+}
+
+static parser_error_t read_arg_value(parser_context_t *ctx, uint32_t len) {
+  ctx->offset += len;
   return parser_ok;
 }
 
@@ -550,12 +569,6 @@ uint8_t _getNumItemsTxV1(__Z_UNUSED const parser_context_t *c,
   return v->numItems;
 }
 
-/*
-"0202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337
-a087c03779010000
-80ee360000000000
-070000006d61696e6e6574
-*/
 parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
                             char *outKey, uint16_t outKeyLen, char *outVal,
                             uint16_t outValLen, uint8_t pageIdx,
