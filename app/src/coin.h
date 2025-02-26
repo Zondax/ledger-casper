@@ -53,7 +53,7 @@ typedef enum {
   header_deps,
   header_chainname,
   header_initiator_addr,
-  header_pricing_mode,
+  header_payment,
   header_fields,
 } header_part_e;
 

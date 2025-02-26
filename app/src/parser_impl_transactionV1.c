@@ -132,24 +132,27 @@ approvals:
 
 #define INITIATOR_ADDRESS_NUM_FIELDS 2
 
-#define TAG_PUBLIC_KEY 0x00
-#define TAG_HASH 0x01
+#define TAG_ENUM_IS_PUBLIC_KEY 0x00
+#define TAG_ENUM_IS_HASH 0x01
 
 // Pubkey serialization tags
 #define TAG_SYSTEM 0x00
 #define TAG_ED25519 0x01
 #define TAG_SECP256K1 0x02
 
-#define PUBLIC_KEY_LENGTH 33
-#define HASH_LENGTH 32
+#define INIT_ADDR_PUBLIC_KEY_LENGTH 33
+#define INIT_ADDR_HASH_LENGTH 32
 
 // TODO: Check if these should be dynamic
 #define INITIATOR_ADDRESS_METADATA_SIZE 20
 #define PAYLOAD_METADATA_SIZE 44
+#define PRICING_MODE_METADATA_SIZE 33
 
 #define TIMESTAMP_SIZE 8
 #define TTL_SIZE 8
 #define CHAIN_NAME_LEN_SIZE 4
+#define PAYMENT_SIZE 8
+#define GAS_PRICE_SIZE 8
 
 #define INCR_NUM_ITEMS(v) (v->numItems++)
 
@@ -181,6 +184,14 @@ static parser_error_t read_chain_name(parser_context_t *ctx,
                                       parser_tx_txnV1_t *v);
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v);
+static parser_error_t read_args(parser_context_t *ctx,
+                                parser_tx_txnV1_t *v);
+static parser_error_t read_target(parser_context_t *ctx,
+                                parser_tx_txnV1_t *v);
+static parser_error_t read_entry_point(parser_context_t *ctx,
+                                        parser_tx_txnV1_t *v);
+static parser_error_t read_scheduling(parser_context_t *ctx,
+                                      parser_tx_txnV1_t *v);
 
 uint16_t header_length_txnV1(parser_header_txnV1_t header) {
   // TODO
@@ -211,9 +222,13 @@ parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header,
     *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
               TTL_SIZE + CHAIN_NAME_LEN_SIZE;
     return parser_ok;
-  case header_pricing_mode:
+  case header_payment:
     *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
-              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len;
+              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + PRICING_MODE_METADATA_SIZE;
+    return parser_ok;
+  case header_gasprice:
+    *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
+              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + PRICING_MODE_METADATA_SIZE + PAYMENT_SIZE;
     return parser_ok;
   }
   return parser_ok;
@@ -347,26 +362,11 @@ static parser_error_t read_txV1_header(parser_context_t *ctx,
 
   read_pricing_mode(ctx, v);
   INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v);
 
   return parser_ok;
 }
 
-static parser_error_t read_txV1_body(parser_context_t *ctx,
-                                     parser_tx_txnV1_t *v) {
-  // TODO
-  return parser_ok;
-}
-/*
-Metadata Format : Number of fields (u32) + fields info (u16, u32) + fields size (u32);
-
-"01 -> txv1
-0300000000000000000001002000000002009f01000006020000 -> metadata
-a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec -> hash
-0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload_metadata 
-02000000 0000 00000000 0100 01000000 23000000 -> header metadata
-00 -> tag
-0202531fe6068134503d27231..." -> initiator_address
-*/
 static parser_error_t read_initiator_address(parser_context_t *ctx,
                                              parser_tx_txnV1_t *v) {
   // READ METADATA
@@ -394,10 +394,10 @@ static parser_error_t read_initiator_address(parser_context_t *ctx,
   // READ DATA
   uint8_t tag = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag));
-  PARSER_ASSERT_OR_ERROR(tag == TAG_PUBLIC_KEY || tag == TAG_HASH, parser_unexpected_value);
+  PARSER_ASSERT_OR_ERROR(tag == TAG_ENUM_IS_PUBLIC_KEY || tag == TAG_ENUM_IS_HASH, parser_unexpected_value);
 
   uint8_t len = 0;
-  if (tag == TAG_PUBLIC_KEY) {
+  if (tag == TAG_ENUM_IS_PUBLIC_KEY) {
     // Check validity of pubKey tag
     uint8_t pubkey_tag = 0;
     CHECK_PARSER_ERR(readU8(ctx, &pubkey_tag));
@@ -405,9 +405,9 @@ static parser_error_t read_initiator_address(parser_context_t *ctx,
                                pubkey_tag == TAG_SECP256K1,
                            parser_unexpected_value);
     v->header.initiator_address_len = 1;
-    len = PUBLIC_KEY_LENGTH;
-  } else if (tag == TAG_HASH) {
-    len = HASH_LENGTH;
+    len = INIT_ADDR_PUBLIC_KEY_LENGTH;
+  } else if (tag == TAG_ENUM_IS_HASH) {
+    len = INIT_ADDR_HASH_LENGTH;
   }
 
   ctx->offset += len;
@@ -423,8 +423,41 @@ static parser_error_t read_chain_name(parser_context_t *ctx,
   return parser_ok;
 }
 
+// Classic PricingMode: u8 tag (0x00) + u64 payment_amount + u64 gas_price
+// Fixed PricingMode: u8 tag (0x01) + u64 gas_price_tolerance
+// Vec<(String, CLValue)>
+// https://docs.casper.network/concepts/serialization/types#runtimeargs
+// 01
+// 0300000000000000000001002000000002009f01000006020000
+// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
+// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
+// 0200000000000000000001000100000023000000 -> initiator address metadata
+// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
+// a087c03779010000 -> timestamp
+// 80ee360000000000 -> ttl
+// 07000000 -> chain_id length
+// 6d61696e6e6574 -> chain_id
+// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
+// 00 -> pricing mode tag 
+// 1027000000000000 -> payment amount
+// 6400 -> gas price
+// 040000000000
+// 8d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v) {
+  // READ METADATA
+  uint32_t num_fields = 0;
+  readU32(ctx, &num_fields);
+
+  for (uint32_t i = 0; i < num_fields; i++) {
+    ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
+    uint32_t field_offset = 0;
+    readU32(ctx, &field_offset);
+  }
+
+  uint32_t fields_size = 0;
+  readU32(ctx, &fields_size);
+
   uint8_t tag = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag));
   PARSER_ASSERT_OR_ERROR(tag == 0x00 || tag == 0x01, parser_unexpected_value);
@@ -434,13 +467,75 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx,
     uint64_t payment_amount;
     readU64(ctx, &payment_amount);
     uint64_t gas_price;
-    readU64(ctx, &gas_price);
+    readU8(ctx, &gas_price);
   } else {
     // Fixed PricingMode
     uint64_t gas_price_tolerance;
-    readU64(ctx, &gas_price_tolerance);
+    readU8(ctx, &gas_price_tolerance);
   }
 
+  return parser_ok;
+}
+
+static parser_error_t read_txV1_body(parser_context_t *ctx,
+                                     parser_tx_txnV1_t *v) {
+  // TODO
+  read_args(ctx, v);
+  read_target(ctx, v);
+  INCR_NUM_ITEMS(v);
+  read_entry_point(ctx, v);
+  read_scheduling(ctx, v);
+  return parser_ok;
+}
+
+// Vec<(String, CLValue)>
+// https://docs.casper.network/concepts/serialization/types#runtimeargs
+// 01
+// 0300000000000000000001002000000002009f01000006020000
+// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
+// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
+// 0200000000000000000001000100000023000000 -> initiator address metadata
+// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
+// a087c03779010000 -> timestamp
+// 80ee360000000000 -> ttl
+// 07000000 -> chain_id length
+// 6d61696e6e6574 -> chain_id
+// 04000000 -> number of args
+// 00000000 000001000100000002000900000003000a0000000b00000000102700000000000064000400000000008d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
+static parser_error_t read_args(parser_context_t *ctx,
+                                parser_tx_txnV1_t *v) {
+  // TODO
+  return parser_ok;
+}
+
+// u8 type + data
+// https://docs.casper.network/concepts/serialization/structures#transactiontarget
+// - 0x00: Native => Just that byte
+// - 0x01: Stored => id (TransactionInvocationTarget) + runtime (0x00: VmCasperV1)
+//                    -> - InvocableEntity (u8 tag (0x00) + entity address)
+//                    -> - InvocableEntityAlias (u8 tag (0x01) + alias(string))
+//                    -> - Package (u8 tag (0x02) + package hash + [optional entity_version])
+//                    -> - PackageAlias (u8 tag (0x03) + alias(string) + [optional entity_version])
+// - 0x02: Session => kind + module_bytes + runtime (0x00: VmCasperV1)
+static parser_error_t read_target(parser_context_t *ctx,
+                                parser_tx_txnV1_t *v) {
+  // TODO
+  return parser_ok;
+}
+
+// u8
+// https://docs.casper.network/concepts/serialization/structures#transactionentrypoint
+static parser_error_t read_entry_point(parser_context_t *ctx,
+                                        parser_tx_txnV1_t *v) {
+  // TODO
+  return parser_ok;
+}
+
+// u8 type + data
+// https://docs.casper.network/concepts/serialization/structures#transactionscheduling
+static parser_error_t read_scheduling(parser_context_t *ctx,
+                                      parser_tx_txnV1_t *v) {
+  // TODO
   return parser_ok;
 }
 
@@ -531,7 +626,28 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
       char buffer[100];
       CHECK_PARSER_ERR(parse_TTL(value, buffer, sizeof(buffer)));
       pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
-      return parser_ok;
+    }
+
+    if (displayIdx == 6) {
+      snprintf(outKey, outKeyLen, "Payment");
+      CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_payment,
+                                              &ctx->offset));
+      uint64_t value = 0;
+      CHECK_PARSER_ERR(readU64(ctx, &value));
+      char buffer[8];
+      uint64_to_str(buffer, sizeof(buffer), value);
+      pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+    }
+
+    if (displayIdx == 7) {
+      snprintf(outKey, outKeyLen, "Max gs prce");
+      CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_gasprice,
+                                              &ctx->offset));
+      uint64_t value = 0;
+      CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&value));
+      char buffer[8];
+      uint64_to_str(buffer, sizeof(buffer), value);
+      pageString(outVal, outValLen, buffer, pageIdx, pageCount);
     }
   }
 
