@@ -124,11 +124,10 @@ approvals:
             └── Secp256k1(Secp256k1Signature)
 */
 
+#include "parser_primitives.h"
 #include "parser_impl_transactionV1.h"
 #include "app_mode.h"
 #include <zxmacros.h>
-
-#define SERIALIZED_FIELD_INDEX_SIZE 2
 
 #define INITIATOR_ADDRESS_NUM_FIELDS 2
 
@@ -139,6 +138,15 @@ approvals:
 #define TAG_SYSTEM 0x00
 #define TAG_ED25519 0x01
 #define TAG_SECP256K1 0x02
+
+#define TAG_TARGET_NATIVE 0x00
+#define TAG_TARGET_STORED 0x01
+#define TAG_TARGET_SESSION 0x02
+
+#define TAG_STORED_INVOCABLE_ENTITY 0x00
+#define TAG_STORED_INVOCABLE_ENTITY_ALIAS 0x01
+#define TAG_STORED_PACKAGE 0x02
+#define TAG_STORED_PACKAGE_ALIAS 0x03
 
 #define INIT_ADDR_PUBLIC_KEY_LENGTH 33
 #define INIT_ADDR_HASH_LENGTH 32
@@ -461,35 +469,6 @@ static parser_error_t read_txV1_body(parser_context_t *ctx,
 
 // Vec<(String, CLValue)>
 // https://docs.casper.network/concepts/serialization/types#runtimeargs
-// 01
-// 0300000000000000000001002000000002009f01000006020000
-// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
-// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
-// 0200000000000000000001000100000023000000 -> initiator address metadata
-// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
-// a087c03779010000 -> timestamp
-// 80ee360000000000 -> ttl
-// 07000000 -> chain_id length
-// 6d61696e6e6574 -> chain_id
-// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
-// 00 -> pricing mode tag 
-// 1027000000000000 -> payment amount
-// 64 -> gas price
-// 00 -> Standard Payment (bool) 
-// 04000000 -> num args
-// 0000 -> arg 1 K
-// 8d000000 -> arg 1 len
-// 000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f20000000 -> arg 1
-// 0100 -> arg 2 K
-// 0f000000 -> arg 2 len
-// 010000000000000000000100000000 -> arg 2
-// 0200 -> arg 3 K
-// 0f000000 -> arg 3 len
-// 010000000000000000000100000002 -> arg 3
-// 0300 -> arg 4 K
-// 0f000000 -> arg 4 len
-// 010000000000000000000100000000 -> arg 4
-// 010000000202531fe6068134503d2723133227c867...
 static parser_error_t read_args(parser_context_t *ctx,
                                 parser_tx_txnV1_t *v) {
   uint32_t num_args = 0;
@@ -538,12 +517,91 @@ static parser_error_t read_arg_value(parser_context_t *ctx, uint32_t len) {
 // - 0x02: Session => kind + module_bytes + runtime (0x00: VmCasperV1)
 static parser_error_t read_target(parser_context_t *ctx,
                                 parser_tx_txnV1_t *v) {
-  // TODO
+  uint32_t len = 0;
+
+  uint8_t tag_target = 0;
+  CHECK_PARSER_ERR(readU8(ctx, &tag_target));
+
+  switch (tag_target) {
+    case TAG_TARGET_NATIVE:
+      break;
+    case TAG_TARGET_STORED:
+      // Parse ID
+      uint8_t tag_stored = 0;
+      CHECK_PARSER_ERR(readU8(ctx, &tag_stored));
+
+
+      switch (tag_stored) {
+        case TAG_STORED_INVOCABLE_ENTITY:
+          CHECK_PARSER_ERR(read_entity_address(ctx));
+          break;
+        case TAG_STORED_INVOCABLE_ENTITY_ALIAS:
+          CHECK_PARSER_ERR(read_string(ctx, &len));
+          break;
+        case TAG_STORED_PACKAGE:
+          CHECK_PARSER_ERR(read_bytes(ctx, &len));
+          CHECK_PARSER_ERR(read_entity_version(ctx));
+          break;
+        case TAG_STORED_PACKAGE_ALIAS:
+          CHECK_PARSER_ERR(read_string(ctx, &len));
+          CHECK_PARSER_ERR(read_entity_version(ctx));
+          break;
+        default:
+          return parser_unexpected_value;
+      }
+
+      // Parse runtime
+      CHECK_PARSER_ERR(read_runtime(ctx));
+
+      break;
+    case TAG_TARGET_SESSION:
+      uint8_t is_install_upgrade = 0;
+      CHECK_PARSER_ERR(read_bool(ctx, &is_install_upgrade));
+      CHECK_PARSER_ERR(read_bytes(ctx, &len));
+      CHECK_PARSER_ERR(read_runtime(ctx));
+      break;
+    default:
+      return parser_unexpected_value;
+  }
+  
   return parser_ok;
 }
 
 // u8
 // https://docs.casper.network/concepts/serialization/structures#transactionentrypoint
+
+// 01
+// 0300000000000000000001002000000002009f01000006020000
+// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
+// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
+// 0200000000000000000001000100000023000000 -> initiator address metadata
+// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
+// a087c03779010000 -> timestamp
+// 80ee360000000000 -> ttl
+// 07000000 -> chain_id length
+// 6d61696e6e6574 -> chain_id
+// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
+// 00 -> pricing mode tag 
+// 1027000000000000 -> payment amount
+// 64 -> gas price
+// 00 -> Standard Payment (bool) 
+// 04000000 -> num args
+// 0000 -> arg 1 K
+// 8d000000 -> arg 1 len
+// 000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f20000000 -> arg 1
+// 0100 -> arg 2 K
+// 0f000000 -> arg 2 len
+// 010000000000000000000100000000 -> arg 2
+// 0200 -> arg 3 K
+// 0f000000 -> arg 3 len
+// 010000000000000000000100000002 -> arg 3
+// 0300 -> arg 4 K
+// 0f000000 -> arg 4 len
+// 010000000000000000000100000000 -> arg 4
+// 01 -> tag_target
+// 00 -> tag stored 
+// 0000 -> index
+// 0202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
 static parser_error_t read_entry_point(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v) {
   // TODO

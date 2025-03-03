@@ -33,3 +33,8 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
                             char *outKey, uint16_t outKeyLen, char *outVal,
                             uint16_t outValLen, uint8_t pageIdx,
                             uint8_t *pageCount);
+
+parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
+parser_error_t readU16(parser_context_t *ctx, uint16_t *result);
+parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
