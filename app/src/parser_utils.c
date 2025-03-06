@@ -84,7 +84,7 @@ parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type,
 parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start,
                                 uint32_t *totalLength) {
   PARSER_ASSERT_OR_ERROR(*(uint32_t *)&ctx->offset > start,
-                         parser_unexepected_error);
+                         parser_unexpected_error);
   *totalLength = (*(uint32_t *)&ctx->offset - start) + 1;
   return parser_ok;
 }
@@ -290,7 +290,7 @@ const char *parser_getErrorDescription(parser_error_t err) {
     return "display_idx_out_of_range";
   case parser_display_page_out_of_range:
     return "display_page_out_of_range";
-  case parser_unexepected_error:
+  case parser_unexpected_error:
     return "Unexepected internal error";
     // cbor
   case parser_cbor_unexpected:
@@ -341,4 +341,64 @@ const char *parser_getErrorDescription(parser_error_t err) {
   default:
     return "Unrecognized error code";
   }
+}
+
+parser_error_t add_thousand_separators(char *out, uint16_t outLen, const char *number) {
+    // Check for invalid inputs
+    if (out == NULL || number == NULL) return parser_unexpected_error;
+    
+    MEMZERO(out, outLen);
+    
+    size_t len = strlen(number);
+    if (len == 0) {
+        snprintf(out, outLen, "0");
+        return parser_ok;
+    }
+    
+    // Find decimal point if exists
+    const char *decimal_point = strchr(number, '.');
+    size_t integer_len = decimal_point ? (size_t)(decimal_point - number) : len;
+    
+    // If number is less than 1000, just copy it
+    if (integer_len <= 3) {
+        strncpy(out, number, outLen);
+        return parser_ok;
+    }
+    
+    // Check if output buffer is large enough
+    size_t needed_len = integer_len + (integer_len - 1) / 3;
+    if (decimal_point) needed_len += len - integer_len;
+    if (outLen <= needed_len) return parser_unexpected_buffer_end;
+    
+    // Add thousand separators from right to left
+    int out_pos = 0;
+    int count = 0;
+    
+    // Calculate starting point for grouping
+    int start_group = integer_len % 3;
+    if (start_group == 0) start_group = 3;
+    
+    // Add first group
+    for (int i = 0; i < start_group; i++) {
+        out[out_pos++] = number[i];
+    }
+    
+    // Add remaining groups with separators
+    for (size_t i = start_group; i < integer_len; i++) {
+        if (count % 3 == 0) {
+            out[out_pos++] = ' ';
+        }
+        out[out_pos++] = number[i];
+        count++;
+    }
+    
+    // Add decimal part if exists
+    if (decimal_point) {
+        for (size_t i = integer_len; i < len; i++) {
+            out[out_pos++] = number[i];
+        }
+    }
+    
+    out[out_pos] = '\0';
+    return parser_ok;
 }

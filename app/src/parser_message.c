@@ -43,7 +43,7 @@ parser_error_t parser_parse_message(parser_context_t *ctx, const uint8_t *data,
 
 parser_error_t parser_getMessageNumItems(uint8_t *num_items) {
   if (num_items == NULL) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   *num_items = 1;
   return parser_ok;
@@ -69,7 +69,7 @@ parser_error_t parser_getMessageItem(parser_context_t *ctx, uint8_t displayIdx,
   uint8_t buff[40] = {0};
   if (blake2b_hash((const unsigned char *)ctx->buffer, ctx->bufferLen, buff) !=
       zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   pageStringHex(outVal, outValLen, (const char *)buff, HASH_LENGTH, pageIdx,
                 pageCount);

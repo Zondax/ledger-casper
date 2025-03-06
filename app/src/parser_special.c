@@ -242,7 +242,7 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx,
     return parser_ok;
   }
 
-  return parser_unexepected_error;
+  return parser_unexpected_error;
 }
 
 parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx,
@@ -383,7 +383,7 @@ parser_error_t render_fixed_delegation_items(
       MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
       if (blake2b_hash(ctx->buffer + ctx->offset, dataLength, hash) !=
           zxerr_ok) {
-        return parser_unexepected_error;
+        return parser_unexpected_error;
       };
       return parser_printBytes(hash, 32, outVal, outValLen, pageIdx, pageCount);
     }

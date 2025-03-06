@@ -25,3 +25,7 @@ parser_error_t read_bool(parser_context_t *ctx, uint8_t *result);
 parser_error_t read_entity_version(parser_context_t *ctx);
 parser_error_t read_runtime(parser_context_t *ctx);
 parser_error_t read_entity_address(parser_context_t *ctx);
+parser_error_t read_clvalue(parser_context_t *ctx);
+parser_error_t read_public_key(parser_context_t *ctx);
+parser_error_t read_signature(parser_context_t *ctx);
+parser_error_t read_hash(parser_context_t *ctx);

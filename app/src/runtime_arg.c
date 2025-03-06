@@ -79,7 +79,7 @@ parser_error_t showRuntimeArgsHash(__Z_UNUSED ExecutableDeployItem item,
 
   uint8_t hash[BLAKE2B_256_SIZE] = {0};
   if (blake2b_hash(ctx->buffer + ctx->offset, bytes_len, hash) != zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   };
 
   snprintf(outKey, outKeyLen, "Args hash");
@@ -95,7 +95,7 @@ parser_error_t showRuntimeArgsHash(__Z_UNUSED ExecutableDeployItem item,
   char hex_hash[BLAKE2B_256_SIZE * 2] = {0};
   if (encode_hex((char *)hash, BLAKE2B_256_SIZE, hex_hash, sizeof(hex_hash)) !=
       zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
 
   MEMCPY(output, name, name_len);

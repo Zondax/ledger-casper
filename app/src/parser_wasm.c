@@ -73,7 +73,7 @@ static parser_error_t readHeader(parser_context_t *ctx,
     return parser_ok;
   }
 
-  return parser_unexepected_error;
+  return parser_unexpected_error;
 }
 
 parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data,
@@ -91,7 +91,7 @@ parser_error_t parser_validate_wasm(const parser_context_t *ctx,
   // check headerhash
   if (blake2b_hash(ctx->buffer, header_length_deploy(v->header), hash) !=
       zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   PARSER_ASSERT_OR_ERROR(MEMCMP(hash,
                                 ctx->buffer + header_length_deploy(v->header),
@@ -103,7 +103,7 @@ parser_error_t parser_validate_wasm(const parser_context_t *ctx,
 
 parser_error_t parser_getWasmNumItems(uint8_t *num_items) {
   if (num_items == NULL) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   *num_items = 2;
   return parser_ok;

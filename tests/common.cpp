@@ -36,7 +36,7 @@ std::vector<std::string> dumpUI(parser_context_t *ctx,
             break;
 
         default:
-            err = parser_unexepected_error;
+            err = parser_unexpected_error;
     }
 
     if (err != parser_ok) {

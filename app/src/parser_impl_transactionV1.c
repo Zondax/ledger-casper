@@ -14,116 +14,6 @@
  *  limitations under the License.
  ********************************************************************************/
 
-/*
-Metadata Format : Number of fields (u32) + fields info (u16, u32) + fields size (u32);
-
-Example of Header Metadata:
-0300000000000000000001002000000002009f01000006020000
-
-03000000 - u32 number of fields (3)
-Then for each field:
-Field 1: 0000 (index) 00000000 (offset)
-Field 2: 0100 (index) 20000000 (offset = 32)
-Field 3: 0200 (index) 9f010000 (offset = 415)
-All fields size (u32) = 06020000 (518 bytes)
-
-Example of Body Metadata:
-0600000000000000000001003700000002003f00000003004700000004005200000005007d00000050010000
-
-06000000 - u32 number of fields (6)
-Then for each field:
-Field 1: 0000 (index) 00000000 (offset)
-Field 2: 0100 (index) 37000000 (offset = 55)
-Field 3: 0200 (index) 3f000000 (offset = 63)
-Field 4: 0300 (index) 47000000 (offset = 71)
-Field 5: 0400 (index) 52000000 (offset = 82)
-Field 6: 0500 (index) 7d000000 (offset = 125)
-All fields size (u32) = 50010000 (80 bytes)
-
-Note : Type serialization info @
-https://docs.casper.network/concepts/serialization/types
-
-TransactionV1Hash ([u8; 32])
-
-TransactionV1Payload (HEADER + BODY)
-├── initiator_addr: enum
-│   ├── PublicKey: enum
-│   │   ├── System
-│   │   ├── Ed25519(Ed25519PublicKey)
-│   │   └── Secp256k1(Secp256k1PublicKey)
-│   └── AccountHash([u8; 32])
-├── timestamp: u64
-├── ttl: u64
-├── chain_name: String
-├── pricing_mode: u8 (enum)
-│   ├── Standard = 0
-│   └── Fixed = 1
-└── fields: BTreeMap<u16, Vec<u8>>
-    ├── 0 (ARGS_MAP_KEY) -> TransactionArgs
-    │   ├── Named(Vec<(String, CLValue)>)
-    │   └── Bytesrepr(Vec<u8>)
-    ├── 1 (TARGET_MAP_KEY) -> TransactionTarget
-    │   ├── Native
-    │   ├── Stored {
-    │   │   ├── id: TransactionInvocationTarget
-    │   │   │   ├── ByHash([u8; 32])
-    │   │   │   ├── ByName(String)
-    │   │   │   ├── ByPackageHash {
-    │   │   │   │   ├── addr: [u8; 32]
-    │   │   │   │   └── version: Option<u32>
-    │   │   │   │}
-    │   │   │   └── ByPackageName {
-    │   │   │       ├── name: String
-    │   │   │       └── version: Option<u32>
-    │   │   │   }
-    │   │   └── runtime: TransactionRuntimeParams
-    │   │       ├── VmCasperV1
-    │   │       └── VmCasperV2 {
-    │   │           ├── transferred_value: u64
-    │   │           └── seed: Option<[u8; 32]>
-    │   │       }
-    │   │}
-    │   └── Session {
-    │       ├── is_install_upgrade: bool
-    │       ├── module_bytes: Vec<u8>
-    │       └── runtime: TransactionRuntimeParams
-    │           ├── VmCasperV1
-    │           └── VmCasperV2 {
-    │               ├── transferred_value: u64
-    │               └── seed: Option<[u8; 32]>
-    │           }
-    │   }
-    ├── 2 (ENTRY_POINT_MAP_KEY) -> TransactionEntryPoint
-    │   ├── Call
-    │   ├── Custom(String)
-    │   ├── Transfer
-    │   ├── AddBid
-    │   ├── WithdrawBid
-    │   ├── Delegate
-    │   ├── Undelegate
-    │   ├── Redelegate
-    │   ├── ActivateBid
-    │   ├── ChangeBidPublicKey
-    │   ├── AddReservations
-    │   └── CancelReservations
-    └── 3 (SCHEDULING_MAP_KEY) -> TransactionScheduling
-        ├── Standard: ()
-        ├── FutureEra: u64
-        └── FutureTimestamp: u65
-
-approvals:
-└── BtreeSet: BTreeSet<Approval>
-    └── Approval: (
-        ├── PublicKey: enum
-        │   ├── System
-        │   ├── Ed25519(Ed25519PublicKey)
-        │   └── Secp256k1(Secp256k1PublicKey)
-        └── Signature: enum
-            ├── System
-            ├── Ed25519(Ed25519Signature)
-            └── Secp256k1(Secp256k1Signature)
-*/
-
 #include "parser_primitives.h"
 #include "parser_impl_transactionV1.h"
 #include "app_mode.h"
@@ -131,13 +21,11 @@ approvals:
 
 #define INITIATOR_ADDRESS_NUM_FIELDS 2
 
+#define TAG_PRICING_MODE_CLASSIC 0x00
+#define TAG_PRICING_MODE_FIXED 0x01
+
 #define TAG_ENUM_IS_PUBLIC_KEY 0x00
 #define TAG_ENUM_IS_HASH 0x01
-
-// Pubkey serialization tags
-#define TAG_SYSTEM 0x00
-#define TAG_ED25519 0x01
-#define TAG_SECP256K1 0x02
 
 #define TAG_TARGET_NATIVE 0x00
 #define TAG_TARGET_STORED 0x01
@@ -148,8 +36,12 @@ approvals:
 #define TAG_STORED_PACKAGE 0x02
 #define TAG_STORED_PACKAGE_ALIAS 0x03
 
-#define INIT_ADDR_PUBLIC_KEY_LENGTH 33
-#define INIT_ADDR_HASH_LENGTH 32
+#define TAG_SCHEDULING_STANDARD 0x00
+#define TAG_SCHEDULING_FUTURE_ERA 0x01
+#define TAG_SCHEDULING_FUTURE_TIMESTAMP 0x02
+
+#define TAG_RUNTIME_ARGS 0x00
+#define TAG_BYTES_REPR 0x01
 
 // TODO: Check if these should be dynamic
 #define INITIATOR_ADDRESS_METADATA_SIZE 20
@@ -162,8 +54,29 @@ approvals:
 #define PAYMENT_SIZE 8
 #define GAS_PRICE_SIZE 8
 
-#define INCR_NUM_ITEMS(v) (v->numItems++)
+#define NUM_FIELDS_TXV1_BODY 4
 
+#define INCR_NUM_ITEMS(v, only_in_expert_mode) { \
+  if (only_in_expert_mode) { \
+    if (app_mode_expert()) { \
+      v->numItems++; \
+    } \
+  } else { \
+    v->numItems++; \
+  } \
+}
+
+#define INCR_NUM_ITEMS_BY(v, only_in_expert_mode, num) { \
+  if (only_in_expert_mode) { \
+    if (app_mode_expert()) { \
+      v->numItems += num; \
+    } \
+  } else { \
+    v->numItems += num; \
+  } \
+}
+
+// TODO: Remove, debug purpose only
 #define PRINT_BUFFER(ctx)                                                      \
   for (int i = 0; i < 60; i++) {                                               \
     printf("%02x ", ctx->buffer[ctx->offset + i]);                             \
@@ -174,35 +87,35 @@ parser_tx_txnV1_t parser_tx_obj_txnV1;
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx,
                                      parser_tx_txnV1_t *v);
-static parser_error_t read_txV1_metadata(parser_context_t *ctx,
-                                         parser_tx_txnV1_t *v);
+static parser_error_t read_metadata(parser_context_t *ctx,
+                                    parser_metadata_txnV1_t *metadata);
 static parser_error_t read_txV1_payload_metadata(parser_context_t *ctx,
                                                  parser_tx_txnV1_t *v);
 static parser_error_t read_txV1_payload(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v);
-static parser_error_t read_txV1_approvals(parser_context_t *ctx,
-                                          parser_tx_txnV1_t *v);
+static parser_error_t read_txV1_approvals(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_txV1_header(parser_context_t *ctx,
                                        parser_tx_txnV1_t *v);
 static parser_error_t read_txV1_body(parser_context_t *ctx,
                                      parser_tx_txnV1_t *v);
+static parser_error_t read_txV1_body_fields(parser_context_t *ctx,
+                                            parser_tx_txnV1_t *v);
 static parser_error_t read_initiator_address(parser_context_t *ctx,
                                              parser_tx_txnV1_t *v);
 static parser_error_t read_chain_name(parser_context_t *ctx,
                                       parser_tx_txnV1_t *v);
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v);
-static parser_error_t read_args(parser_context_t *ctx,
-                                parser_tx_txnV1_t *v);
-static parser_error_t read_arg_key(parser_context_t *ctx, uint32_t num_args);
-static parser_error_t read_arg_len(parser_context_t *ctx, uint32_t *len);
-static parser_error_t read_arg_value(parser_context_t *ctx, uint32_t len);
-static parser_error_t read_target(parser_context_t *ctx,
-                                parser_tx_txnV1_t *v);
-static parser_error_t read_entry_point(parser_context_t *ctx,
-                                        parser_tx_txnV1_t *v);
-static parser_error_t read_scheduling(parser_context_t *ctx,
-                                      parser_tx_txnV1_t *v);
+static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v);
+static parser_error_t read_field_key(parser_context_t *ctx, uint32_t num_fields, uint16_t expected_key);
+static parser_error_t read_target(parser_context_t *ctx);
+static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t *v);
+static parser_error_t read_scheduling(parser_context_t *ctx);
+static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal, uint16_t outValLen);
+static parser_error_t parser_getItem_txV1_Transfer(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount);
 
 uint16_t header_length_txnV1(parser_header_txnV1_t header) {
   // TODO
@@ -249,7 +162,7 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx,
                                          parser_tx_txnV1_t *v) {
   // TODO: Sanity check
 
-  read_txV1_metadata(ctx, v);
+  read_metadata(ctx, &v->metadata);
   read_txV1_hash(ctx, v);
   read_txV1_payload_metadata(ctx, v);
   read_txV1_payload(ctx, v);
@@ -257,26 +170,26 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx,
   return parser_ok;
 }
 
-static parser_error_t read_txV1_metadata(parser_context_t *ctx,
-                                         parser_tx_txnV1_t *v) {
-  parser_metadata_txnV1_t *metadata = &v->metadata;
-
+static parser_error_t read_metadata(parser_context_t *ctx,
+                                    parser_metadata_txnV1_t *metadata) {
+  uint32_t initial_ctx_offset = ctx->offset;
   readU32(ctx, (uint32_t *)&metadata->num_fields);
 
   PARSER_ASSERT_OR_ERROR(metadata->num_fields > 0,
                          parser_unexpected_number_fields);
-  PARSER_ASSERT_OR_ERROR(metadata->num_fields <= 3,
-                         parser_unexpected_number_fields);
 
   for (uint8_t i = 0; i < metadata->num_fields; i++) {
-    // Skip Index Info
-    ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
+    uint16_t index = 0;
+
+    readU16(ctx, &index);
+    PARSER_ASSERT_OR_ERROR(index == i, parser_unexpected_field_offset);
+
     readU32(ctx, &metadata->field_offsets[i]);
   }
 
   readU32(ctx, (uint32_t *)&metadata->fields_size);
 
-  metadata->metadata_size = ctx->offset;
+  metadata->metadata_size = ctx->offset - initial_ctx_offset;
 
   return parser_ok;
 }
@@ -290,12 +203,12 @@ static parser_error_t read_txV1_hash(parser_context_t *ctx,
 
   ctx->offset += HASH_LENGTH;
 
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, false);
 
   return parser_ok;
 }
 
-// TODO: consider merging with read_txV1_metadata
+// TODO: consider merging with read_metadata
 static parser_error_t read_txV1_payload_metadata(parser_context_t *ctx,
                                                  parser_tx_txnV1_t *v) {
   parser_payload_metadata_txnV1_t *metadata = &v->payload_metadata;
@@ -331,9 +244,19 @@ static parser_error_t read_txV1_payload(parser_context_t *ctx,
   return parser_ok;
 }
 
-static parser_error_t read_txV1_approvals(parser_context_t *ctx,
-                                          parser_tx_txnV1_t *v) {
-  // TODO
+static parser_error_t read_txV1_approvals(parser_context_t *ctx, parser_tx_txnV1_t *v) {
+  uint32_t num_fields = 0;
+  readU32(ctx, &num_fields);
+
+  v->num_approvals = num_fields;
+
+  for (uint32_t i = 0; i < num_fields; i++) {
+    read_public_key(ctx);
+    read_signature(ctx);
+  }
+
+  INCR_NUM_ITEMS(v, true);
+
   return parser_ok;
 }
 
@@ -344,183 +267,174 @@ static parser_error_t read_txV1_header(parser_context_t *ctx,
   // TODO: Assert ctx->offset matches with metadata.field_offsets
 
   read_initiator_address(ctx, v);
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, false);
 
   uint64_t timestamp;
   readU64(ctx, &timestamp);
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, true);
 
   uint64_t ttl;
   readU64(ctx, &ttl);
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, true);
 
   read_chain_name(ctx, v);
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, false);
 
   read_pricing_mode(ctx, v);
-  INCR_NUM_ITEMS(v);
-  INCR_NUM_ITEMS(v);
+  INCR_NUM_ITEMS(v, true);
+  INCR_NUM_ITEMS(v, true);
 
   return parser_ok;
 }
 
 static parser_error_t read_initiator_address(parser_context_t *ctx,
                                              parser_tx_txnV1_t *v) {
-  // READ METADATA
-  uint32_t num_fields = 0;
-  readU32(ctx, &num_fields);
+  parser_metadata_txnV1_t metadata = {0};
+  read_metadata(ctx, &metadata);
 
-  PARSER_ASSERT_OR_ERROR(num_fields == INITIATOR_ADDRESS_NUM_FIELDS,
+  PARSER_ASSERT_OR_ERROR(metadata.num_fields == INITIATOR_ADDRESS_NUM_FIELDS,
                          parser_unexpected_number_fields);
 
-  ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
-  uint32_t first_field_offset = 0;
-  readU32(ctx, &first_field_offset);
+  PARSER_ASSERT_OR_ERROR(metadata.field_offsets[0] == 0, parser_unexpected_field_offset);
+  PARSER_ASSERT_OR_ERROR(metadata.field_offsets[1] == 1, parser_unexpected_field_offset);
 
-  PARSER_ASSERT_OR_ERROR(first_field_offset == 0, parser_unexpected_field_offset);
-
-  ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
-  uint32_t addr_offset = 0;
-  readU32(ctx, &addr_offset);
-
-  PARSER_ASSERT_OR_ERROR(addr_offset == 1, parser_unexpected_field_offset);
-
-  uint32_t fields_size = 0;
-  readU32(ctx, &fields_size);
-
-  // READ DATA
   uint8_t tag = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag));
   PARSER_ASSERT_OR_ERROR(tag == TAG_ENUM_IS_PUBLIC_KEY || tag == TAG_ENUM_IS_HASH, parser_unexpected_value);
 
-  uint8_t len = 0;
+  uint32_t initial_offset = ctx->offset;
   if (tag == TAG_ENUM_IS_PUBLIC_KEY) {
-    // Check validity of pubKey tag
-    uint8_t pubkey_tag = 0;
-    CHECK_PARSER_ERR(readU8(ctx, &pubkey_tag));
-    PARSER_ASSERT_OR_ERROR(pubkey_tag == TAG_SYSTEM || pubkey_tag == TAG_ED25519 ||
-                               pubkey_tag == TAG_SECP256K1,
-                           parser_unexpected_value);
-    v->header.initiator_address_len = 1;
-    len = INIT_ADDR_PUBLIC_KEY_LENGTH;
+    CHECK_PARSER_ERR(read_public_key(ctx));
   } else if (tag == TAG_ENUM_IS_HASH) {
-    len = INIT_ADDR_HASH_LENGTH;
+    CHECK_PARSER_ERR(read_hash(ctx));
   }
 
-  ctx->offset += len;
-  v->header.initiator_address_len += len;
+  v->header.initiator_address_len = ctx->offset - initial_offset;
 
   return parser_ok;
 }
 
 static parser_error_t read_chain_name(parser_context_t *ctx,
                                       parser_tx_txnV1_t *v) {
-  readU32(ctx, (uint32_t *)&v->header.chain_name_len);
-  ctx->offset += v->header.chain_name_len;
+  uint32_t len = 0;
+  CHECK_PARSER_ERR(read_string(ctx, &len));
+  v->header.chain_name_len = len;
   return parser_ok;
 }
 
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v) {
   // READ METADATA
-  uint32_t num_fields = 0;
-  readU32(ctx, &num_fields);
-
-  for (uint32_t i = 0; i < num_fields; i++) {
-    ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
-    uint32_t field_offset = 0;
-    readU32(ctx, &field_offset);
-  }
-
-  uint32_t fields_size = 0;
-  readU32(ctx, &fields_size);
+  parser_metadata_txnV1_t metadata = {0};
+  read_metadata(ctx, &metadata);
 
   uint8_t tag = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag));
-  PARSER_ASSERT_OR_ERROR(tag == 0x00 || tag == 0x01, parser_unexpected_value);
 
-  if (tag == 0x00) {
-    // Classic PricingMode
+  if (tag == TAG_PRICING_MODE_CLASSIC) {
     uint64_t payment_amount;
     readU64(ctx, &payment_amount);
     uint8_t gas_price;
     readU8(ctx, &gas_price);
     uint8_t standard_payment;
     readU8(ctx, &standard_payment);
-  } else {
-    // Fixed PricingMode
+  } else if (tag == TAG_PRICING_MODE_FIXED) {
     uint8_t gas_price_tolerance;
     readU8(ctx, &gas_price_tolerance);
+  } else {
+    return parser_unexpected_value;
   }
+
+  v->header.pricing_mode = tag;
 
   return parser_ok;
 }
 
 static parser_error_t read_txV1_body(parser_context_t *ctx,
                                      parser_tx_txnV1_t *v) {
-  // TODO
-  read_args(ctx, v);
-  read_target(ctx, v);
-  INCR_NUM_ITEMS(v);
-  read_entry_point(ctx, v);
-  read_scheduling(ctx, v);
+  read_txV1_body_fields(ctx, v);
   return parser_ok;
 }
 
-// Vec<(String, CLValue)>
-// https://docs.casper.network/concepts/serialization/types#runtimeargs
-static parser_error_t read_args(parser_context_t *ctx,
-                                parser_tx_txnV1_t *v) {
-  uint32_t num_args = 0;
-  CHECK_PARSER_ERR(readU32(ctx, &num_args));
+static parser_error_t read_txV1_body_fields(parser_context_t *ctx, 
+                                            parser_tx_txnV1_t *v) {
+  uint32_t num_fields = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &num_fields));
 
-  for (uint32_t i = 0; i < num_args; i++) {
-    CHECK_PARSER_ERR(read_arg_key(ctx, num_args));
+  if (num_fields != NUM_FIELDS_TXV1_BODY) {
+    return parser_unexpected_value;
+  }
+
+  uint16_t key = 0;
+  CHECK_PARSER_ERR(read_field_key(ctx, num_fields, key));
+  CHECK_PARSER_ERR(read_args(ctx, v));
+  key++;
+
+  CHECK_PARSER_ERR(read_field_key(ctx, num_fields, key));
+  CHECK_PARSER_ERR(read_target(ctx));
+  key++;
+
+  CHECK_PARSER_ERR(read_field_key(ctx, num_fields, key));
+  CHECK_PARSER_ERR(read_entry_point(ctx, v));
+  key++;
+
+  CHECK_PARSER_ERR(read_field_key(ctx, num_fields, key));
+  CHECK_PARSER_ERR(read_scheduling(ctx));
+  key++;
+
+  return parser_ok;
+}
+
+static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
+  uint32_t vec_len = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &vec_len));
+
+  uint8_t tag = 0;
+  CHECK_PARSER_ERR(readU8(ctx, &tag));
+
+  if (tag == TAG_RUNTIME_ARGS) {
+    CHECK_PARSER_ERR(readU32(ctx, &v->num_runtime_args));
+
+    v->runtime_args = ctx->buffer + ctx->offset;
+    v->runtime_args_len = vec_len;
+
+    for (uint32_t i = 0; i < v->num_runtime_args; i++) {
+      uint32_t name_len = 0;
+      CHECK_PARSER_ERR(read_string(ctx, &name_len));
+      CHECK_PARSER_ERR(read_clvalue(ctx));
+    }
+  } else if (tag == TAG_BYTES_REPR) {
     uint32_t len = 0;
-    CHECK_PARSER_ERR(read_arg_len(ctx, &len));
-    CHECK_PARSER_ERR(read_arg_value(ctx, len));
+    CHECK_PARSER_ERR(read_bytes(ctx, &len));
+  } else {
+    return parser_unexpected_value;
   }
 
   return parser_ok;
 }
 
-static parser_error_t read_arg_key(parser_context_t *ctx, uint32_t num_args) {
+static parser_error_t read_field_key(parser_context_t *ctx, uint32_t num_fields, uint16_t expected_key) {
   uint16_t key = 0;
   CHECK_PARSER_ERR(readU16(ctx, &key));
-  if (key >= num_args) {
+  if (key != expected_key) {
     return parser_unexpected_value;
   }
-  return parser_ok;
-}
-
-static parser_error_t read_arg_len(parser_context_t *ctx, uint32_t *len) {
-  CHECK_PARSER_ERR(readU32(ctx, len));
-  if (*len >= ctx->bufferLen - ctx->offset) {
-    return parser_unexpected_value;
-  }
-  return parser_ok;
-}
-
-static parser_error_t read_arg_value(parser_context_t *ctx, uint32_t len) {
-  ctx->offset += len;
   return parser_ok;
 }
 
 // u8 type + data
 // https://docs.casper.network/concepts/serialization/structures#transactiontarget
-// - 0x00: Native => Just that byte
-// - 0x01: Stored => id (TransactionInvocationTarget) + runtime (0x00: VmCasperV1)
-//                    -> - InvocableEntity (u8 tag (0x00) + entity address)
-//                    -> - InvocableEntityAlias (u8 tag (0x01) + alias(string))
-//                    -> - Package (u8 tag (0x02) + package hash + [optional entity_version])
-//                    -> - PackageAlias (u8 tag (0x03) + alias(string) + [optional entity_version])
-// - 0x02: Session => kind + module_bytes + runtime (0x00: VmCasperV1)
-static parser_error_t read_target(parser_context_t *ctx,
-                                parser_tx_txnV1_t *v) {
-  uint32_t len = 0;
+static parser_error_t read_target(parser_context_t *ctx) {
+  uint32_t bytes_len = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &bytes_len));
+
+  parser_metadata_txnV1_t metadata = {0};
+  read_metadata(ctx, &metadata);
 
   uint8_t tag_target = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag_target));
+
+  uint32_t len = 0;
 
   switch (tag_target) {
     case TAG_TARGET_NATIVE:
@@ -529,7 +443,6 @@ static parser_error_t read_target(parser_context_t *ctx,
       // Parse ID
       uint8_t tag_stored = 0;
       CHECK_PARSER_ERR(readU8(ctx, &tag_stored));
-
 
       switch (tag_stored) {
         case TAG_STORED_INVOCABLE_ENTITY:
@@ -563,56 +476,74 @@ static parser_error_t read_target(parser_context_t *ctx,
     default:
       return parser_unexpected_value;
   }
-  
+
   return parser_ok;
 }
 
 // u8
 // https://docs.casper.network/concepts/serialization/structures#transactionentrypoint
+static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t *v) {
+  uint32_t bytes_len = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &bytes_len));
 
-// 01
-// 0300000000000000000001002000000002009f01000006020000
-// a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec
-// 0600000000000000000001003700000002003f00000003004700000004005200000005007d00000053010000 -> payload metadata
-// 0200000000000000000001000100000023000000 -> initiator address metadata
-// 000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 -> initiator address
-// a087c03779010000 -> timestamp
-// 80ee360000000000 -> ttl
-// 07000000 -> chain_id length
-// 6d61696e6e6574 -> chain_id
-// 04000000 0000 00000000 0100 01000000 0200 09000000 03000 a000000 0b000000 -> pricing mode metadata
-// 00 -> pricing mode tag 
-// 1027000000000000 -> payment amount
-// 64 -> gas price
-// 00 -> Standard Payment (bool) 
-// 04000000 -> num args
-// 0000 -> arg 1 K
-// 8d000000 -> arg 1 len
-// 000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f20000000 -> arg 1
-// 0100 -> arg 2 K
-// 0f000000 -> arg 2 len
-// 010000000000000000000100000000 -> arg 2
-// 0200 -> arg 3 K
-// 0f000000 -> arg 3 len
-// 010000000000000000000100000002 -> arg 3
-// 0300 -> arg 4 K
-// 0f000000 -> arg 4 len
-// 010000000000000000000100000000 -> arg 4
-// 01 -> tag_target
-// 00 -> tag stored 
-// 0000 -> index
-// 0202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b
-static parser_error_t read_entry_point(parser_context_t *ctx,
-                                        parser_tx_txnV1_t *v) {
-  // TODO
+  parser_metadata_txnV1_t metadata = {0};
+  read_metadata(ctx, &metadata);
+
+  uint8_t tag = 0;
+  CHECK_PARSER_ERR(readU8(ctx, &tag));
+
+  if (tag > (uint8_t) EntryPointCancelReservations) {
+    return parser_unexpected_value;
+  }
+
+  if (tag == (uint8_t) EntryPointCustom) {
+    uint32_t len = 0;
+    CHECK_PARSER_ERR(read_bytes(ctx, &len));
+  }
+
+  v->entry_point_type = tag;
+
+  INCR_NUM_ITEMS(v, false); // Type
+
+  if (tag == EntryPointTransfer) {
+    if (app_mode_expert()) {
+      INCR_NUM_ITEMS_BY(v, true, v->num_runtime_args);
+    } else {
+      INCR_NUM_ITEMS(v, false); // Target
+      INCR_NUM_ITEMS(v, false); // Amount
+    }
+  }
+
   return parser_ok;
 }
 
 // u8 type + data
 // https://docs.casper.network/concepts/serialization/structures#transactionscheduling
-static parser_error_t read_scheduling(parser_context_t *ctx,
-                                      parser_tx_txnV1_t *v) {
-  // TODO
+static parser_error_t read_scheduling(parser_context_t *ctx) {
+  uint32_t bytes_len = 0;
+  CHECK_PARSER_ERR(readU32(ctx, &bytes_len));
+
+  parser_metadata_txnV1_t metadata = {0};
+  read_metadata(ctx, &metadata);
+
+  uint8_t tag = 0;
+  CHECK_PARSER_ERR(readU8(ctx, &tag));
+
+  switch (tag) {
+    case TAG_SCHEDULING_STANDARD:
+      break;
+    case TAG_SCHEDULING_FUTURE_ERA:
+      uint64_t future_era_id;
+      CHECK_PARSER_ERR(readU64(ctx, &future_era_id));
+      break;
+    case TAG_SCHEDULING_FUTURE_TIMESTAMP:
+      uint64_t future_timestamp;
+      CHECK_PARSER_ERR(readU64(ctx, &future_timestamp));
+      break;
+    default:
+      return parser_unexpected_value;
+  }
+  
   return parser_ok;
 }
 
@@ -625,6 +556,49 @@ parser_error_t _validateTxV1(const parser_context_t *c,
 uint8_t _getNumItemsTxV1(__Z_UNUSED const parser_context_t *c,
                          const parser_tx_txnV1_t *v) {
   return v->numItems;
+}
+
+static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal, uint16_t outValLen) {
+  switch (entry_point_type) {
+    case EntryPointCall:
+      snprintf(outVal, outValLen, "Call");
+      break;
+    case EntryPointCustom:
+      snprintf(outVal, outValLen, "Custom");
+      break;
+    case EntryPointTransfer:
+      snprintf(outVal, outValLen, "Transfer");
+      break;
+    case EntryPointAddBid:
+      snprintf(outVal, outValLen, "Add Bid");
+      break;
+    case EntryPointWithdrawBid:
+      snprintf(outVal, outValLen, "Withdraw Bid");
+      break;
+    case EntryPointDelegate:
+      snprintf(outVal, outValLen, "Delegate");
+      break;
+    case EntryPointUndelegate:
+      snprintf(outVal, outValLen, "Undelegate");
+      break;
+    case EntryPointRedelegate:
+      snprintf(outVal, outValLen, "Redelegate");
+      break;
+    case EntryPointActivateBid:
+      snprintf(outVal, outValLen, "Activate Bid");
+      break;
+    case EntryPointChangePublicKey:
+      snprintf(outVal, outValLen, "Change Public Key");
+      break;
+    case EntryPointAddReservations:
+      snprintf(outVal, outValLen, "Add Reservations");
+      break;
+    case EntryPointCancelReservations:
+      snprintf(outVal, outValLen, "Cancel Reservations");
+      break;
+    default:
+      snprintf(outVal, outValLen, "Unknown");
+  }
 }
 
 parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
@@ -658,7 +632,9 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
 
   if (displayIdx == 1) {
     snprintf(outKey, outKeyLen, "Type");
-    snprintf(outVal, outValLen, "TODO");
+    char tmpBuf[50];
+    entry_point_to_str(parser_tx_obj.entry_point_type, tmpBuf, sizeof(tmpBuf));
+    snprintf(outVal, outValLen, "%s", tmpBuf);
     return parser_ok;
   }
 
@@ -678,10 +654,6 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
                                outVal, outValLen, pageIdx, pageCount);
   }
 
-  /*
-      4 | timestamp : 1970-01-01t00:00:00z
-      5 | ttl : unexpected value
-  */
   if (app_mode_expert()) {
     if (displayIdx == 4) {
       DISPLAY_HEADER_TIMESTAMP("Timestamp", header_timestamp, txnV1)
@@ -701,13 +673,19 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
 
     if (displayIdx == 6) {
       snprintf(outKey, outKeyLen, "Payment");
-      CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_payment,
-                                              &ctx->offset));
-      uint64_t value = 0;
+      if (parser_tx_obj.header.pricing_mode == PricingModeClassic) {
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_payment,
+                                                &ctx->offset));
+        uint64_t value = 0;
       CHECK_PARSER_ERR(readU64(ctx, &value));
-      char buffer[8];
-      uint64_to_str(buffer, sizeof(buffer), value);
-      pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+      char buffer[20];
+        uint64_to_str(buffer, sizeof(buffer), value);
+        char formattedPayment[30];
+        add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer);
+        pageString(outVal, outValLen, formattedPayment, pageIdx, pageCount);
+      } else {
+        snprintf(outVal, outValLen, "Fixed");
+      }
     }
 
     if (displayIdx == 7) {
@@ -719,6 +697,105 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
       char buffer[8];
       uint64_to_str(buffer, sizeof(buffer), value);
       pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+    }
+  } else {
+    displayIdx += 4;
+  }
+
+  if (displayIdx >= 8) {
+    switch (parser_tx_obj.entry_point_type) {
+      case EntryPointCall:
+        break;
+      case EntryPointCustom:
+        break;
+      case EntryPointTransfer:
+        ctx->buffer = parser_tx_obj.runtime_args;
+        ctx->offset = 0;
+        parser_getItem_txV1_Transfer(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+        break;
+      case EntryPointAddBid:
+        break;
+      case EntryPointWithdrawBid:
+        break;
+      case EntryPointDelegate:
+        break;
+      case EntryPointUndelegate:
+        break;
+      case EntryPointRedelegate:
+        break;
+      case EntryPointActivateBid:
+        break;
+      case EntryPointChangePublicKey:
+        break;
+      case EntryPointAddReservations:
+        break;
+      case EntryPointCancelReservations:
+        break;
+      default:
+        break;
+    }
+
+    if ((displayIdx >= 8 + parser_tx_obj.num_runtime_args) && app_mode_expert()) {
+      snprintf(outKey, outKeyLen, "Approvals #");
+      snprintf(outVal, outValLen, "%d", parser_tx_obj.num_approvals);
+      return parser_ok;
+    }
+  }
+
+  return parser_ok;
+}
+
+parser_error_t parser_getItem_txV1_Transfer(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t transfer_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (transfer_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (app_mode_expert()) {
+    if (transfer_display_idx == 0) {
+      snprintf(outKey, outKeyLen, "From");
+      CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength,
+                                                  &datatype, num_items, ctx))
+
+      return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+    }
+  } else {
+    transfer_display_idx += 1;
+  }
+
+  if (transfer_display_idx == 1) {
+      snprintf(outKey, outKeyLen, "Target");
+      CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength,
+                                                  &datatype, num_items, ctx))
+
+      return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  } else if (transfer_display_idx == 2) {
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  if (app_mode_expert()) {
+    if (transfer_display_idx == 3) {
+      snprintf(outKey, outKeyLen, "ID");
+      CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength,
+                                                  &datatype, num_items, ctx))
+
+      return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
     }
   }
 

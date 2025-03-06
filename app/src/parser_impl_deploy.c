@@ -85,7 +85,7 @@ parser_error_t index_headerpart_deploy(parser_header_deploy_t head,
   }
 
   default: {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   }
 }
@@ -309,7 +309,7 @@ parser_error_t _validateTxDeploy(const parser_context_t *c,
   // check headerhash
   if (blake2b_hash(c->buffer, header_length_deploy(v->header), hash) !=
       zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   PARSER_ASSERT_OR_ERROR(MEMCMP(hash,
                                 c->buffer + header_length_deploy(v->header),
@@ -321,7 +321,7 @@ parser_error_t _validateTxDeploy(const parser_context_t *c,
   uint16_t index = header_length_deploy(v->header) + BLAKE2B_256_SIZE;
   uint32_t size = v->payment.totalLength + v->session.totalLength;
   if (blake2b_hash(c->buffer + index, size, hash) != zxerr_ok) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
 
   index = 0;

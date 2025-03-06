@@ -173,7 +173,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize,
     bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut,      \
                                           bcdOutLen);                          \
     if (!ok) {                                                                 \
-      return parser_unexepected_error;                                         \
+      return parser_unexpected_error;                                         \
     }                                                                          \
     uint16_t numsize = 0;                                                      \
     CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &numsize))     \
@@ -215,7 +215,7 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen,
     return parser_unexpected_buffer_end;
   }
   if (dataLen == 0) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   switch (type) {
   case TAG_U32: {
@@ -246,7 +246,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen,
     return parser_unexpected_buffer_end;
   }
   if (dataLen == 0) {
-    return parser_unexepected_error;
+    return parser_unexpected_error;
   }
   switch (type) {
   case TAG_U32: {
@@ -283,7 +283,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen,
           return parser_unexpected_value;
         DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 2);
       } else {
-        return parser_unexepected_error;
+        return parser_unexpected_error;
       }
     }
   }

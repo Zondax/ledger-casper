@@ -98,9 +98,15 @@ typedef struct {
   uint8_t *wasmHash;
 } parser_tx_deploy_t;
 
+typedef enum {
+  PricingModeClassic = 0,
+  PricingModeFixed = 1,
+} pricing_mode_e;
+
 typedef struct {
   uint8_t initiator_address_len;
   uint8_t chain_name_len;
+  pricing_mode_e pricing_mode;
 } parser_header_txnV1_t;
 
 typedef struct {
@@ -116,12 +122,31 @@ typedef struct {
   uint16_t fields_size;
 } parser_payload_metadata_txnV1_t;
 
+typedef enum {
+  EntryPointCall = 0,
+  EntryPointCustom = 1,
+  EntryPointTransfer = 2,
+  EntryPointAddBid = 3,
+  EntryPointWithdrawBid = 4,
+  EntryPointDelegate = 5,
+  EntryPointUndelegate = 6,
+  EntryPointRedelegate = 7,
+  EntryPointActivateBid = 8,
+  EntryPointChangePublicKey = 9,
+  EntryPointAddReservations = 10,
+  EntryPointCancelReservations = 11,
+} entry_point_type_e;
+
 typedef struct {
   parser_metadata_txnV1_t metadata;
   parser_header_txnV1_t header;
   parser_payload_metadata_txnV1_t payload_metadata;
-  // TODO
+  entry_point_type_e entry_point_type;
+  uint8_t* runtime_args;
+  uint32_t runtime_args_len;
+  uint32_t num_runtime_args;
   uint8_t numItems;
+  uint8_t num_approvals;
 } parser_tx_txnV1_t;
 
 typedef enum {

@@ -74,7 +74,7 @@
     MEMZERO(buffer, sizeof(buffer));                                           \
     PARSER_ASSERT_OR_ERROR(                                                    \
         printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok,     \
-        parser_unexepected_error);                                             \
+        parser_unexpected_error);                                             \
     pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);         \
     return parser_ok;                                                          \
   }
@@ -126,3 +126,4 @@ parser_error_t parser_printU32(uint32_t value, char *outVal, uint16_t outValLen,
 parser_error_t parser_printU64(uint64_t value, char *outVal, uint16_t outValLen,
                                uint8_t pageIdx, uint8_t *pageCount);
 const char *parser_getErrorDescription(parser_error_t err);
+parser_error_t add_thousand_separators(char *out, uint16_t outLen, const char *number);
