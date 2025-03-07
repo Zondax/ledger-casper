@@ -261,6 +261,14 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength,
   return parser_ok;
 }
 
+parser_error_t parser_printU8(uint8_t value, char *outVal, uint16_t outValLen,
+                              uint8_t pageIdx, uint8_t *pageCount) {
+  char tmpBuffer[30];
+  snprintf(tmpBuffer, sizeof(tmpBuffer), "%d", value);
+  pageString(outVal, outValLen, tmpBuffer, pageIdx, pageCount);
+  return parser_ok;
+}
+
 parser_error_t parser_printU32(uint32_t value, char *outVal, uint16_t outValLen,
                                uint8_t pageIdx, uint8_t *pageCount) {
   char tmpBuffer[30];

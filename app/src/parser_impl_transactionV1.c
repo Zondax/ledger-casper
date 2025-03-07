@@ -19,10 +19,13 @@
 #include "app_mode.h"
 #include <zxmacros.h>
 
+#define TAG_SIZE 1
+
 #define INITIATOR_ADDRESS_NUM_FIELDS 2
 
-#define TAG_PRICING_MODE_CLASSIC 0x00
+#define TAG_PRICING_MODE_LIMITED 0x00
 #define TAG_PRICING_MODE_FIXED 0x01
+#define TAG_PRICING_MODE_PREPAID 0x02
 
 #define TAG_ENUM_IS_PUBLIC_KEY 0x00
 #define TAG_ENUM_IS_HASH 0x01
@@ -46,7 +49,6 @@
 // TODO: Check if these should be dynamic
 #define INITIATOR_ADDRESS_METADATA_SIZE 20
 #define PAYLOAD_METADATA_SIZE 44
-#define PRICING_MODE_METADATA_SIZE 33
 
 #define TIMESTAMP_SIZE 8
 #define TTL_SIZE 8
@@ -113,9 +115,17 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
 static parser_error_t read_scheduling(parser_context_t *ctx);
 static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal, uint16_t outValLen);
 static parser_error_t parser_getItem_txV1_Transfer(parser_context_t *ctx, uint8_t displayIdx,
-                                            char *outKey, uint16_t outKeyLen, char *outVal,
-                                            uint16_t outValLen, uint8_t pageIdx,
-                                            uint8_t *pageCount);
+                                                  char *outKey, uint16_t outKeyLen, char *outVal,
+                                                  uint16_t outValLen, uint8_t pageIdx,
+                                                  uint8_t *pageCount);
+static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t displayIdx,
+                                                  char *outKey, uint16_t outKeyLen, char *outVal,
+                                                  uint16_t outValLen, uint8_t pageIdx,
+                                                  uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_AddBid(parser_context_t *ctx, uint8_t displayIdx,
+                                                  char *outKey, uint16_t outKeyLen, char *outVal,
+                                                  uint16_t outValLen, uint8_t pageIdx,
+                                                  uint8_t *pageCount);
 
 uint16_t header_length_txnV1(parser_header_txnV1_t header) {
   // TODO
@@ -148,11 +158,18 @@ parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header,
     return parser_ok;
   case header_payment:
     *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
-              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + PRICING_MODE_METADATA_SIZE;
+              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
     return parser_ok;
   case header_gasprice:
     *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
-              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + PRICING_MODE_METADATA_SIZE + PAYMENT_SIZE;
+              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
+    if (header.pricing_mode == PricingModeClassic) {
+      *offset += PAYMENT_SIZE;
+    }
+    return parser_ok;
+  case header_receipt:
+    *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE +
+              TTL_SIZE + CHAIN_NAME_LEN_SIZE + header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
     return parser_ok;
   }
   return parser_ok;
@@ -324,23 +341,29 @@ static parser_error_t read_chain_name(parser_context_t *ctx,
 
 static parser_error_t read_pricing_mode(parser_context_t *ctx,
                                         parser_tx_txnV1_t *v) {
-  // READ METADATA
   parser_metadata_txnV1_t metadata = {0};
   read_metadata(ctx, &metadata);
+
+  v->header.pricing_mode_metadata_size = metadata.metadata_size;
+  v->header.pricing_mode_items = 2;
 
   uint8_t tag = 0;
   CHECK_PARSER_ERR(readU8(ctx, &tag));
 
-  if (tag == TAG_PRICING_MODE_CLASSIC) {
+  uint8_t gas_price = 0;
+
+  if (tag == TAG_PRICING_MODE_LIMITED) {
     uint64_t payment_amount;
     readU64(ctx, &payment_amount);
-    uint8_t gas_price;
     readU8(ctx, &gas_price);
     uint8_t standard_payment;
     readU8(ctx, &standard_payment);
   } else if (tag == TAG_PRICING_MODE_FIXED) {
-    uint8_t gas_price_tolerance;
-    readU8(ctx, &gas_price_tolerance);
+    readU8(ctx, &gas_price);
+    uint8_t additional_computation_factor;
+    readU8(ctx, &additional_computation_factor);
+  } else if (tag == TAG_PRICING_MODE_PREPAID) {
+    read_hash(ctx);
   } else {
     return parser_unexpected_value;
   }
@@ -505,13 +528,21 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
 
   INCR_NUM_ITEMS(v, false); // Type
 
-  if (tag == EntryPointTransfer) {
-    if (app_mode_expert()) {
-      INCR_NUM_ITEMS_BY(v, true, v->num_runtime_args);
-    } else {
+  switch (tag) {
+    case EntryPointTransfer:
+      if (app_mode_expert()) {
+        INCR_NUM_ITEMS_BY(v, true, v->num_runtime_args);
+      } else {
+        INCR_NUM_ITEMS(v, false); // Target
+        INCR_NUM_ITEMS(v, false); // Amount
+      }
+      break;
+    case EntryPointAddBid:
+      INCR_NUM_ITEMS_BY(v, false, v->num_runtime_args);
+      break;
+    default:
       INCR_NUM_ITEMS(v, false); // Target
       INCR_NUM_ITEMS(v, false); // Amount
-    }
   }
 
   return parser_ok;
@@ -643,6 +674,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
                                             header_chainname, &ctx->offset));
     DISPLAY_STRING("Chain ID", ctx->buffer + ctx->offset,
                    parser_tx_obj.header.chain_name_len)
+    return parser_ok;
   }
 
   if (displayIdx == 3) {
@@ -657,6 +689,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
   if (app_mode_expert()) {
     if (displayIdx == 4) {
       DISPLAY_HEADER_TIMESTAMP("Timestamp", header_timestamp, txnV1)
+      return parser_ok;
     }
 
     if (displayIdx == 5) {
@@ -669,37 +702,15 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
       char buffer[100];
       CHECK_PARSER_ERR(parse_TTL(value, buffer, sizeof(buffer)));
       pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+      return parser_ok;
     }
 
-    if (displayIdx == 6) {
-      snprintf(outKey, outKeyLen, "Payment");
-      if (parser_tx_obj.header.pricing_mode == PricingModeClassic) {
-        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_payment,
-                                                &ctx->offset));
-        uint64_t value = 0;
-      CHECK_PARSER_ERR(readU64(ctx, &value));
-      char buffer[20];
-        uint64_to_str(buffer, sizeof(buffer), value);
-        char formattedPayment[30];
-        add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer);
-        pageString(outVal, outValLen, formattedPayment, pageIdx, pageCount);
-      } else {
-        snprintf(outVal, outValLen, "Fixed");
-      }
-    }
-
-    if (displayIdx == 7) {
-      snprintf(outKey, outKeyLen, "Max gs prce");
-      CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_gasprice,
-                                              &ctx->offset));
-      uint64_t value = 0;
-      CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&value));
-      char buffer[8];
-      uint64_to_str(buffer, sizeof(buffer), value);
-      pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+    if (displayIdx >= 6 && displayIdx < 6 + parser_tx_obj.header.pricing_mode_items) {
+      parser_getItem_pricing_mode(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+      return parser_ok;
     }
   } else {
-    displayIdx += 4;
+    displayIdx += 2 + parser_tx_obj.header.pricing_mode_items;
   }
 
   if (displayIdx >= 8) {
@@ -714,6 +725,9 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
         parser_getItem_txV1_Transfer(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         break;
       case EntryPointAddBid:
+        ctx->buffer = parser_tx_obj.runtime_args;
+        ctx->offset = 0;
+        parser_getItem_txV1_AddBid(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
         break;
       case EntryPointWithdrawBid:
         break;
@@ -797,6 +811,146 @@ parser_error_t parser_getItem_txV1_Transfer(parser_context_t *ctx, uint8_t displ
       return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
                                        outValLen, pageIdx, pageCount);
     }
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t displayIdx,
+                                          char *outKey, uint16_t outKeyLen, char *outVal,
+                                          uint16_t outValLen, uint8_t pageIdx,
+                                          uint8_t *pageCount) {
+  uint8_t pm_display_idx = displayIdx - 6;
+
+  if (pm_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Payment");
+    switch (parser_tx_obj_txnV1.header.pricing_mode) {
+      case PricingModeClassic:
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_payment,
+                                                &ctx->offset));
+        uint64_t value = 0;
+        CHECK_PARSER_ERR(readU64(ctx, &value));
+        char buffer[20];
+        uint64_to_str(buffer, sizeof(buffer), value);
+        char formattedPayment[30];
+        add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer);
+        pageString(outVal, outValLen, formattedPayment, pageIdx, pageCount);
+        break;
+      case PricingModeFixed:
+        snprintf(outVal, outValLen, "Fixed");
+        break;
+      case PricingModePrepaid:
+        snprintf(outVal, outValLen, "Prepaid");
+        break;
+      default:
+        return parser_unexpected_value;
+    }
+  }
+
+  if (pm_display_idx == 1) {
+    switch (parser_tx_obj_txnV1.header.pricing_mode) {
+      case PricingModeClassic:
+      case PricingModeFixed:
+        snprintf(outKey, outKeyLen, "Max gs prce");
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_gasprice,
+                                                &ctx->offset));
+    uint64_t value = 0;
+        CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&value));
+        char buffer[8];
+        uint64_to_str(buffer, sizeof(buffer), value);
+        pageString(outVal, outValLen, buffer, pageIdx, pageCount);
+        break;
+      case PricingModePrepaid:
+        snprintf(outKey, outKeyLen, "Receipt");
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_receipt,
+                                                &ctx->offset));
+        return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset),
+                                 HASH_LENGTH, outVal, outValLen, pageIdx,
+                                 pageCount);
+    }
+  }
+
+  return parser_ok;
+}
+
+parser_error_t parser_getItem_txV1_AddBid(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t addbid_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (addbid_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+/*
+public_key
+delegation_rate
+amount
+minimum_delegation_amount
+maximum_delegation_amount
+reserved_slots
+*/
+  if (addbid_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Pk");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("public_key", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (addbid_display_idx == 1) {
+      snprintf(outKey, outKeyLen, "Deleg. rate");
+      CHECK_PARSER_ERR(parser_runtimeargs_getData("delegation_rate", &dataLength,
+                                                  &datatype, num_items, ctx))
+
+      printf("datatype: %d\n", datatype);
+      printf("dataLength: %d\n", dataLength);
+      printf("num_items: %d\n", num_items);
+
+      return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  if (addbid_display_idx == 2) {
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  if (addbid_display_idx == 3) {
+    snprintf(outKey, outKeyLen, "Min. amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("minimum_delegation_amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (addbid_display_idx == 4) {
+    snprintf(outKey, outKeyLen, "Max. amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("maximum_delegation_amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (addbid_display_idx == 5) {
+    snprintf(outKey, outKeyLen, "Rsrvd slots");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("reserved_slots", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
   }
 
   return parser_ok;

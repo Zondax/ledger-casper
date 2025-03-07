@@ -11,7 +11,8 @@
 #define TAG_ED25519 0x01
 #define TAG_SECP256K1 0x02
 
-#define SERIALIZED_PUBLIC_KEY_LENGTH 33
+#define SERIALIZED_PUBLIC_KEY_LENGTH_ED25519 32
+#define SERIALIZED_PUBLIC_KEY_LENGTH_SECP256K1 33
 #define SERIALIZED_HASH_LENGTH 32
 
 #define SERIALIZED_SIGNATURE_KEY_LENGTH 64
@@ -115,11 +116,11 @@ parser_error_t read_public_key(parser_context_t *ctx) {
                               pubkey_tag == TAG_SECP256K1,
                           parser_unexpected_value);
   
-  if (pubkey_tag == TAG_SYSTEM) {
-    return parser_ok;
+  if (pubkey_tag == TAG_ED25519) {
+    ctx->offset += SERIALIZED_PUBLIC_KEY_LENGTH_ED25519;
+  } else if (pubkey_tag == TAG_SECP256K1) {
+    ctx->offset += SERIALIZED_PUBLIC_KEY_LENGTH_SECP256K1;
   }
-
-  ctx->offset += SERIALIZED_PUBLIC_KEY_LENGTH;
 
   return parser_ok;
 }

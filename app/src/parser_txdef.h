@@ -101,17 +101,20 @@ typedef struct {
 typedef enum {
   PricingModeClassic = 0,
   PricingModeFixed = 1,
+  PricingModePrepaid = 2,
 } pricing_mode_e;
 
 typedef struct {
   uint8_t initiator_address_len;
   uint8_t chain_name_len;
   pricing_mode_e pricing_mode;
+  uint16_t pricing_mode_metadata_size;
+  uint8_t pricing_mode_items;
 } parser_header_txnV1_t;
 
 typedef struct {
   uint8_t num_fields;
-  uint8_t metadata_size;
+  uint16_t metadata_size;
   uint32_t field_offsets[MAX_METADATA_FIELDS];
   uint16_t fields_size;
 } parser_metadata_txnV1_t;

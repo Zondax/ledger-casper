@@ -49,6 +49,7 @@ typedef enum {
   header_timestamp,
   header_ttl,
   header_gasprice,
+  header_receipt,
   header_bodyhash,
   header_deps,
   header_chainname,

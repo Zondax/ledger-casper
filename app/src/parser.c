@@ -249,6 +249,9 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen,
     return parser_unexpected_error;
   }
   switch (type) {
+  case TAG_U8: {
+    DISPLAY_RUNTIMEARG_U8(ctx)
+  }
   case TAG_U32: {
     DISPLAY_RUNTIMEARG_U32(ctx)
   }
@@ -272,7 +275,7 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen,
     uint8_t optiontype = 0;
     CHECK_PARSER_ERR(readU8(ctx, &optiontype));
     if (optiontype == 0x00) {
-      snprintf(outVal, outValLen, "None");
+      snprintf(outVal, outValLen, "Null");
       return parser_ok;
     } else {
       type = *(ctx->buffer + ctx->offset + dataLen);
