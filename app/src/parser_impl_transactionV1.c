@@ -126,6 +126,38 @@ static parser_error_t parser_getItem_txV1_AddBid(parser_context_t *ctx, uint8_t 
                                                   char *outKey, uint16_t outKeyLen, char *outVal,
                                                   uint16_t outValLen, uint8_t pageIdx,
                                                   uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_WithdrawBid(parser_context_t *ctx, uint8_t displayIdx,
+                                                      char *outKey, uint16_t outKeyLen, char *outVal,
+                                                      uint16_t outValLen, uint8_t pageIdx,
+                                                      uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_Delegate(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_Undelegate(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_Redelegate(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_ActivateBid(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_ChangePublicKey(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_AddReservations(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *ctx, uint8_t displayIdx,
+                                                    char *outKey, uint16_t outKeyLen, char *outVal,
+                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                    uint8_t *pageCount);
 
 uint16_t header_length_txnV1(parser_header_txnV1_t header) {
   // TODO
@@ -419,7 +451,6 @@ static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     CHECK_PARSER_ERR(readU32(ctx, &v->num_runtime_args));
 
     v->runtime_args = ctx->buffer + ctx->offset;
-    v->runtime_args_len = vec_len;
 
     for (uint32_t i = 0; i < v->num_runtime_args; i++) {
       uint32_t name_len = 0;
@@ -540,9 +571,25 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
     case EntryPointAddBid:
       INCR_NUM_ITEMS_BY(v, false, v->num_runtime_args);
       break;
+    case EntryPointWithdrawBid:
+    case EntryPointDelegate:
+    case EntryPointUndelegate:
+    case EntryPointRedelegate:
+    case EntryPointActivateBid:
+    case EntryPointChangePublicKey:
+      INCR_NUM_ITEMS_BY(v, false, v->num_runtime_args);
+      break;
+    case EntryPointAddReservations:
+      INCR_NUM_ITEMS(v, false); // Rsrv len
+      INCR_NUM_ITEMS(v, false); // Rsrv hash
+      break;
+    case EntryPointCancelReservations:
+      INCR_NUM_ITEMS(v, false); // Validator
+      INCR_NUM_ITEMS(v, false); // Dlgtrs len
+      INCR_NUM_ITEMS(v, false); // Dlgtrs hash
+      break;
     default:
-      INCR_NUM_ITEMS(v, false); // Target
-      INCR_NUM_ITEMS(v, false); // Amount
+      break;
   }
 
   return parser_ok;
@@ -619,7 +666,7 @@ static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal
       snprintf(outVal, outValLen, "Activate Bid");
       break;
     case EntryPointChangePublicKey:
-      snprintf(outVal, outValLen, "Change Public Key");
+      snprintf(outVal, outValLen, "Change Bid PK");
       break;
     case EntryPointAddReservations:
       snprintf(outVal, outValLen, "Add Reservations");
@@ -649,6 +696,8 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
   if (displayIdx < 0 || displayIdx >= numItems) {
     return parser_no_data;
   }
+
+  uint16_t runtime_args_to_show = numItems - 9;
 
   parser_tx_txnV1_t parser_tx_obj = *(parser_tx_txnV1_t *)ctx->tx_obj;
 
@@ -713,47 +762,43 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
     displayIdx += 2 + parser_tx_obj.header.pricing_mode_items;
   }
 
-  if (displayIdx >= 8) {
+  if ((displayIdx >= 8) && (displayIdx < (8 + runtime_args_to_show))) {
+    ctx->buffer = parser_tx_obj.runtime_args;
+    ctx->offset = 0;
     switch (parser_tx_obj.entry_point_type) {
       case EntryPointCall:
         break;
       case EntryPointCustom:
         break;
       case EntryPointTransfer:
-        ctx->buffer = parser_tx_obj.runtime_args;
-        ctx->offset = 0;
-        parser_getItem_txV1_Transfer(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        break;
+        return parser_getItem_txV1_Transfer(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointAddBid:
-        ctx->buffer = parser_tx_obj.runtime_args;
-        ctx->offset = 0;
-        parser_getItem_txV1_AddBid(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
-        break;
+        return parser_getItem_txV1_AddBid(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointWithdrawBid:
-        break;
+        return parser_getItem_txV1_WithdrawBid(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointDelegate:
-        break;
+        return parser_getItem_txV1_Delegate(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointUndelegate:
-        break;
+        return parser_getItem_txV1_Undelegate(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointRedelegate:
-        break;
+        return parser_getItem_txV1_Redelegate(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointActivateBid:
-        break;
+        return parser_getItem_txV1_ActivateBid(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointChangePublicKey:
-        break;
+        return parser_getItem_txV1_ChangePublicKey(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointAddReservations:
-        break;
+        return parser_getItem_txV1_AddReservations(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       case EntryPointCancelReservations:
-        break;
+        return parser_getItem_txV1_CancelReservations(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
       default:
         break;
     }
+  }
 
-    if ((displayIdx >= 8 + parser_tx_obj.num_runtime_args) && app_mode_expert()) {
-      snprintf(outKey, outKeyLen, "Approvals #");
-      snprintf(outVal, outValLen, "%d", parser_tx_obj.num_approvals);
-      return parser_ok;
-    }
+  if ((displayIdx >= 8 + runtime_args_to_show) && app_mode_expert()) {
+    snprintf(outKey, outKeyLen, "Approvals #");
+    snprintf(outVal, outValLen, "%d", parser_tx_obj.num_approvals);
+    return parser_ok;
   }
 
   return parser_ok;
@@ -887,14 +932,6 @@ parser_error_t parser_getItem_txV1_AddBid(parser_context_t *ctx, uint8_t display
   uint32_t dataLength = 0;
   uint8_t datatype = 255;
 
-/*
-public_key
-delegation_rate
-amount
-minimum_delegation_amount
-maximum_delegation_amount
-reserved_slots
-*/
   if (addbid_display_idx == 0) {
     snprintf(outKey, outKeyLen, "Pk");
     CHECK_PARSER_ERR(parser_runtimeargs_getData("public_key", &dataLength,
@@ -908,10 +945,6 @@ reserved_slots
       snprintf(outKey, outKeyLen, "Deleg. rate");
       CHECK_PARSER_ERR(parser_runtimeargs_getData("delegation_rate", &dataLength,
                                                   &datatype, num_items, ctx))
-
-      printf("datatype: %d\n", datatype);
-      printf("dataLength: %d\n", dataLength);
-      printf("num_items: %d\n", num_items);
 
       return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
                                        outValLen, pageIdx, pageCount);
@@ -951,6 +984,286 @@ reserved_slots
 
     return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
                                       outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+parser_error_t parser_getItem_txV1_WithdrawBid(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t withdrawbid_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (withdrawbid_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (withdrawbid_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Pk");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("public_key", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (withdrawbid_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_Delegate(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t delegate_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (delegate_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (delegate_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Delegator");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("delegator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (delegate_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "Validator");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (delegate_display_idx == 2) {
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_Undelegate(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  return parser_getItem_txV1_Delegate(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
+}
+
+static parser_error_t parser_getItem_txV1_Redelegate(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t redelegate_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (redelegate_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (redelegate_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Delegator");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("delegator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (redelegate_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "Old");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  if (redelegate_display_idx == 2) {
+    snprintf(outKey, outKeyLen, "New");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("new_validator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  if (redelegate_display_idx == 3) {
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                       outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_ActivateBid(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t activatebid_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (activatebid_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (activatebid_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Validtr pk");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("validator_public_key", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_ChangePublicKey(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t chgpk_display_idx = displayIdx - 8;
+  uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+
+  if (chgpk_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (chgpk_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Pk");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("public_key", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+  
+  if (chgpk_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "New pk");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("new_public_key", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_AddReservations(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t addrsv_display_idx = displayIdx - 8;
+  uint32_t num_items = 2;
+
+  if (addrsv_display_idx >= num_items) {
+    return parser_no_data;
+  }
+uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  CHECK_PARSER_ERR(parser_runtimeargs_getData("reservations", &dataLength,
+                                                &datatype, num_items, ctx))
+
+  if (addrsv_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Rsrv len");
+
+    parser_printU32((uint32_t) *(ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
+    return parser_ok;
+  }
+
+  if (addrsv_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "Rsrv hash");
+    uint8_t rsrv_hash[HASH_LENGTH];
+    blake2b_hash(ctx->buffer + ctx->offset, dataLength, rsrv_hash);
+    parser_printBytes(rsrv_hash, HASH_LENGTH, outVal, outValLen, pageIdx, pageCount);
+    return parser_ok;
+  }
+
+  return parser_ok;
+}
+
+static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal,
+                                            uint16_t outValLen, uint8_t pageIdx,
+                                            uint8_t *pageCount) {
+  uint32_t cancelrsv_display_idx = displayIdx - 8;
+  uint32_t num_items = 3;
+
+  if (cancelrsv_display_idx >= num_items) {
+    return parser_no_data;
+  }
+
+  uint32_t dataLength = 0;
+  uint8_t datatype = 255;
+
+  if (cancelrsv_display_idx == 0) {
+    snprintf(outKey, outKeyLen, "Validator");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    return parser_display_runtimeArg(datatype, dataLength, ctx, outVal,
+                                      outValLen, pageIdx, pageCount);
+  }
+  if (cancelrsv_display_idx == 1) {
+    snprintf(outKey, outKeyLen, "Dlgtrs len");
+
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("delegators", &dataLength,
+                                                &datatype, num_items, ctx))
+
+    parser_printU32((uint32_t) *(ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
+    return parser_ok;
+  }
+
+  if (cancelrsv_display_idx == 2) {
+    snprintf(outKey, outKeyLen, "Dlgtrs hash");
+
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("delegators", &dataLength,
+                                                &datatype, num_items, ctx))
+    uint8_t dlgtrs_hash[HASH_LENGTH];
+    blake2b_hash(ctx->buffer + ctx->offset, dataLength, dlgtrs_hash);
+    parser_printBytes(dlgtrs_hash, HASH_LENGTH, outVal, outValLen, pageIdx, pageCount);
+    return parser_ok;
   }
 
   return parser_ok;

@@ -145,8 +145,7 @@ typedef struct {
   parser_header_txnV1_t header;
   parser_payload_metadata_txnV1_t payload_metadata;
   entry_point_type_e entry_point_type;
-  uint8_t* runtime_args;
-  uint32_t runtime_args_len;
+  const uint8_t* runtime_args;
   uint32_t num_runtime_args;
   uint8_t numItems;
   uint8_t num_approvals;

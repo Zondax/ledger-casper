@@ -160,6 +160,9 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type,
   case TAG_LIST: {
     uint8_t inner_type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
+    if (inner_type == TAG_ANY) {
+      return parser_ok;
+    }
     if (is_container_type(inner_type)) {
       return parser_unexpected_type;
     } else {
