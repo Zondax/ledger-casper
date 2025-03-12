@@ -242,6 +242,21 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type,
   }
 }
 
+parser_error_t parser_printByHashAddress(const uint8_t *bytes, uint16_t byteLength,
+                                 char *outVal, uint16_t outValLen,
+                                 uint8_t pageIdx, uint8_t *pageCount) {
+  char byHashAddress[100];
+  MEMZERO(byHashAddress, sizeof(byHashAddress));
+  for (uint16_t i = 0; i < byteLength; i++) {
+    char tmp[4];
+    snprintf(tmp, sizeof(tmp), "%d", bytes[i]);
+    strncat(byHashAddress, tmp, sizeof(byHashAddress) - strlen(byHashAddress) - 1);
+  }
+  pageString(outVal, outValLen, byHashAddress, pageIdx, pageCount);
+  return parser_ok;
+}
+
+
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
                                  char *outVal, uint16_t outValLen,
                                  uint8_t pageIdx, uint8_t *pageCount) {
@@ -349,6 +364,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
     return "Required field method";
   case parser_runtimearg_notfound:
     return "RuntimArg not found";
+  case parser_invalid_stored_contract:
+    return "Invalid stored contract";
   default:
     return "Unrecognized error code";
   }

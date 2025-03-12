@@ -8,6 +8,8 @@
 #include <zxformat.h>
 #include <zxmacros.h>
 
+#define NO_ENTITY_VERSION_PRESENT 0xFFFFFFFF
+
 #define PARSER_ASSERT_OR_ERROR(CALL, ERROR)                                    \
   if (!(CALL))                                                                 \
     return ERROR;
@@ -107,6 +109,7 @@ GEN_DEC_READFIX_UNSIGNED(64);
 
 parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
+parser_error_t readU16(parser_context_t *ctx, uint16_t *result);
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
 parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer,
                                    uint16_t bufferSize);
@@ -122,6 +125,9 @@ parser_error_t parseTotalLength(parser_context_t *ctx, uint32_t start,
                                 uint32_t *totalLength);
 parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type,
                                           uint8_t *option_type);
+parser_error_t parser_printByHashAddress(const uint8_t *bytes, uint16_t byteLength,
+                                 char *outVal, uint16_t outValLen,
+                                 uint8_t pageIdx, uint8_t *pageCount);
 parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength,
                                  char *outVal, uint16_t outValLen,
                                  uint8_t pageIdx, uint8_t *pageCount);

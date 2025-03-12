@@ -31,7 +31,7 @@ extern "C" {
 #define UNDELEGATE_STR "undelegate"
 #define REDELEGATE_STR "redelegate"
 
-#define MAX_METADATA_FIELDS 3
+#define MAX_METADATA_FIELDS 10
 #define PAYLOAD_METADATA_FIELDS 6
 
 #define HASH_FIELD_POS 0
@@ -140,12 +140,41 @@ typedef enum {
   EntryPointCancelReservations = 11,
 } entry_point_type_e;
 
+typedef enum {
+  TargetNative = 0,
+  TargetStoredByHash = 1,
+  TargetStoredByName = 2,
+  TargetStoredByPackageHash = 3,
+  TargetStoredByPackageName = 4,
+  TargetSession = 5,
+} target_type_e;
+
+typedef struct {
+  target_type_e type;
+  union {
+    const uint8_t* hash;
+    const uint8_t* name;
+  };
+  uint32_t name_len;
+  uint32_t entity_version;
+} target_t;
+
+typedef enum {
+  RuntimeArgs = 0,
+  BytesRepr = 1,
+} args_type_e;
+
 typedef struct {
   parser_metadata_txnV1_t metadata;
   parser_header_txnV1_t header;
   parser_payload_metadata_txnV1_t payload_metadata;
   entry_point_type_e entry_point_type;
+  const uint8_t* custom_entry_point;
+  uint32_t custom_entry_point_len;
+  target_t target;
   const uint8_t* runtime_args;
+  args_type_e args_type;
+  uint32_t runtime_args_len;
   uint32_t num_runtime_args;
   uint8_t numItems;
   uint8_t num_approvals;

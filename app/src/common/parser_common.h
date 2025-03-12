@@ -66,6 +66,7 @@ typedef enum {
   parser_required_method,
   // Casper specific
   parser_runtimearg_notfound,
+  parser_invalid_stored_contract,
 } parser_error_t;
 
 typedef struct {

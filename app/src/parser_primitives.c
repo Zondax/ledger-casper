@@ -3,7 +3,7 @@
 #include "parser_utils.h"
 
 #define TAG_RUNTIME_VM_CASPER_V1 0x00
-
+#define TAG_RUNTIME_VM_CASPER_V2 0x01
 #define TAG_OPTION_ABSENT 0x00
 #define TAG_OPTION_PRESENT 0x01
 
@@ -18,6 +18,31 @@
 #define SERIALIZED_SIGNATURE_KEY_LENGTH 64
 
 #define ENTITY_ADDRESS_SIZE 34
+
+// read_metadata
+parser_error_t read_metadata(parser_context_t *ctx,
+                                    parser_metadata_txnV1_t *metadata) {
+  uint32_t initial_ctx_offset = ctx->offset;
+  CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)&metadata->num_fields));
+
+  PARSER_ASSERT_OR_ERROR(metadata->num_fields > 0,
+                         parser_unexpected_number_fields);
+
+  for (uint8_t i = 0; i < metadata->num_fields; i++) {
+    uint16_t index = 0;
+
+    CHECK_PARSER_ERR(readU16(ctx, &index));
+    PARSER_ASSERT_OR_ERROR(index == i, parser_unexpected_field_offset);
+
+    CHECK_PARSER_ERR(readU32(ctx, &metadata->field_offsets[i]));
+  }
+
+  CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)&metadata->fields_size));
+
+  metadata->metadata_size = ctx->offset - initial_ctx_offset;
+
+  return parser_ok;
+}
 
 // read_string
 parser_error_t read_string(parser_context_t *ctx, uint32_t *outLen) {
@@ -58,17 +83,15 @@ parser_error_t read_bool(parser_context_t *ctx, uint8_t *result) {
 }
 
 // read_entity_version
-parser_error_t read_entity_version(parser_context_t *ctx) {
+parser_error_t read_entity_version(parser_context_t *ctx, uint32_t *entity_version) {
   uint8_t tag = 0;
-  uint32_t protocol_version = 0;
-  uint32_t entity_version = 0;
 
   CHECK_PARSER_ERR(read_bool(ctx, &tag));
 
   if (tag == TAG_OPTION_PRESENT) {
-    CHECK_PARSER_ERR(readU32(ctx, &protocol_version));
-    CHECK_PARSER_ERR(readU32(ctx, &entity_version));
+    CHECK_PARSER_ERR(readU32(ctx, entity_version));
   } else if (tag == TAG_OPTION_ABSENT) {
+    *entity_version = NO_ENTITY_VERSION_PRESENT;
     return parser_ok;
   } else {
     return parser_unexpected_value;
@@ -79,10 +102,28 @@ parser_error_t read_entity_version(parser_context_t *ctx) {
 
 // read_runtime
 parser_error_t read_runtime(parser_context_t *ctx) {
+  parser_metadata_txnV1_t runtime_metadata = {0};
+  CHECK_PARSER_ERR(read_metadata(ctx, &runtime_metadata));
+
   uint8_t runtime = 0;
   CHECK_PARSER_ERR(readU8(ctx, &runtime));
 
-  printf("read_runtime - runtime: %d\n", runtime);
+  if (runtime == TAG_RUNTIME_VM_CASPER_V2) {
+    uint64_t transferred_value = 0;
+    CHECK_PARSER_ERR(readU64(ctx, &transferred_value));
+
+    uint8_t seed_tag = 0;
+    CHECK_PARSER_ERR(readU8(ctx, &seed_tag));
+
+    if (seed_tag == TAG_OPTION_PRESENT) {
+      CHECK_PARSER_ERR(read_hash(ctx));
+      return parser_ok;
+    } else if (seed_tag == TAG_OPTION_ABSENT) {
+      return parser_ok;
+    } else {
+      return parser_unexpected_value;
+    }
+  }
 
   if (runtime != TAG_RUNTIME_VM_CASPER_V1) {
     return parser_unexpected_value;
@@ -93,8 +134,7 @@ parser_error_t read_runtime(parser_context_t *ctx) {
 
 //read_entity_address
 parser_error_t read_entity_address(parser_context_t *ctx) {
-  ctx->offset += SERIALIZED_FIELD_INDEX_SIZE;
-  ctx->offset += ENTITY_ADDRESS_SIZE;
+  CHECK_PARSER_ERR(read_hash(ctx));
   return parser_ok;
 }
 

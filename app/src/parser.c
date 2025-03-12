@@ -281,6 +281,8 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen,
       type = *(ctx->buffer + ctx->offset + dataLen);
       if (type == TAG_U64) {
         DISPLAY_RUNTIMEARG_U64(ctx)
+      } else if (type == TAG_U32) {
+        DISPLAY_RUNTIMEARG_U32(ctx)
       } else if (type == TAG_UREF) {
         if (dataLen < 2)
           return parser_unexpected_value;

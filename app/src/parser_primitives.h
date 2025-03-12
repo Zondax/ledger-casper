@@ -19,10 +19,11 @@
 
 #define SERIALIZED_FIELD_INDEX_SIZE 2
 
+parser_error_t read_metadata(parser_context_t *ctx, parser_metadata_txnV1_t *metadata);
 parser_error_t read_string(parser_context_t *ctx, uint32_t *outLen);
 parser_error_t read_bytes(parser_context_t *ctx, uint32_t *outLen);
 parser_error_t read_bool(parser_context_t *ctx, uint8_t *result);
-parser_error_t read_entity_version(parser_context_t *ctx);
+parser_error_t read_entity_version(parser_context_t *ctx, uint32_t *entity_version);
 parser_error_t read_runtime(parser_context_t *ctx);
 parser_error_t read_entity_address(parser_context_t *ctx);
 parser_error_t read_clvalue(parser_context_t *ctx);
