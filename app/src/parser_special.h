@@ -15,43 +15,31 @@
  ********************************************************************************/
 #pragma once
 
+#include <stdbool.h>
+
 #include "parser_common.h"
 #include "parser_txdef.h"
-#include <stdbool.h>
 
 // offset to the entrypoint for retrival during the getItem stage
 extern uint16_t entry_point_offset;
 
-parser_error_t parseSystemPayment(parser_context_t *ctx,
-                                  ExecutableDeployItem *item,
-                                  uint32_t num_items);
+parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
 
-parser_error_t parseNativeTransfer(parser_context_t *ctx,
-                                   ExecutableDeployItem *item,
-                                   uint32_t num_items);
+parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);
 
-parser_error_t parseDelegation(parser_context_t *ctx,
-                               ExecutableDeployItem *item, uint32_t num_items,
+parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items,
                                bool redelegation);
 
-parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item,
-                                            parser_context_t *ctx,
-                                            uint8_t displayIdx, char *outKey,
-                                            uint16_t outKeyLen, char *outVal,
-                                            uint16_t outValLen, uint8_t pageIdx,
-                                            uint8_t *pageCount);
+parser_error_t parser_getItem_SystemPayment(ExecutableDeployItem item, parser_context_t *ctx, uint8_t displayIdx,
+                                            char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
+                                            uint8_t pageIdx, uint8_t *pageCount);
 
-parser_error_t parser_getItem_NativeTransfer(
-    ExecutableDeployItem item, parser_context_t *ctx, uint8_t displayIdx,
-    char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
-    uint8_t pageIdx, uint8_t *pageCount);
+parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_context_t *ctx, uint8_t displayIdx,
+                                             char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
+                                             uint8_t pageIdx, uint8_t *pageCount);
 
-parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item,
-                                         parser_context_t *ctx,
-                                         uint8_t displayIdx, char *outKey,
-                                         uint16_t outKeyLen, char *outVal,
-                                         uint16_t outValLen, uint8_t pageIdx,
-                                         uint8_t *pageCount);
+parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_context_t *ctx, uint8_t displayIdx,
+                                         char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
+                                         uint8_t pageIdx, uint8_t *pageCount);
 
-parser_error_t parseAuction(parser_context_t *ctx, ExecutableDeployItem *item,
-                            uint32_t num_items);
+parser_error_t parseAuction(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items);

@@ -15,9 +15,10 @@
  ********************************************************************************/
 #pragma once
 
+#include <stdbool.h>
+
 #include "parser_common.h"
 #include "parser_txdef.h"
-#include <stdbool.h>
 
 // defines for the runtime_arg types
 #define TAG_BOOL 0
@@ -46,19 +47,12 @@
 
 parser_error_t parseRuntimeArgs(parser_context_t *ctx, uint32_t deploy_argLen);
 
-parser_error_t searchRuntimeArgs(const char *argstr, uint8_t *type,
-                                 uint8_t *internal_type, uint32_t deploy_argLen,
+parser_error_t searchRuntimeArgs(const char *argstr, uint8_t *type, uint8_t *internal_type, uint32_t deploy_argLen,
                                  parser_context_t *ctx);
 
-parser_error_t showRuntimeArgsHash(ExecutableDeployItem item,
-                                   parser_context_t *ctx, uint32_t bytes_len,
-                                   const char *name, uint8_t name_len,
-                                   char *outKey, uint16_t outKeyLen,
-                                   char *outVal, uint16_t outValLen,
-                                   uint8_t pageIdx, uint8_t *pageCount);
+parser_error_t showRuntimeArgsHash(ExecutableDeployItem item, parser_context_t *ctx, uint32_t bytes_len,
+                                   const char *name, uint8_t name_len, char *outKey, uint16_t outKeyLen, char *outVal,
+                                   uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 
-parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey,
-                                     uint16_t outKeyLen, char *outVal,
-                                     uint16_t outValLen, uint16_t pageIdx,
-                                     uint8_t *pageCount, uint32_t num_items,
-                                     parser_context_t *ctx);
+parser_error_t showRuntimeArgByIndex(uint16_t index, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
+                                     uint16_t pageIdx, uint8_t *pageCount, uint32_t num_items, parser_context_t *ctx);

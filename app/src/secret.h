@@ -15,9 +15,10 @@
  ********************************************************************************/
 #pragma once
 
+#include <stdbool.h>
+
 #include "zxerror.h"
 #include "zxmacros.h"
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,9 +28,8 @@ zxerr_t secret_enabled();
 
 zxerr_t secret_getNumItems(uint8_t *num_items);
 
-zxerr_t secret_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen,
-                       char *outValue, uint16_t outValueLen, uint8_t pageIdx,
-                       uint8_t *pageCount);
+zxerr_t secret_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outValue, uint16_t outValueLen,
+                       uint8_t pageIdx, uint8_t *pageCount);
 
 #ifdef __cplusplus
 }

@@ -21,18 +21,12 @@
 extern parser_tx_txnV1_t parser_tx_obj_txnV1;
 
 uint16_t header_length_txnV1(parser_header_txnV1_t header);
-parser_error_t index_headerpart_txnV1(parser_header_txnV1_t head,
-                                      header_part_e part, uint16_t *index);
-parser_error_t parser_read_transactionV1(parser_context_t *ctx,
-                                         parser_tx_txnV1_t *v);
-parser_error_t _validateTxV1(const parser_context_t *c,
-                             const parser_tx_txnV1_t *v);
-uint8_t _getNumItemsTxV1(__Z_UNUSED const parser_context_t *c,
-                         const parser_tx_txnV1_t *v);
-parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx,
-                            char *outKey, uint16_t outKeyLen, char *outVal,
-                            uint16_t outValLen, uint8_t pageIdx,
-                            uint8_t *pageCount);
+parser_error_t index_headerpart_txnV1(parser_header_txnV1_t head, header_part_e part, uint16_t *index);
+parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_t *v);
+parser_error_t _validateTxV1(const parser_context_t *c, const parser_tx_txnV1_t *v);
+uint8_t _getNumItemsTxV1(__Z_UNUSED const parser_context_t *c, const parser_tx_txnV1_t *v);
+parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal,
+                            uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
 parser_error_t readU16(parser_context_t *ctx, uint16_t *result);

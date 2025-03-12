@@ -41,21 +41,21 @@ extern "C" {
 #define HASH_LENGTH 32u
 
 typedef enum {
-  addr_secp256k1 = 0,
+    addr_secp256k1 = 0,
 } address_kind_e;
 
 typedef enum {
-  header_pubkey,
-  header_timestamp,
-  header_ttl,
-  header_gasprice,
-  header_receipt,
-  header_bodyhash,
-  header_deps,
-  header_chainname,
-  header_initiator_addr,
-  header_payment,
-  header_fields,
+    header_pubkey,
+    header_timestamp,
+    header_ttl,
+    header_gasprice,
+    header_receipt,
+    header_bodyhash,
+    header_deps,
+    header_chainname,
+    header_initiator_addr,
+    header_payment,
+    header_fields,
 } header_part_e;
 
 #define INS_SIGN_MSG 0x03
@@ -63,7 +63,7 @@ typedef enum {
 
 #define CBOR_PARSER_MAX_RECURSIONS 4
 #define COIN_SECRET_REQUIRED_CLICKS 0
-#define COIN_AMOUNT_DECIMAL_PLACES 0 // FIXME: Adjust this
+#define COIN_AMOUNT_DECIMAL_PLACES 0  // FIXME: Adjust this
 
 #define VIEW_ADDRESS_OFFSET_SECP256K1 (SECP256K1_PK_LEN)
 #define COIN_SUPPORTED_TX_VERSION 0

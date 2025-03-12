@@ -22,16 +22,12 @@ extern "C" {
 
 #include "parser_common.h"
 
-parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data,
-                                 size_t dataLen);
-parser_error_t parser_validate_wasm(const parser_context_t *ctx,
-                                    const parser_tx_deploy_t *v);
+parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen);
+parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx_deploy_t *v);
 
 parser_error_t parser_getWasmNumItems(uint8_t *num_items);
-parser_error_t parser_getWasmItem(parser_context_t *ctx, uint8_t displayIdx,
-                                  char *outKey, uint16_t outKeyLen,
-                                  char *outVal, uint16_t outValLen,
-                                  uint8_t pageIdx, uint8_t *pageCount);
+parser_error_t parser_getWasmItem(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen,
+                                  char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 
 #ifdef __cplusplus
 }
