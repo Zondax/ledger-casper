@@ -320,26 +320,50 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
     // this are not generic args and are part of valid contract transactions
     switch (item->type) {
         case ModuleBytes: {
-            if (displayIdx == 0 && appExpertMode) {
-                snprintf(outKey, outKeyLen, "Execution");
-                snprintf(outVal, outValLen, "contract");
-                return parser_ok;
+            if (item->special_type == Generic) {
+                printf("displayIdx: %d\n", displayIdx);
+                if (displayIdx == 0) {
+                    snprintf(outKey, outKeyLen, "Execution");
+                    snprintf(outVal, outValLen, "contract");
+                    return parser_ok;
+                }
+                if (displayIdx == 1) {
+                    snprintf(outKey, outKeyLen, "Cntrct hash");
+                    uint32_t dataLength = 0;
+                    CHECK_PARSER_ERR(readU32(ctx, &dataLength))
+                    uint64_t value = 0;
+                    MEMCPY(&value, &dataLength, 4);
+                    uint8_t hash[32];
+                    MEMZERO(hash, sizeof(hash));
+                    MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
+                    if (blake2b_hash(ctx->buffer + ctx->offset, dataLength, hash) != zxerr_ok) {
+                        return parser_unexpected_error;
+                    };
+                    return parser_printBytes(hash, 32, outVal, outValLen, pageIdx, pageCount);
+                }
+                CHECK_PARSER_ERR(parse_item(ctx));
+            } else {
+                if (displayIdx == 0 && appExpertMode) {
+                    snprintf(outKey, outKeyLen, "Execution");
+                    snprintf(outVal, outValLen, "contract");
+                    return parser_ok;
+                }
+                if (displayIdx == 1 && appExpertMode) {
+                    snprintf(outKey, outKeyLen, "Cntrct hash");
+                    uint32_t dataLength = 0;
+                    CHECK_PARSER_ERR(readU32(ctx, &dataLength))
+                    uint64_t value = 0;
+                    MEMCPY(&value, &dataLength, 4);
+                    uint8_t hash[32];
+                    MEMZERO(hash, sizeof(hash));
+                    MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
+                    if (blake2b_hash(ctx->buffer + ctx->offset, dataLength, hash) != zxerr_ok) {
+                        return parser_unexpected_error;
+                    };
+                    return parser_printBytes(hash, 32, outVal, outValLen, pageIdx, pageCount);
+                }
+                CHECK_PARSER_ERR(parse_item(ctx));
             }
-            if (displayIdx == 1 && appExpertMode) {
-                snprintf(outKey, outKeyLen, "Cntrct hash");
-                uint32_t dataLength = 0;
-                CHECK_PARSER_ERR(readU32(ctx, &dataLength))
-                uint64_t value = 0;
-                MEMCPY(&value, &dataLength, 4);
-                uint8_t hash[32];
-                MEMZERO(hash, sizeof(hash));
-                MEMCPY(hash, (ctx->buffer + ctx->offset), dataLength);
-                if (blake2b_hash(ctx->buffer + ctx->offset, dataLength, hash) != zxerr_ok) {
-                    return parser_unexpected_error;
-                };
-                return parser_printBytes(hash, 32, outVal, outValLen, pageIdx, pageCount);
-            }
-            CHECK_PARSER_ERR(parse_item(ctx));
             break;
         }
 
@@ -630,6 +654,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
     ZEMU_LOGF(50, "parseDelegation\n")
     uint8_t type = 0;
     uint8_t internal_type = 0;
+    bool hasAuction = true;
 
     if (item->type == ModuleBytes) {
         item->itemOffset = ctx->offset;
@@ -640,12 +665,20 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
 
         uint32_t dataLength = 0;
         // this should be present in any transaction of this type
-        CHECK_PARSER_ERR(parser_runtimeargs_getData("auction", &dataLength, &type, num_items, ctx));
-        PARSER_ASSERT_OR_ERROR(type == TAG_STRING, parser_unexpected_type);
+        parser_error_t err = parser_runtimeargs_getData("auction", &dataLength, &type, num_items, ctx);
 
         char buffer[100] = {0};
-        PARSER_ASSERT_OR_ERROR(dataLength <= sizeof(buffer) && ctx->bufferLen >= ctx->offset + dataLength,
-                               parser_unexpected_buffer_end);
+        if (err == parser_ok) {
+            PARSER_ASSERT_OR_ERROR(type == TAG_STRING, parser_unexpected_type);
+            PARSER_ASSERT_OR_ERROR(dataLength <= sizeof(buffer) && ctx->bufferLen >= ctx->offset + dataLength,
+                                   parser_unexpected_buffer_end);
+        } else if (err != parser_no_data) {
+            return err;
+        } else {
+            hasAuction = false;
+            item->with_generic_args = 1;
+            item->itemOffset -= 4;
+        }
 
         uint32_t stringLength = 0;
         CHECK_PARSER_ERR(readU32(ctx, &stringLength))
@@ -698,7 +731,7 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
 
     // render the contract-hash or name
     // of the execution only in expert mode
-    if (app_mode_expert()) {
+    if (app_mode_expert() && hasAuction) {
         // render execution type and the value
         item->UI_fixed_items = 2;
         uint8_t has_version =
