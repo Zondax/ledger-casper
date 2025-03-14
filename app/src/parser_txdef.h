@@ -105,6 +105,7 @@ typedef enum {
 } pricing_mode_e;
 
 typedef struct {
+    uint16_t initiator_address_metadata_size;
     uint8_t initiator_address_len;
     uint8_t chain_name_len;
     pricing_mode_e pricing_mode;
@@ -118,12 +119,6 @@ typedef struct {
     uint32_t field_offsets[MAX_METADATA_FIELDS];
     uint16_t fields_size;
 } parser_metadata_txnV1_t;
-
-typedef struct {
-    uint8_t num_fields;
-    uint32_t field_offsets[PAYLOAD_METADATA_FIELDS];
-    uint16_t fields_size;
-} parser_payload_metadata_txnV1_t;
 
 typedef enum {
     EntryPointCall = 0,
@@ -167,12 +162,12 @@ typedef enum {
 typedef struct {
     parser_metadata_txnV1_t metadata;
     parser_header_txnV1_t header;
-    parser_payload_metadata_txnV1_t payload_metadata;
+    parser_metadata_txnV1_t payload_metadata;
     entry_point_type_e entry_point_type;
     const uint8_t *custom_entry_point;
     uint32_t custom_entry_point_len;
     target_t target;
-    const uint8_t *runtime_args;
+    uint8_t runtime_args_offset;
     args_type_e args_type;
     uint32_t runtime_args_len;
     uint32_t num_runtime_args;

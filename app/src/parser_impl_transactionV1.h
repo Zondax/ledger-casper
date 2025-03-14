@@ -20,7 +20,6 @@
 
 extern parser_tx_txnV1_t parser_tx_obj_txnV1;
 
-uint16_t header_length_txnV1(parser_header_txnV1_t header);
 parser_error_t index_headerpart_txnV1(parser_header_txnV1_t head, header_part_e part, uint16_t *index);
 parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_t *v);
 parser_error_t _validateTxV1(const parser_context_t *c, const parser_tx_txnV1_t *v);
