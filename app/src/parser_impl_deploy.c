@@ -20,7 +20,7 @@
 
 #include "app_mode.h"
 #include "crypto.h"
-#include "parser.h"
+#include "common/parser.h"
 #include "parser_special.h"
 #include "parser_txdef.h"
 #include "parser_utils.h"

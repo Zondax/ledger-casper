@@ -18,6 +18,7 @@
 
 #include "coin.h"
 #include "parser_impl_deploy.h"
+#include "parser_impl_transactionV1.h"
 #include "zxformat.h"
 #include "zxmacros.h"
 
@@ -129,10 +130,10 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
     MEMZERO(signature, signatureMaxlen);
 
     uint8_t hash[CX_SHA256_SIZE] = {0};
-    switch (parser_tx_obj.type) {
+    switch (parser_tx_obj_deploy.type) {
         case WasmDeploy:
         case Transaction: {
-            const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj.header);
+            const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj_deploy.header);
             cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
             break;
         }

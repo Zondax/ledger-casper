@@ -18,7 +18,7 @@
 
 #include "app_mode.h"
 #include "crypto.h"
-#include "parser.h"
+#include "common/parser.h"
 #include "parser_common.h"
 #include "parser_impl_deploy.h"
 #include "parser_txdef.h"
@@ -321,7 +321,6 @@ parser_error_t render_fixed_delegation_items(ExecutableDeployItem *item, parser_
     switch (item->type) {
         case ModuleBytes: {
             if (item->special_type == Generic) {
-                printf("displayIdx: %d\n", displayIdx);
                 if (displayIdx == 0) {
                     snprintf(outKey, outKeyLen, "Execution");
                     snprintf(outVal, outValLen, "contract");

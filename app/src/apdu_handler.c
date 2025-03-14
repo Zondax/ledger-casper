@@ -193,9 +193,9 @@ __Z_INLINE void handle_getversion(volatile uint32_t *flags, volatile uint32_t *t
 #else
     G_io_apdu_buffer[0] = 0;
 #endif
-    G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
-    G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
-    G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
+    G_io_apdu_buffer[1] = MAJOR_VERSION;
+    G_io_apdu_buffer[2] = MINOR_VERSION;
+    G_io_apdu_buffer[3] = PATCH_VERSION;
     G_io_apdu_buffer[4] = !IS_UX_ALLOWED;
 
     G_io_apdu_buffer[5] = (TARGET_ID >> 24) & 0xFF;

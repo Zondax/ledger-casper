@@ -97,7 +97,7 @@ static parser_error_t read_initiator_address(parser_context_t *ctx, parser_tx_tx
 static parser_error_t read_chain_name(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v);
-static parser_error_t read_field_key(parser_context_t *ctx, uint32_t num_fields, uint16_t expected_key);
+static parser_error_t read_field_key(parser_context_t *ctx, uint16_t expected_key);
 static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_scheduling(parser_context_t *ctx);
@@ -179,8 +179,9 @@ parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header, header_part_
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE + TTL_SIZE + CHAIN_NAME_LEN_SIZE +
                       header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
             return parser_ok;
+        default:
+            return parser_unexpected_value;
     }
-    return parser_unexpected_value;
 }
 
 parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_t *v) {
@@ -215,8 +216,6 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_
 }
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v) {
-    parser_metadata_txnV1_t metadata = v->metadata;
-
     ctx->offset += HASH_LENGTH;
 
     INCR_NUM_ITEMS(v, false);
@@ -414,19 +413,19 @@ static parser_error_t read_txV1_body_fields(parser_context_t *ctx, parser_tx_txn
     }
 
     uint16_t expected_key = 0;
-    CHECK_PARSER_ERR(read_field_key(ctx, num_fields, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
     CHECK_PARSER_ERR(read_args(ctx, v));
     expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, num_fields, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
     CHECK_PARSER_ERR(read_target(ctx, v));
     expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, num_fields, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
     CHECK_PARSER_ERR(read_entry_point(ctx, v));
     expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, num_fields, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
     CHECK_PARSER_ERR(read_scheduling(ctx));
 
     return parser_ok;
@@ -465,7 +464,7 @@ static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     return parser_ok;
 }
 
-static parser_error_t read_field_key(parser_context_t *ctx, uint32_t num_fields, uint16_t expected_key) {
+static parser_error_t read_field_key(parser_context_t *ctx, uint16_t expected_key) {
     uint16_t key = 0;
     CHECK_PARSER_ERR(readU16(ctx, &key));
     if (key != expected_key) {
@@ -1548,6 +1547,8 @@ static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser
             CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, v->num_runtime_args, ctx))
             *ctx = initial_ctx;
             CHECK_PARSER_ERR(parser_runtimeargs_getData("delegators", &dataLength, &datatype, v->num_runtime_args, ctx))
+            break;
+        default:
             break;
     }
 

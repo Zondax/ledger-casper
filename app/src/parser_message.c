@@ -16,7 +16,7 @@
 #include "parser_message.h"
 
 #include "app_mode.h"
-#include "parser.h"
+#include "common/parser.h"
 #include "parser_impl_deploy.h"
 #include "zxformat.h"
 
