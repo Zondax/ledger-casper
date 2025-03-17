@@ -15,6 +15,7 @@
  ********************************************************************************/
 
 #include "tx.h"
+#include "parser_txdef.h"
 
 #include <string.h>
 
@@ -46,6 +47,8 @@ storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #endif
 
 parser_context_t ctx_parsed_tx;
+
+transaction_content_e tx_get_content_type() { return ctx_parsed_tx.tx_content; }
 
 void tx_initialize() {
     buffering_init(ram_buffer, sizeof(ram_buffer), (uint8_t *)N_appdata.buffer, sizeof(N_appdata.buffer));
@@ -79,6 +82,7 @@ const char *tx_parse() {
 }
 
 const char *tx_parse_message() {
+    ctx_parsed_tx.tx_content = DeployMessage;
     const uint8_t err = parser_parse_message(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
 
     if (err != parser_ok) {
@@ -153,6 +157,7 @@ zxerr_t tx_getMessageItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, c
 }
 
 zxerr_t tx_parse_wasm() {
+    ctx_parsed_tx.tx_content = DeployWasm;
     const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
 }

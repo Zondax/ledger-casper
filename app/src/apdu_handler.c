@@ -173,10 +173,13 @@ __Z_INLINE void handleSignWasm(volatile uint32_t *flags, volatile uint32_t *tx, 
     view_idle_show(0, NULL);
     // If not done before, parse transaction
     if (!tx_bufferFull && (tx_parse_wasm() != zxerr_ok)) {
+        zemu_log_stack("error - tx_parse_wasm\n");
         THROW(APDU_CODE_EXECUTION_ERROR);
     }
 
+    zemu_log_stack("tx_validate_wasm\n");
     if (tx_validate_wasm() != zxerr_ok) {
+        zemu_log_stack("error - tx_validate_wasm\n");
         THROW(APDU_CODE_EXECUTION_ERROR);
     }
 

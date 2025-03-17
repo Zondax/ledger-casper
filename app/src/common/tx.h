@@ -19,7 +19,7 @@
 #include "crypto.h"
 #include "os.h"
 #include "zxerror.h"
-
+#include "parser_txdef.h"
 void tx_initialize();
 
 /// Clears the transaction buffer
@@ -63,3 +63,5 @@ zxerr_t tx_getWasmItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char
                        uint8_t pageIdx, uint8_t *pageCount);
 
 zxerr_t tx_validate_wasm();
+
+transaction_content_e tx_get_content_type();

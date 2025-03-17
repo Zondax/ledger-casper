@@ -26,6 +26,9 @@ static const char messagePrefix[] = "Casper Message:\n";
 parser_error_t parser_parse_message(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
 
+    memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
+    ctx->tx_obj = &parser_tx_obj_deploy;
+
     const uint8_t messagePrefixLen = strlen(messagePrefix);
     if (dataLen < messagePrefixLen) {
         return parser_unexpected_buffer_end;

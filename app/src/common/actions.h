@@ -21,6 +21,7 @@
 #include "apdu_codes.h"
 #include "coin.h"
 #include "crypto.h"
+#include "parser_txdef.h"
 #include "tx.h"
 #include "zxerror.h"
 
@@ -28,8 +29,13 @@ extern uint16_t action_addrResponseLen;
 
 __Z_INLINE void app_sign() {
     const uint8_t *message = tx_get_buffer();
-    const uint16_t messageLength = tx_get_buffer_length();
+    uint16_t messageLength = tx_get_buffer_length();
     uint16_t replyLen = 0;
+
+    if (tx_get_content_type() == Deploy || tx_get_content_type() == TransactionV1) {
+        message += 1;
+        messageLength -= 1;
+    }
 
     zxerr_t err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength, &replyLen);
 

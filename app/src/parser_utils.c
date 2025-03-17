@@ -29,6 +29,7 @@ parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer,
 
     entry_point_offset = 0;
 
+    zemu_log_stack("parser_init_context - done\n");
     return parser_ok;
 }
 
