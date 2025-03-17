@@ -55,6 +55,9 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrLe
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
                     uint16_t *sigSize);
 
+zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
+                    uint16_t *sigSize);
+
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen, unsigned char *out);
 
 zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out);
