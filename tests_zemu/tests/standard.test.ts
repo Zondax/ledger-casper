@@ -377,7 +377,7 @@ describe("Standard", function () {
   });
 
 
-  test.only.each(models)("sign wasm deploy", async function (m) {
+  test.concurrent.each(models)("sign wasm deploy", async function (m) {
     const sim = new Zemu(m.path);
     try {
       await sim.start({ ...defaultOptions, model: m.name });
