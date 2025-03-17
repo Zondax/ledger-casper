@@ -674,6 +674,11 @@ parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item
         } else if (err != parser_no_data) {
             return err;
         } else {
+            if (ctx->tx_content == DeployWasm) {
+                // Intended, WASM Deploys return an error handled in readHeader
+                return parser_no_data;
+            }
+
             hasAuction = false;
             item->with_generic_args = 1;
             item->itemOffset -= 4;
