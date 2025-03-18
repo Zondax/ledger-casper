@@ -14,7 +14,7 @@
  *  limitations under the License.
  ******************************************************************************* */
 import Zemu, { zondaxMainmenuNavigation, isTouchDevice, ButtonKind } from '@zondax/zemu'
-import { defaultOptions, models, PATH } from "./common";
+import { defaultOptions, models, PATH, TRANSACTIONV1_BLOBS } from "./common";
 import CasperApp from "@zondax/ledger-casper";
 // @ts-ignore
 import * as secp256k1 from "secp256k1";
@@ -432,57 +432,55 @@ describe("Standard", function () {
     }
   });
 
-  test.concurrent.each(models)("[TransactionV1] sign basic normal (%s)", async function (m) {
-    const sim = new Zemu(m.path);
-    try {
-      await sim.start({ ...defaultOptions, model: m.name });
-      const app = new CasperApp(sim.getTransport());
+  describe.each(TRANSACTIONV1_BLOBS)('transactions (txnV1)', function (data) {
+    test.concurrent.each(models)("[TransactionV1] sign (%s)", async function (m) {
+      const sim = new Zemu(m.path);
+      try {
+        await sim.start({ ...defaultOptions, model: m.name });
+        const app = new CasperApp(sim.getTransport());
 
-      const respAddr = await app.getAddressAndPubKey(PATH);
-      console.log(respAddr);
+        const respAddr = await app.getAddressAndPubKey(PATH);
+        console.log(respAddr);
 
-      expect(respAddr.returnCode).toEqual(0x9000);
-      expect(respAddr.errorMessage).toEqual("No errors");
+        expect(respAddr.returnCode).toEqual(0x9000);
+        expect(respAddr.errorMessage).toEqual("No errors");
 
-      expect(respAddr.publicKey.toString("hex")).toEqual(expected_pk);
+        expect(respAddr.publicKey.toString("hex")).toEqual(expected_pk);
 
-      // from manual.json :
-      // native_transfer_target_bytes_source_uref_standard_scheduling
-      const txBlobStr =
-        "010300000000000000000001002000000002009f01000006020000a4b7296ad9b1ea0a038d0d385fb867b772f4c73c0dcd36149c50ee4598183aec0600000000000000000001003700000002003f00000003004700000004005200000005007d000000530100000200000000000000000001000100000023000000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337a087c0377901000080ee360000000000070000006d61696e6e65740400000000000000000001000100000002000900000003000a0000000b00000000102700000000000064000400000000008d000000000400000006000000616d6f756e74010000000008020000006964090000000100000000000000000d0506000000736f75726365210000004acfcf6c684c58caf6b3296e3a97c4a04afaf77bb875ca9a40a45db254e94a75010c0600000074617267657420000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0f2000000001000f00000001000000000000000000010000000002000f00000001000000000000000000010000000203000f000000010000000000000000000100000000010000000202531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe33702ddfc1e0e8956b79d90d3ebb66fd8f0b3422917460257c76ed575d588793178c475922403678efd343f082aef0e7e28e88953ed85250b0b2de19faeb838a13d3b";
+        const txBlobStr = data.blob;
 
-      const txBlob = Buffer.from(txBlobStr, "hex");
-      const respRequest = app.sign(PATH, txBlob);
+        const txBlob = Buffer.from(txBlobStr, "hex");
+        const respRequest = app.sign(PATH, txBlob);
 
-      // Wait until we are not in the main menu
-      await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
-      await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-txV1-sign_basic_normal`);
+        // Wait until we are not in the main menu
+        await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+        await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign-txV1-${data.name}`);
 
-      let signatureResponse = await respRequest;
-      console.log('signature :', signatureResponse);
+        let signatureResponse = await respRequest;
+        console.log('signature :', signatureResponse);
 
-      expect(signatureResponse.returnCode).toEqual(0x9000);
-      expect(signatureResponse.errorMessage).toEqual("No errors");
+        expect(signatureResponse.returnCode).toEqual(0x9000);
+        expect(signatureResponse.errorMessage).toEqual("No errors");
 
-      let txnV1_hash = Buffer.from(
-       "a4B7296AD9B1Ea0a038D0d385FB867b772f4C73c0dCd36149C50eE4598183Aec",
-        "hex"
-      );
+        let txnV1_hash = Buffer.from(
+          data.hash,
+          "hex"
+        );
 
-      const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
-      expect(pk.byteLength).toEqual(33);
-      const signature = Uint8Array.from(signatureResponse.signatureRSV);
-      expect(signature.byteLength).toEqual(65);
+        const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
+        expect(pk.byteLength).toEqual(33);
+        const signature = Uint8Array.from(signatureResponse.signatureRSV);
+        expect(signature.byteLength).toEqual(65);
 
-      const signatureOk = secp256k1.ecdsaVerify(
-        signature.slice(0, 64),
-        txnV1_hash,
-        pk
-      );
-      expect(signatureOk).toEqual(true);
-    } finally {
-      await sim.close();
-    }
+        const signatureOk = secp256k1.ecdsaVerify(
+          signature.slice(0, 64),
+          txnV1_hash,
+          pk
+        );
+        expect(signatureOk).toEqual(true);
+      } finally {
+        await sim.close();
+      }
+    });
   });
-
 });
