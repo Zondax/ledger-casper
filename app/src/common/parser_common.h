@@ -34,39 +34,39 @@ extern "C" {
 typedef enum {
     // Generic errors
     parser_ok = 0,
-    parser_no_data,
-    parser_init_context_empty,
-    parser_display_idx_out_of_range,
-    parser_display_page_out_of_range,
-    parser_unexpected_error,
+    parser_no_data = 1,
+    parser_init_context_empty = 2,
+    parser_display_idx_out_of_range = 3,
+    parser_display_page_out_of_range = 4,
+    parser_unexpected_error = 5,
     // Cbor
-    parser_cbor_unexpected,
-    parser_cbor_unexpected_EOF,
-    parser_cbor_not_canonical,
+    parser_cbor_unexpected = 6,
+    parser_cbor_unexpected_EOF = 7,
+    parser_cbor_not_canonical = 8,
     // Coin specific
-    parser_unexpected_tx_version,
-    parser_unexpected_type,  // 10
-    parser_unexpected_method,
-    parser_unexpected_buffer_end,
-    parser_unexpected_value,
-    parser_unexpected_number_items,
-    parser_unexpected_number_fields,
-    parser_unexpected_characters,
-    parser_unexpected_field,
-    parser_unexpected_field_offset,
-    parser_value_out_of_range,
-    parser_invalid_address,
+    parser_unexpected_tx_version = 9,
+    parser_unexpected_type = 10,
+    parser_unexpected_method = 11,
+    parser_unexpected_buffer_end = 12,
+    parser_unexpected_value = 13,
+    parser_unexpected_number_items = 14,
+    parser_unexpected_number_fields = 15,
+    parser_unexpected_characters = 16,
+    parser_unexpected_field = 17,
+    parser_unexpected_field_offset = 18,
+    parser_value_out_of_range = 19,
+    parser_invalid_address = 20,
     // Context related errors
-    parser_context_mismatch,
-    parser_context_unexpected_size,  // 20
-    parser_context_invalid_chars,
-    parser_context_unknown_prefix,
+    parser_context_mismatch = 21,
+    parser_context_unexpected_size = 22,
+    parser_context_invalid_chars = 23,
+    parser_context_unknown_prefix = 24,
     // Required fields
-    parser_required_nonce,
-    parser_required_method,
+    parser_required_nonce = 25,
+    parser_required_method = 26,
     // Casper specific
-    parser_runtimearg_notfound,
-    parser_invalid_stored_contract,
+    parser_runtimearg_notfound = 27,
+    parser_invalid_stored_contract = 28,
 } parser_error_t;
 
 typedef struct {

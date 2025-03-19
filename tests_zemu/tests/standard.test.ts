@@ -149,11 +149,9 @@ describe("Standard", function () {
         "hex"
       );
 
-      let hash = sha256.hex(headerhash).toString("hex");
-
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -198,11 +196,10 @@ describe("Standard", function () {
         "08546b91f63d6435f071bcb0d35779f8717378b84762b8b418d1fa3b7d264510",
         "hex"
       );
-      let hash = sha256.hex(headerhash).toString("hex");
 
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -251,13 +248,10 @@ describe("Standard", function () {
         "9b100331533e4ae46966e83243bcac343712934d92c5e8f0218c39fa5d14a708",
         "hex"
       );
-      let hash = sha256.hex(headerhash).toString("hex");
-      console.log("hash", hash); // 968b5805da8869e92f5b497cffa37a461299a68d31701d7be09201619e2aa830
-      //but 00005805da8869e92f5b497cffa37a461299a68d31701d7be09201619e2aa830
 
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -304,11 +298,9 @@ describe("Standard", function () {
         "hex"
       );
 
-      let hash = sha256.hex(headerhash).toString("hex");
-
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
 
       // use the legacy field that does not include the V component
       const signature = Uint8Array.from(signatureResponse.signatureRS);
@@ -357,11 +349,9 @@ describe("Standard", function () {
         "hex"
       );
 
-      let hash = sha256.hex(headerhash).toString("hex");
-
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -413,11 +403,9 @@ describe("Standard", function () {
         "hex"
       );
 
-      let hash = sha256.hex(headerhash).toString("hex");
-
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
+      const digest = Uint8Array.from(headerhash);
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
