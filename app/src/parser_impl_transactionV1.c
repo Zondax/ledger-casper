@@ -59,7 +59,9 @@
 
 #define NUM_FIELDS_TXV1_BODY 4
 
-#define PAYLOAD_FIRST_FIELD_OFFSET (parser_tx_obj_txnV1.metadata.metadata_size + parser_tx_obj_txnV1.metadata.field_offsets[PAYLOAD_FIELD_POS] + parser_tx_obj_txnV1.payload_metadata.metadata_size)
+#define PAYLOAD_FIRST_FIELD_OFFSET                                                                                \
+    (parser_tx_obj_txnV1.metadata.metadata_size + parser_tx_obj_txnV1.metadata.field_offsets[PAYLOAD_FIELD_POS] + \
+     parser_tx_obj_txnV1.payload_metadata.metadata_size)
 
 #define MINIMUM_RUNTIME_ARGS_NATIVE_TRANSFER 2
 
@@ -189,7 +191,7 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_
         return parser_unexpected_value;
     }
 
-    parser_metadata_txnV1_t* metadata = &v->metadata;
+    parser_metadata_txnV1_t *metadata = &v->metadata;
     CHECK_PARSER_ERR(read_metadata(ctx, metadata));
 
     uint32_t initial_field_offset = metadata->metadata_size;
@@ -224,7 +226,7 @@ static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v
 }
 
 static parser_error_t read_txV1_payload(parser_context_t *ctx, parser_tx_txnV1_t *v) {
-    parser_metadata_txnV1_t* metadata = &v->payload_metadata;
+    parser_metadata_txnV1_t *metadata = &v->payload_metadata;
 
     CHECK_PARSER_ERR(read_metadata(ctx, metadata));
 
@@ -269,27 +271,27 @@ static parser_error_t read_txV1_header(parser_context_t *ctx, parser_tx_txnV1_t 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     CHECK_PARSER_ERR(read_initiator_address(ctx, v));
-    INCR_NUM_ITEMS(v, false); // Account
+    INCR_NUM_ITEMS(v, false);  // Account
 
     field_offset = initial_field_offset + metadata.field_offsets[1];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint64_t timestamp;
     CHECK_PARSER_ERR(readU64(ctx, &timestamp));
-    INCR_NUM_ITEMS(v, true); // Timestamp
+    INCR_NUM_ITEMS(v, true);  // Timestamp
 
     field_offset = initial_field_offset + metadata.field_offsets[2];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint64_t ttl;
     CHECK_PARSER_ERR(readU64(ctx, &ttl));
-    INCR_NUM_ITEMS(v, true); // TTL
+    INCR_NUM_ITEMS(v, true);  // TTL
 
     field_offset = initial_field_offset + metadata.field_offsets[3];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     CHECK_PARSER_ERR(read_chain_name(ctx, v));
-    INCR_NUM_ITEMS(v, false); // Chain ID
+    INCR_NUM_ITEMS(v, false);  // Chain ID
 
     field_offset = initial_field_offset + metadata.field_offsets[4];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
@@ -298,8 +300,8 @@ static parser_error_t read_txV1_header(parser_context_t *ctx, parser_tx_txnV1_t 
     field_offset = initial_field_offset + metadata.field_offsets[BODY_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
-    INCR_NUM_ITEMS(v, true); // Payment
-    INCR_NUM_ITEMS(v, true); // Max gs prce
+    INCR_NUM_ITEMS(v, true);  // Payment
+    INCR_NUM_ITEMS(v, true);  // Max gs prce
 
     return parser_ok;
 }
@@ -350,7 +352,8 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t
     parser_metadata_txnV1_t metadata = {0};
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
-    uint32_t initial_field_offset = PAYLOAD_FIRST_FIELD_OFFSET + v->payload_metadata.field_offsets[PRICING_MODE_FIELD_POS] + metadata.metadata_size;
+    uint32_t initial_field_offset =
+        PAYLOAD_FIRST_FIELD_OFFSET + v->payload_metadata.field_offsets[PRICING_MODE_FIELD_POS] + metadata.metadata_size;
     uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
@@ -480,7 +483,7 @@ static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     parser_metadata_txnV1_t metadata = {0};
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
-    uint32_t initial_field_offset = ctx->offset ;
+    uint32_t initial_field_offset = ctx->offset;
     uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
@@ -664,7 +667,6 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
     uint8_t tag = 0;
     CHECK_PARSER_ERR(readU8(ctx, &tag));
 
-
     switch (tag) {
         case TAG_SCHEDULING_STANDARD:
             break;
@@ -691,10 +693,10 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
 }
 
 parser_error_t _validateTxV1(const parser_context_t *ctx, const parser_tx_txnV1_t *v) {
-    const uint8_t* pTxnHash = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[HASH_FIELD_POS];
+    const uint8_t *pTxnHash = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[HASH_FIELD_POS];
     uint8_t txnHash[BLAKE2B_256_SIZE] = {0};
 
-    const uint8_t* pPayload = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
+    const uint8_t *pPayload = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
     uint32_t payload_size = v->payload_metadata.metadata_size + v->payload_metadata.fields_size;
 
     if (blake2b_hash(pPayload, payload_size, txnHash) != zxerr_ok) {
@@ -702,7 +704,7 @@ parser_error_t _validateTxV1(const parser_context_t *ctx, const parser_tx_txnV1_
     }
 
     PARSER_ASSERT_OR_ERROR(MEMCMP(txnHash, pTxnHash, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
-    
+
     return parser_ok;
 }
 
@@ -1010,9 +1012,11 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
 
     uint8_t args_hash[32];
     if (parser_tx_obj_txnV1.args_type == RuntimeArgs) {
-        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4, parser_tx_obj_txnV1.runtime_args_len - 1, args_hash);
+        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4,
+                     parser_tx_obj_txnV1.runtime_args_len - 1, args_hash);
     } else {
-        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset, parser_tx_obj_txnV1.runtime_args_len, args_hash);
+        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset, parser_tx_obj_txnV1.runtime_args_len,
+                     args_hash);
     }
 
     snprintf(outKey, outKeyLen, "Args hash");

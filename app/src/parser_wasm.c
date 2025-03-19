@@ -14,8 +14,8 @@
  *  limitations under the License.
  ********************************************************************************/
 #include "app_mode.h"
-#include "crypto.h"
 #include "common/parser.h"
+#include "crypto.h"
 #include "parser_impl_deploy.h"
 #include "parser_message.h"
 #include "parser_utils.h"
@@ -113,13 +113,15 @@ parser_error_t parser_getWasmItem(parser_context_t *ctx, uint8_t displayIdx, cha
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "DeployHash");
-            pageStringHex(outVal, outValLen, (const char *)ctx->buffer + header_length_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header),
+            pageStringHex(outVal, outValLen,
+                          (const char *)ctx->buffer + header_length_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header),
                           HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 
         case 1:
             snprintf(outKey, outKeyLen, "BodyHash");
-            CHECK_PARSER_ERR(index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash, &ctx->offset));
+            CHECK_PARSER_ERR(
+                index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash, &ctx->offset));
             pageStringHex(outVal, outValLen, (const char *)ctx->buffer + ctx->offset, HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 

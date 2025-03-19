@@ -56,7 +56,7 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
                     uint16_t *sigSize);
 
 zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
-                    uint16_t *sigSize);
+                          uint16_t *sigSize);
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen, unsigned char *out);
 

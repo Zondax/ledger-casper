@@ -15,13 +15,13 @@
  ********************************************************************************/
 
 #include "tx.h"
-#include "parser_txdef.h"
 
 #include <string.h>
 
 #include "apdu_codes.h"
 #include "buffering.h"
 #include "parser.h"
+#include "parser_txdef.h"
 #include "zxmacros.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
@@ -50,9 +50,7 @@ parser_context_t ctx_parsed_tx;
 
 transaction_content_e tx_get_content_type() { return ctx_parsed_tx.tx_content; }
 
-void tx_initialize() {
-    buffering_init(ram_buffer, sizeof(ram_buffer), (uint8_t *)N_appdata.buffer, FLASH_BUFFER_SIZE);
-}
+void tx_initialize() { buffering_init(ram_buffer, sizeof(ram_buffer), (uint8_t *)N_appdata.buffer, FLASH_BUFFER_SIZE); }
 
 void tx_reset() { buffering_reset(); }
 

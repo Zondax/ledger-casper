@@ -181,15 +181,16 @@ catch_cx_error:
     return error;
 }
 
-zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, __Z_UNUSED uint16_t messageLen,
-                    uint16_t *sigSize) {
+zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message,
+                          __Z_UNUSED uint16_t messageLen, uint16_t *sigSize) {
     if (signature == NULL || message == NULL || sigSize == NULL || signatureMaxlen < sizeof(signature_t)) {
         return zxerr_unknown;
     }
     MEMZERO(signature, signatureMaxlen);
 
     uint8_t hash[CX_SHA256_SIZE] = {0};
-    const uint8_t *message_digest = message + parser_tx_obj_txnV1.metadata.metadata_size + parser_tx_obj_txnV1.metadata.field_offsets[HASH_FIELD_POS];
+    const uint8_t *message_digest = message + parser_tx_obj_txnV1.metadata.metadata_size +
+                                    parser_tx_obj_txnV1.metadata.field_offsets[HASH_FIELD_POS];
     MEMCPY(hash, message_digest, CX_SHA256_SIZE);
 
     cx_ecfp_private_key_t cx_privateKey = {0};

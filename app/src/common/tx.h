@@ -18,8 +18,8 @@
 #include "coin.h"
 #include "crypto.h"
 #include "os.h"
-#include "zxerror.h"
 #include "parser_txdef.h"
+#include "zxerror.h"
 void tx_initialize();
 
 /// Clears the transaction buffer
