@@ -178,8 +178,6 @@ typedef struct {
 typedef enum {
     Deploy = 0,
     TransactionV1 = 1,
-    DeployMessage = 2,
-    DeployWasm = 3,
 } transaction_content_e;
 
 #ifdef __cplusplus

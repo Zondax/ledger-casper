@@ -80,7 +80,6 @@ const char *tx_parse() {
 }
 
 const char *tx_parse_message() {
-    ctx_parsed_tx.tx_content = DeployMessage;
     const uint8_t err = parser_parse_message(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
 
     if (err != parser_ok) {
@@ -155,7 +154,6 @@ zxerr_t tx_getMessageItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, c
 }
 
 zxerr_t tx_parse_wasm() {
-    ctx_parsed_tx.tx_content = DeployWasm;
     const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
 }

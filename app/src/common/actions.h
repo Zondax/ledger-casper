@@ -22,6 +22,7 @@
 #include "coin.h"
 #include "crypto.h"
 #include "parser_txdef.h"
+#include "parser_impl_deploy.h"
 #include "tx.h"
 #include "zxerror.h"
 
@@ -32,7 +33,7 @@ __Z_INLINE void app_sign() {
     uint16_t messageLength = tx_get_buffer_length();
     uint16_t replyLen = 0;
 
-    if (tx_get_content_type() == Deploy || tx_get_content_type() == TransactionV1) {
+    if ((tx_get_content_type() == Deploy && parser_tx_obj_deploy.type == Transaction) || tx_get_content_type() == TransactionV1) {
         message += 1;
         messageLength -= 1;
     }
