@@ -515,12 +515,6 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             uint32_t dlen = 0;
             uint8_t dtyp = 255;
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dlen, &dtyp, dataLen, ctx))
-            // use TAG_U512 for amount to render it as an normal amount,
-            // although we support other types, we have special formatting for amounts
-            // which expects this type
-            /*return parser_display_runtimeArg(TAG_U512, dlen, ctx,*/
-            /*outVal, outValLen,*/
-            /*pageIdx, pageCount);*/
             return parser_display_runtimeArgMotes(dtyp, dlen, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
@@ -577,12 +571,6 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
 
-            // use TAG_U512 for amount to render it as an normal amount,
-            // although we support other types, we have special formatting for amounts
-            // which expects this type
-            /*return parser_display_runtimeArg(TAG_U512, dataLength, ctx,*/
-            /*outVal, outValLen,*/
-            /*pageIdx, pageCount);*/
             return parser_display_runtimeArgMotes(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
@@ -597,12 +585,6 @@ parser_error_t parser_getItem_Delegation(ExecutableDeployItem *item, parser_cont
         if (new_displayIdx == 2) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, item->UI_runtime_items, ctx))
-            // use TAG_U512 for amount to render it as an normal amount,
-            // although we support other types, we have special formatting for amounts
-            // which expects this type
-            /*return parser_display_runtimeArg(TAG_U512, dataLength, ctx,*/
-            /*outVal, outValLen,*/
-            /*pageIdx, pageCount);*/
             return parser_display_runtimeArgMotes(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
     }

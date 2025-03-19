@@ -763,13 +763,13 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
     CHECK_PARSER_ERR(parser_getNumItems(ctx, &numItems))
     CHECK_APP_CANARY()
 
-    if (displayIdx < 0 || displayIdx >= numItems) {
+    if (displayIdx >= numItems) {
         return parser_no_data;
     }
 
     parser_tx_txnV1_t parser_tx_obj = *(parser_tx_txnV1_t *)ctx->tx_obj;
 
-    uint16_t runtime_args_to_show = numItems;
+    uint16_t runtime_args_to_show;
 
     if (app_mode_expert()) {
         runtime_args_to_show = numItems - 9;
@@ -823,7 +823,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
             return parser_ok;
         }
 
-        if (displayIdx >= 6 && displayIdx < 6 + parser_tx_obj.header.pricing_mode_items) {
+        if (displayIdx < (6 + parser_tx_obj.header.pricing_mode_items)) {
             parser_getItem_pricing_mode(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx, pageCount);
             return parser_ok;
         }

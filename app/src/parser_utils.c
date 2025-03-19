@@ -118,11 +118,6 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
         case TAG_OPTION: {
             uint8_t inner_type = 0;
             CHECK_PARSER_ERR(_readUInt8(ctx, &inner_type));
-            // keep commented code just to clarify that we now parse any Option
-            // as long as the inner type is not a container type,
-            // in the presentation layer the only valid options are
-            // the one commented bellow
-            /*if(inner_type != TAG_U64 && inner_type != TAG_UREF){*/
             if (is_container_type(inner_type)) {
                 return parser_unexpected_type;
             } else {

@@ -330,7 +330,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
     CHECK_PARSER_ERR(parser_getNumItems(ctx, &numItems))
     CHECK_APP_CANARY()
 
-    if (displayIdx < 0 || displayIdx >= numItems) {
+    if (displayIdx >= numItems) {
         return parser_no_data;
     }
 
