@@ -20,7 +20,8 @@
     "lint": "eslint . --config eslint.config.mjs",
     "lint:fix": "eslint --fix . --config eslint.config.js",
     "test": "yarn clean && jest --maxConcurrency 2",
-    "try": "node try.mjs",
+    "try_deploy": "node try_deploy.mjs",
+    "try_txnV1": "node try_txnV1.mjs",
     "upgrade": "bunx npm-check-updates -i"
   },
   "dependencies": {
