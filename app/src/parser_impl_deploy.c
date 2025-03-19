@@ -28,13 +28,12 @@
 
 parser_tx_deploy_t parser_tx_obj_deploy;
 
-// pub account: PublicKey,             //1 + 32/33
-// pub timestamp: Timestamp,           //8
-// pub ttl: TimeDiff,                  //8
-// pub gas_price: u64,                 //8
-// pub body_hash: Digest,              //32
-// pub dependencies: Vec<DeployHash>,  //4 + len*32
-// pub chain_name: String,             //4+14 = 18
+#define TIMESTAMP_SIZE 8
+#define TTL_SIZE 8  
+#define GAS_PRICE_SIZE 8
+#define BODY_HASH_SIZE 32
+#define DEPLOY_HEADER_FIXED_LEN (TIMESTAMP_SIZE + TTL_SIZE + GAS_PRICE_SIZE + BODY_HASH_SIZE)
+#define DEPLOY_HASH_ENTRY_SIZE 32
 
 uint16_t header_length_deploy(parser_header_deploy_t header) {
     uint16_t pubkeyLen = 1 + (header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
@@ -47,7 +46,7 @@ uint16_t header_length_deploy(parser_header_deploy_t header) {
 parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_e part, uint16_t *index) {
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
-    uint16_t deployHashLen = 4 + head.lenDependencies * 32;
+    uint16_t deployHashLen = 4 + head.lenDependencies * DEPLOY_HASH_ENTRY_SIZE; // TODO : Review macro usage
     switch (part) {
         case header_pubkey: {
             *index = 0;
@@ -59,27 +58,27 @@ parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_
         }
 
         case header_ttl: {
-            *index = pubkeyLen + 8;
+            *index = pubkeyLen + TIMESTAMP_SIZE;
             return parser_ok;
         }
 
         case header_gasprice: {
-            *index = pubkeyLen + 16;
+            *index = pubkeyLen + TIMESTAMP_SIZE + TTL_SIZE;
             return parser_ok;
         }
 
         case header_bodyhash: {
-            *index = pubkeyLen + 24;
+            *index = pubkeyLen + TIMESTAMP_SIZE + TTL_SIZE + GAS_PRICE_SIZE;
             return parser_ok;
         }
 
         case header_deps: {
-            *index = pubkeyLen + 56;
+            *index = pubkeyLen + DEPLOY_HEADER_FIXED_LEN;
             return parser_ok;
         }
 
         case header_chainname: {
-            *index = pubkeyLen + 56 + deployHashLen;
+            *index = pubkeyLen + DEPLOY_HEADER_FIXED_LEN + deployHashLen;
             return parser_ok;
         }
 
