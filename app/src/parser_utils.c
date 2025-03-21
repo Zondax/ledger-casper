@@ -29,7 +29,6 @@ parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer,
 
     entry_point_offset = 0;
 
-    zemu_log_stack("parser_init_context - done\n");
     return parser_ok;
 }
 
@@ -63,7 +62,6 @@ parser_error_t parse_item(parser_context_t *ctx) {
 }
 
 parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type, uint8_t *option_type) {
-    zemu_log_stack("get_type");
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(check_runtime_type(type));
@@ -218,7 +216,6 @@ parser_error_t parse_additional_typebytes(parser_context_t *ctx, uint8_t type, u
             // we support now generic arguments
             // in transactions but we only support
             // the types define above
-            zemu_log("type not supported\n");
             return parser_unexpected_type;
         }
     }

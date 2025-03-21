@@ -174,9 +174,6 @@ parser_error_t check_entrypoint(parser_context_t *ctx, ExecutableDeployItem *ite
     // anything else is generic
     if (!redelegation && item->special_type == 255) item->special_type = Generic;
 
-    zemu_log("entry_point-->: ");
-    zemu_log(buffer);
-    zemu_log("\n");
     CHECK_PARSER_ERR(parseDelegation(ctx, item, deploy_argLen, redelegation))
     *num_runs = deploy_argLen;
 

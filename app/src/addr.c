@@ -24,7 +24,6 @@
 #include "zxmacros.h"
 
 zxerr_t addr_getNumItems(uint8_t *num_items) {
-    zemu_log_stack("addr_getNumItems");
     *num_items = 1;
     if (app_mode_expert()) {
         *num_items = 2;
@@ -42,7 +41,6 @@ zxerr_t addr_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *
 
     encode_addr((char *)addr_plus_prefix, SECP256K1_PK_LEN + 1, buffer);
 
-    zemu_log_stack(buffer);
     switch (displayIdx) {
         case 0:
             snprintf(outKey, outKeyLen, "Address");

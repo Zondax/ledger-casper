@@ -218,7 +218,6 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
         }
 
         default: {
-            zemu_log("type is not an amount");
             return parser_unexpected_type;
         }
     }
@@ -288,7 +287,6 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         }
 
         default: {
-            zemu_log("unsupported type");
             return parser_unexpected_type;
         }
     }

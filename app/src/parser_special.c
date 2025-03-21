@@ -228,8 +228,6 @@ parser_error_t checkForSystemPaymentArgs(parser_context_t *ctx, __Z_UNUSED Execu
 }
 
 parser_error_t parseSystemPayment(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items) {
-    zemu_log_stack("parseSystemPayment");
-
     if (num_items == 0) return parser_unexpected_number_items;
 
     parser_error_t ret = parser_ok;
@@ -632,7 +630,6 @@ parser_error_t checkForDelegationItems(parser_context_t *ctx, ExecutableDeployIt
 
 parser_error_t parseDelegation(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items,
                                bool redelegation) {
-    ZEMU_LOGF(50, "parseDelegation\n")
     uint8_t type = 0;
     uint8_t internal_type = 0;
     bool hasAuction = true;

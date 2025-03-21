@@ -207,12 +207,6 @@ zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const ui
 
     CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey));
 
-    zemu_log("hash : ");
-    for (int i = 0; i < CX_SHA256_SIZE; i++) {
-        ZEMU_LOGF(3, "%02X", hash[i]);
-    }
-    zemu_log("\n");
-
     CATCH_CXERROR(cx_ecdsa_sign_no_throw(&cx_privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256, hash, CX_SHA256_SIZE,
                                          signature_object->der_signature, &signatureLength, &tmpInfo));
 
@@ -294,7 +288,6 @@ zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t buffer_len, uint16_t *addrL
     MEMZERO(buffer, buffer_len);
 
     if (buffer_len < sizeof(answer_t)) {
-        zemu_log_stack("crypto_fillAddress: zxerr_buffer_too_small");
         return zxerr_buffer_too_small;
     }
 

@@ -67,9 +67,8 @@ const char *tx_parse() {
         return parser_getErrorDescription(err);
     }
 
-    zemu_log_stack("validation\n");
     err = parser_validate(&ctx_parsed_tx);
-    zemu_log_stack("validation_done\n");
+
     CHECK_APP_CANARY()
 
     if (err != parser_ok) {
@@ -101,7 +100,6 @@ zxerr_t tx_getNumItems(uint8_t *num_items) {
 
 zxerr_t tx_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal, uint16_t outValLen,
                    uint8_t pageIdx, uint8_t *pageCount) {
-    zemu_log_stack("tx_getItem\n");
     uint8_t numItems = 0;
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
@@ -118,7 +116,6 @@ zxerr_t tx_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *ou
 
     if (err != parser_ok) return zxerr_unknown;
 
-    zemu_log_stack("tx_getItem done\n");
     return zxerr_ok;
 }
 
