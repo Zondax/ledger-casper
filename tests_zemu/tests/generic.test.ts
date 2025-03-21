@@ -34,7 +34,6 @@ describe("Generic", function () {
         const app = new CasperApp(sim.getTransport());
 
         // Enable expert mode
-        console.log("Set expert mode");
         await sim.toggleExpertMode();
 
         const expected_pk =
@@ -52,7 +51,6 @@ describe("Generic", function () {
         await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-delegation_invalid_entry_point`);
 
         let signatureResponse = await respRequest;
-        console.log(signatureResponse);
 
         expect(signatureResponse.returnCode).toEqual(0x9000);
         expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -62,17 +60,14 @@ describe("Generic", function () {
           "hex"
         );
 
-        let hash = sha256.hex(headerhash).toString("hex");
-
         const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
         expect(pk.byteLength).toEqual(33);
-        const digest = Uint8Array.from(Buffer.from(hash, "hex"));
         const signature = Uint8Array.from(signatureResponse.signatureRSV);
         expect(signature.byteLength).toEqual(65);
 
         const signatureOk = secp256k1.ecdsaVerify(
           signature.slice(0, 64),
-          digest,
+          headerhash,
           pk
         );
 
