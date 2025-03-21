@@ -54,8 +54,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
       const resp = await app.getVersion();
 
-      console.log(resp);
-
       expect(resp.returnCode).toEqual(0x9000);
       expect(resp.errorMessage).toEqual("No errors");
       expect(resp).toHaveProperty("testMode");
@@ -74,7 +72,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       const resp = await app.getAddressAndPubKey(PATH);
-      console.log(resp);
 
       expect(resp.returnCode).toEqual(0x9000);
       expect(resp.errorMessage).toEqual("No errors");
@@ -103,7 +100,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-show_address`);
 
       const resp = await respRequest;
-      console.log(resp);
 
       expect(resp.returnCode).toEqual(0x9000);
       expect(resp.errorMessage).toEqual("No errors");
@@ -121,7 +117,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       const respAddr = await app.getAddressAndPubKey(PATH);
-      console.log(respAddr);
 
       expect(respAddr.returnCode).toEqual(0x9000);
       expect(respAddr.errorMessage).toEqual("No errors");
@@ -139,7 +134,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_basic_normal`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -173,7 +167,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       // Enable expert mode
-      console.log("Set expert mode");
       await sim.toggleExpertMode();
 
       const txBlobStr =
@@ -187,7 +180,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_expert_transfer`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -221,7 +213,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       const respAddr = await app.getAddressAndPubKey(PATH);
-      console.log(respAddr);
 
       expect(respAddr.returnCode).toEqual(0x9000);
       expect(respAddr.errorMessage).toEqual("No errors");
@@ -239,7 +230,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_basic_delegation`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -274,7 +264,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       // Enable expert mode
-      console.log("Set expert mode");
       await sim.toggleExpertMode();
 
       // #209 native_transfer__target__ed25519_public_key__source__none_payment_system
@@ -288,7 +277,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-generic_native_transfer`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -324,7 +312,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       // Enable expert mode
-      console.log("Set expert mode");
       await sim.toggleExpertMode();
 
       // #249  delegate_type__by_hash_missing_amount_payment_system`
@@ -339,7 +326,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-generic_delegation`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -374,7 +360,6 @@ describe("Standard", function () {
       const app = new CasperApp(sim.getTransport());
 
       const respAddr = await app.getAddressAndPubKey(PATH);
-      console.log(respAddr);
 
       expect(respAddr.returnCode).toEqual(0x9000);
       expect(respAddr.errorMessage).toEqual("No errors");
@@ -393,7 +378,6 @@ describe("Standard", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_raw_wasm`)
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");
@@ -428,7 +412,6 @@ describe("Standard", function () {
         const app = new CasperApp(sim.getTransport());
 
         const respAddr = await app.getAddressAndPubKey(PATH);
-        console.log(respAddr);
 
         expect(respAddr.returnCode).toEqual(0x9000);
         expect(respAddr.errorMessage).toEqual("No errors");
@@ -445,7 +428,6 @@ describe("Standard", function () {
         await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign-txV1-${data.name}`);
 
         let signatureResponse = await respRequest;
-        console.log('signature :', signatureResponse);
 
         expect(signatureResponse.returnCode).toEqual(0x9000);
         expect(signatureResponse.errorMessage).toEqual("No errors");
