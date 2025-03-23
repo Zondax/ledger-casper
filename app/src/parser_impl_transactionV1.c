@@ -59,6 +59,12 @@
 
 #define NUM_FIELDS_TXV1_BODY 4
 
+#define HASH_FIELD_POS 0
+#define PAYLOAD_FIELD_POS 1
+#define VALIDATORS_FIELD_POS 2
+
+#define HEADER_FIELD_POS 0
+
 #define PAYLOAD_FIRST_FIELD_OFFSET                                                                                \
     (parser_tx_obj_txnV1.metadata.metadata_size + parser_tx_obj_txnV1.metadata.field_offsets[PAYLOAD_FIELD_POS] + \
      parser_tx_obj_txnV1.payload_metadata.metadata_size)
@@ -88,6 +94,34 @@
     }
 
 parser_tx_txnV1_t parser_tx_obj_txnV1;
+
+#define PRICING_MODE_TAG_FIELD_POS 0
+#define PRICING_MODE_PAYMENT_FIELD_POS 1
+#define PRICING_MODE_GAS_PRICE_FIELD_POS 2
+#define PRICING_MODE_ADDITIONAL_FACTOR_FIELD_POS 3
+
+#define TARGET_TAG_FIELD_POS 0
+#define TARGET_DATA_FIELD_POS 1
+
+#define ENTRY_POINT_TAG_FIELD_POS 0
+#define ENTRY_POINT_DATA_FIELD_POS 1
+
+#define SCHEDULING_TAG_FIELD_POS 0
+#define SCHEDULING_DATA_FIELD_POS 1
+
+#define BODY_ARGS_KEY_POS 0
+#define BODY_TARGET_KEY_POS 1
+#define BODY_ENTRY_POINT_KEY_POS 2
+#define BODY_SCHEDULING_KEY_POS 3
+
+#define HEADER_INITIATOR_ADDR_FIELD_POS 0
+#define HEADER_TIMESTAMP_FIELD_POS 1
+#define HEADER_TTL_FIELD_POS 2
+#define HEADER_CHAINNAME_FIELD_POS 3
+#define HEADER_PRICING_MODE_FIELD_POS 4
+
+#define FIELD_TAG_POS 0
+#define FIELD_DATA_POS 1
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v);
 static parser_error_t read_txV1_payload(parser_context_t *ctx, parser_tx_txnV1_t *v);
@@ -231,7 +265,7 @@ static parser_error_t read_txV1_payload(parser_context_t *ctx, parser_tx_txnV1_t
     CHECK_PARSER_ERR(read_metadata(ctx, metadata));
 
     uint32_t initial_field_offset = PAYLOAD_FIRST_FIELD_OFFSET;
-    uint32_t field_offset = initial_field_offset + metadata->field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata->field_offsets[HEADER_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
@@ -266,34 +300,34 @@ static parser_error_t read_txV1_header(parser_context_t *ctx, parser_tx_txnV1_t 
     parser_metadata_txnV1_t metadata = v->payload_metadata;
 
     uint32_t initial_field_offset = PAYLOAD_FIRST_FIELD_OFFSET;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[HEADER_INITIATOR_ADDR_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     CHECK_PARSER_ERR(read_initiator_address(ctx, v));
     INCR_NUM_ITEMS(v, false);  // Account
 
-    field_offset = initial_field_offset + metadata.field_offsets[1];
+    field_offset = initial_field_offset + metadata.field_offsets[HEADER_TIMESTAMP_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint64_t timestamp;
     CHECK_PARSER_ERR(readU64(ctx, &timestamp));
     INCR_NUM_ITEMS(v, true);  // Timestamp
 
-    field_offset = initial_field_offset + metadata.field_offsets[2];
+    field_offset = initial_field_offset + metadata.field_offsets[HEADER_TTL_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint64_t ttl;
     CHECK_PARSER_ERR(readU64(ctx, &ttl));
     INCR_NUM_ITEMS(v, true);  // TTL
 
-    field_offset = initial_field_offset + metadata.field_offsets[3];
+    field_offset = initial_field_offset + metadata.field_offsets[HEADER_CHAINNAME_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     CHECK_PARSER_ERR(read_chain_name(ctx, v));
     INCR_NUM_ITEMS(v, false);  // Chain ID
 
-    field_offset = initial_field_offset + metadata.field_offsets[4];
+    field_offset = initial_field_offset + metadata.field_offsets[HEADER_PRICING_MODE_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     CHECK_PARSER_ERR(read_pricing_mode(ctx, v));
@@ -311,7 +345,7 @@ static parser_error_t read_initiator_address(parser_context_t *ctx, parser_tx_tx
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
     uint32_t initial_field_offset = PAYLOAD_FIRST_FIELD_OFFSET + metadata.metadata_size;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[HEADER_INITIATOR_ADDR_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(metadata.num_fields == INITIATOR_ADDRESS_NUM_FIELDS, parser_unexpected_number_fields);
 
@@ -323,7 +357,7 @@ static parser_error_t read_initiator_address(parser_context_t *ctx, parser_tx_tx
     CHECK_PARSER_ERR(readU8(ctx, &tag));
     PARSER_ASSERT_OR_ERROR(tag == TAG_ENUM_IS_PUBLIC_KEY || tag == TAG_ENUM_IS_HASH, parser_unexpected_value);
 
-    field_offset = initial_field_offset + metadata.field_offsets[1];
+    field_offset = initial_field_offset + metadata.field_offsets[FIELD_DATA_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint32_t initial_offset = ctx->offset;
@@ -354,7 +388,7 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t
 
     uint32_t initial_field_offset =
         PAYLOAD_FIRST_FIELD_OFFSET + v->payload_metadata.field_offsets[PRICING_MODE_FIELD_POS] + metadata.metadata_size;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[PRICING_MODE_TAG_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
@@ -364,7 +398,7 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t
     uint8_t tag = 0;
     CHECK_PARSER_ERR(readU8(ctx, &tag));
 
-    field_offset = initial_field_offset + metadata.field_offsets[1];
+    field_offset = initial_field_offset + metadata.field_offsets[PRICING_MODE_PAYMENT_FIELD_POS];
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
     uint8_t gas_price = 0;
@@ -372,18 +406,18 @@ static parser_error_t read_pricing_mode(parser_context_t *ctx, parser_tx_txnV1_t
     if (tag == TAG_PRICING_MODE_LIMITED) {
         uint64_t payment_amount;
         CHECK_PARSER_ERR(readU64(ctx, &payment_amount));
-        field_offset = initial_field_offset + metadata.field_offsets[2];
+        field_offset = initial_field_offset + metadata.field_offsets[PRICING_MODE_GAS_PRICE_FIELD_POS];
         PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
         CHECK_PARSER_ERR(readU8(ctx, &gas_price));
-        field_offset = initial_field_offset + metadata.field_offsets[3];
+        field_offset = initial_field_offset + metadata.field_offsets[PRICING_MODE_ADDITIONAL_FACTOR_FIELD_POS];
         PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
         uint8_t standard_payment;
         CHECK_PARSER_ERR(readU8(ctx, &standard_payment));
     } else if (tag == TAG_PRICING_MODE_FIXED) {
         CHECK_PARSER_ERR(readU8(ctx, &gas_price));
-        field_offset = initial_field_offset + metadata.field_offsets[2];
+        field_offset = initial_field_offset + metadata.field_offsets[PRICING_MODE_GAS_PRICE_FIELD_POS];
         PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
         uint8_t additional_computation_factor;
@@ -415,20 +449,16 @@ static parser_error_t read_txV1_body_fields(parser_context_t *ctx, parser_tx_txn
         return parser_unexpected_value;
     }
 
-    uint16_t expected_key = 0;
-    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, BODY_ARGS_KEY_POS));
     CHECK_PARSER_ERR(read_args(ctx, v));
-    expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, BODY_TARGET_KEY_POS));
     CHECK_PARSER_ERR(read_target(ctx, v));
-    expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, BODY_ENTRY_POINT_KEY_POS));
     CHECK_PARSER_ERR(read_entry_point(ctx, v));
-    expected_key++;
 
-    CHECK_PARSER_ERR(read_field_key(ctx, expected_key));
+    CHECK_PARSER_ERR(read_field_key(ctx, BODY_SCHEDULING_KEY_POS));
     CHECK_PARSER_ERR(read_scheduling(ctx));
 
     return parser_ok;
@@ -484,7 +514,7 @@ static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
     uint32_t initial_field_offset = ctx->offset;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[TARGET_TAG_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
@@ -500,7 +530,7 @@ static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v) {
             v->target.type = TargetNative;
             break;
         case TAG_TARGET_STORED:
-            field_offset = initial_field_offset + metadata.field_offsets[1];
+            field_offset = initial_field_offset + metadata.field_offsets[TARGET_DATA_FIELD_POS];
             PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
             parser_metadata_txnV1_t target_stored_metadata = {0};
@@ -556,7 +586,7 @@ static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v) {
 
             break;
         case TAG_TARGET_SESSION:
-            field_offset = initial_field_offset + metadata.field_offsets[1];
+            field_offset = initial_field_offset + metadata.field_offsets[TARGET_DATA_FIELD_POS];
             PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
             v->target.type = TargetSession;
@@ -580,7 +610,7 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
     uint32_t initial_field_offset = ctx->offset;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[ENTRY_POINT_TAG_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
@@ -592,7 +622,7 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
     }
 
     if (tag == (uint8_t)EntryPointCustom) {
-        field_offset = initial_field_offset + metadata.field_offsets[1];
+        field_offset = initial_field_offset + metadata.field_offsets[ENTRY_POINT_DATA_FIELD_POS];
         PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
         v->custom_entry_point = ctx->buffer + ctx->offset + sizeof(uint32_t);
@@ -660,7 +690,7 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
     CHECK_PARSER_ERR(read_metadata(ctx, &metadata));
 
     uint32_t initial_field_offset = ctx->offset;
-    uint32_t field_offset = initial_field_offset + metadata.field_offsets[0];
+    uint32_t field_offset = initial_field_offset + metadata.field_offsets[SCHEDULING_TAG_FIELD_POS];
 
     PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
 
@@ -671,13 +701,13 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
         case TAG_SCHEDULING_STANDARD:
             break;
         case TAG_SCHEDULING_FUTURE_ERA:
-            field_offset = initial_field_offset + metadata.field_offsets[1];
+            field_offset = initial_field_offset + metadata.field_offsets[SCHEDULING_DATA_FIELD_POS];
             PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
             uint64_t future_era_id;
             CHECK_PARSER_ERR(readU64(ctx, &future_era_id));
             break;
         case TAG_SCHEDULING_FUTURE_TIMESTAMP:
-            field_offset = initial_field_offset + metadata.field_offsets[1];
+            field_offset = initial_field_offset + metadata.field_offsets[SCHEDULING_DATA_FIELD_POS];
             PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
             uint64_t future_timestamp;
             CHECK_PARSER_ERR(readU64(ctx, &future_timestamp));
