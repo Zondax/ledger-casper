@@ -63,7 +63,7 @@
 #define DISPLAY_HEADER_U64(KEYNAME, HEADERPART, TX_CONTENT)                                              \
     {                                                                                                    \
         snprintf(outKey, outKeyLen, KEYNAME);                                                            \
-        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, &ctx->offset)); \
+        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, ctx)); \
         uint64_t value = 0;                                                                              \
         CHECK_PARSER_ERR(readU64(ctx, &value));                                                          \
         return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                            \
@@ -72,7 +72,7 @@
 #define DISPLAY_HEADER_TIMESTAMP(KEYNAME, HEADERPART, TX_CONTENT)                                        \
     {                                                                                                    \
         snprintf(outKey, outKeyLen, KEYNAME);                                                            \
-        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, &ctx->offset)); \
+        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, ctx)); \
         uint64_t value = 0;                                                                              \
         CHECK_PARSER_ERR(readU64(ctx, &value));                                                          \
         value /= 1000;                                                                                   \

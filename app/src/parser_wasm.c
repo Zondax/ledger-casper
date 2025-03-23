@@ -26,10 +26,10 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txOb
     PARSER_ASSERT_OR_ERROR(txObj->header.pubkeytype == 0x01 || txObj->header.pubkeytype == 0x02,
                            parser_context_unknown_prefix);
 
-    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_deps, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_deps, ctx));
     CHECK_PARSER_ERR(readU32(ctx, &txObj->header.lenDependencies));
 
-    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_chainname, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(txObj->header, header_chainname, ctx));
     CHECK_PARSER_ERR(readU32(ctx, &txObj->header.lenChainName));
 
     if (ctx->bufferLen - ctx->offset < BLAKE2B_256_SIZE) {
@@ -120,8 +120,8 @@ parser_error_t parser_getWasmItem(parser_context_t *ctx, uint8_t displayIdx, cha
 
         case 1:
             snprintf(outKey, outKeyLen, "BodyHash");
-            CHECK_PARSER_ERR(
-                index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash,
+                                                    ctx));
             pageStringHex(outVal, outValLen, (const char *)ctx->buffer + ctx->offset, HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 

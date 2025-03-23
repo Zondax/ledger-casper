@@ -43,49 +43,56 @@ uint16_t header_length_deploy(parser_header_deploy_t header) {
     return pubkeyLen + fixedLen + depsLen + chainNameLen;
 }
 
-parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_e part, uint16_t *index) {
+parser_error_t index_headerpart_deploy(parser_header_deploy_t head, header_part_e part, parser_context_t *ctx) {
+    uint16_t *index = &ctx->offset;
     *index = 0;
     uint16_t pubkeyLen = 1 + (head.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
-    uint16_t deployHashLen = 4 + head.lenDependencies * DEPLOY_HASH_ENTRY_SIZE; // TODO : Review macro usage
+    uint16_t deployHashLen = 4 + head.lenDependencies * DEPLOY_HASH_ENTRY_SIZE;
     switch (part) {
         case header_pubkey: {
             *index = 0;
-            return parser_ok;
+            break;
         }
         case header_timestamp: {
             *index = pubkeyLen;
-            return parser_ok;
+            break;
         }
 
         case header_ttl: {
             *index = pubkeyLen + TIMESTAMP_SIZE;
-            return parser_ok;
+            break;
         }
 
         case header_gasprice: {
             *index = pubkeyLen + TIMESTAMP_SIZE + TTL_SIZE;
-            return parser_ok;
+            break;
         }
 
         case header_bodyhash: {
             *index = pubkeyLen + TIMESTAMP_SIZE + TTL_SIZE + GAS_PRICE_SIZE;
-            return parser_ok;
+            break;
         }
 
         case header_deps: {
             *index = pubkeyLen + DEPLOY_HEADER_FIXED_LEN;
-            return parser_ok;
+            break;
         }
 
         case header_chainname: {
             *index = pubkeyLen + DEPLOY_HEADER_FIXED_LEN + deployHashLen;
-            return parser_ok;
+            break;
         }
 
         default: {
             return parser_unexpected_error;
         }
     }
+
+    if (*index > ctx->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+
+    return parser_ok;
 }
 
 parser_error_t parseDeployType(uint8_t type, deploy_type_e *deploytype) {
@@ -251,10 +258,10 @@ parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v) 
     v->header.pubkeytype = ctx->buffer[0];
     PARSER_ASSERT_OR_ERROR(v->header.pubkeytype == 0x01 || v->header.pubkeytype == 0x02, parser_context_unknown_prefix);
 
-    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_deps, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_deps, ctx));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenDependencies));
 
-    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_chainname, &ctx->offset));
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_chainname, ctx));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
     ctx->offset = header_length_deploy(v->header) + BLAKE2B_256_SIZE;
@@ -300,9 +307,8 @@ parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_depl
         return parser_unexpected_error;
     }
 
-    index = 0;
-    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_bodyhash, &index));
-    PARSER_ASSERT_OR_ERROR(MEMCMP(hash, c->buffer + index, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
+    CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_bodyhash, (parser_context_t *)c));
+    PARSER_ASSERT_OR_ERROR(MEMCMP(hash, c->buffer + c->offset, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
 
     return parser_ok;
 }
@@ -356,13 +362,13 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
     }
 
     if (displayIdx == 2) {
-        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_chainname, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_chainname, ctx));
         DISPLAY_STRING("Chain ID", ctx->buffer + 4 + ctx->offset, parser_tx_obj.header.lenChainName)
     }
 
     if (displayIdx == 3) {
         snprintf(outKey, outKeyLen, "Account");
-        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_pubkey, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_pubkey, ctx));
         uint16_t pubkeyLen = 1 + (parser_tx_obj.header.pubkeytype == 0x02 ? SECP256K1_PK_LEN : ED25519_PK_LEN);
         return parser_printAddress((const uint8_t *)(ctx->buffer + ctx->offset), pubkeyLen, outVal, outValLen, pageIdx,
                                    pageCount);
@@ -375,7 +381,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
 
         if (displayIdx == 5) {
             snprintf(outKey, outKeyLen, "Ttl");
-            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_ttl, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_ttl, ctx));
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx, &value));
             value /= 1000;
@@ -390,7 +396,7 @@ parser_error_t _getItemDeploy(parser_context_t *ctx, uint8_t displayIdx, char *o
         }
 
         if (displayIdx == 7) {
-            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_deps, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_deploy(parser_tx_obj.header, header_deps, ctx));
             uint32_t numdeps = 0;
             CHECK_PARSER_ERR(readU32(ctx, &numdeps));
             snprintf(outKey, outKeyLen, "Deps #");

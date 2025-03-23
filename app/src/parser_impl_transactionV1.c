@@ -177,7 +177,8 @@ static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *c
 
 static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser_tx_txnV1_t *v);
 
-parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header, header_part_e part, uint16_t *offset) {
+parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header, header_part_e part, parser_context_t *ctx) {
+    uint16_t *offset = &ctx->offset;
     uint16_t initial_offset = parser_tx_obj_txnV1.metadata.metadata_size;
     parser_metadata_txnV1_t *txnV1_metadata = &parser_tx_obj_txnV1.metadata;
     parser_metadata_txnV1_t *payload_metadata = &parser_tx_obj_txnV1.payload_metadata;
@@ -190,34 +191,40 @@ parser_error_t index_headerpart_txnV1(parser_header_txnV1_t header, header_part_
     switch (part) {
         case header_initiator_addr:
             *offset = initial_offset;
-            return parser_ok;
+            break;
         case header_timestamp:
             *offset = initial_offset + header.initiator_address_len;
-            return parser_ok;
+            break;
         case header_ttl:
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE;
-            return parser_ok;
+            break;
         case header_chainname:
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE + TTL_SIZE + CHAIN_NAME_LEN_SIZE;
-            return parser_ok;
+            break;
         case header_payment:
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE + TTL_SIZE + CHAIN_NAME_LEN_SIZE +
                       header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
-            return parser_ok;
+            break;
         case header_gasprice:
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE + TTL_SIZE + CHAIN_NAME_LEN_SIZE +
                       header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
             if (header.pricing_mode == PricingModeClassic) {
                 *offset += PAYMENT_SIZE;
             }
-            return parser_ok;
+            break;
         case header_receipt:
             *offset = initial_offset + header.initiator_address_len + TIMESTAMP_SIZE + TTL_SIZE + CHAIN_NAME_LEN_SIZE +
                       header.chain_name_len + header.pricing_mode_metadata_size + TAG_SIZE;
-            return parser_ok;
+            break;
         default:
             return parser_unexpected_value;
     }
+
+    if (*offset > ctx->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+
+    return parser_ok;
 }
 
 parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_t *v) {
@@ -825,14 +832,14 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
     }
 
     if (displayIdx == 2) {
-        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_chainname, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_chainname, ctx));
         DISPLAY_STRING("Chain ID", ctx->buffer + ctx->offset, parser_tx_obj.header.chain_name_len)
         return parser_ok;
     }
 
     if (displayIdx == 3) {
         snprintf(outKey, outKeyLen, "Account");
-        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_initiator_addr, &ctx->offset));
+        CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_initiator_addr, ctx));
         return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset),
                                  parser_tx_obj.header.initiator_address_len, outVal, outValLen, pageIdx, pageCount);
     }
@@ -845,7 +852,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
 
         if (displayIdx == 5) {
             snprintf(outKey, outKeyLen, "Ttl");
-            CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_ttl, &ctx->offset));
+            CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj.header, header_ttl, ctx));
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx, &value));
             value /= 1000;
@@ -1121,7 +1128,7 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
         snprintf(outKey, outKeyLen, "Payment");
         switch (parser_tx_obj_txnV1.header.pricing_mode) {
             case PricingModeClassic:
-                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_payment, &ctx->offset));
+                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_payment, ctx));
                 uint64_t value = 0;
                 CHECK_PARSER_ERR(readU64(ctx, &value));
                 char buffer[20] = {0};
@@ -1146,7 +1153,7 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
             case PricingModeClassic:
             case PricingModeFixed:
                 snprintf(outKey, outKeyLen, "Max gs prce");
-                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_gasprice, &ctx->offset));
+                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_gasprice, ctx));
                 uint64_t value = 0;
                 CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&value));
                 char buffer[8] = {0};
@@ -1155,7 +1162,7 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
                 break;
             case PricingModePrepaid:
                 snprintf(outKey, outKeyLen, "Receipt");
-                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_receipt, &ctx->offset));
+                CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_receipt, ctx));
                 return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen,
                                          pageIdx, pageCount);
         }
