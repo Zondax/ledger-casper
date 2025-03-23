@@ -788,7 +788,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
 
     if (displayIdx == 1) {
         snprintf(outKey, outKeyLen, "Type");
-        char tmpBuf[50];
+        char tmpBuf[50] = {0};
         entry_point_to_str(parser_tx_obj.entry_point_type, tmpBuf, sizeof(tmpBuf));
         snprintf(outVal, outValLen, "%s", tmpBuf);
         return parser_ok;
@@ -819,7 +819,7 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
             uint64_t value = 0;
             CHECK_PARSER_ERR(readU64(ctx, &value));
             value /= 1000;
-            char buffer[100];
+            char buffer[100] = {0};
             CHECK_PARSER_ERR(parse_TTL(value, buffer, sizeof(buffer)));
             pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
             return parser_ok;
@@ -911,7 +911,7 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
                                                  pageIdx, pageCount);
             } else if (custom_display_idx == 2) {
                 snprintf(outKey, outKeyLen, "Entry-point");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.custom_entry_point_len,
                          parser_tx_obj_txnV1.custom_entry_point);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
@@ -925,14 +925,14 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
                 return parser_ok;
             } else if (custom_display_idx == 1) {
                 snprintf(outKey, outKeyLen, "Name");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.target.name_len,
                          parser_tx_obj_txnV1.target.name);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
                 return parser_ok;
             } else if (custom_display_idx == 2) {
                 snprintf(outKey, outKeyLen, "Entry-point");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.custom_entry_point_len,
                          parser_tx_obj_txnV1.custom_entry_point);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
@@ -965,7 +965,7 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
 
             if (custom_display_idx == 3) {
                 snprintf(outKey, outKeyLen, "Entry-point");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.custom_entry_point_len,
                          parser_tx_obj_txnV1.custom_entry_point);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
@@ -979,7 +979,7 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
                 return parser_ok;
             } else if (custom_display_idx == 1) {
                 snprintf(outKey, outKeyLen, "Name");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.target.name_len,
                          parser_tx_obj_txnV1.target.name);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
@@ -1001,7 +1001,7 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
 
             if (custom_display_idx == 3) {
                 snprintf(outKey, outKeyLen, "Entry-point");
-                char tmpBuf[100];
+                char tmpBuf[100] = {0};
                 snprintf(tmpBuf, sizeof(tmpBuf), "%.*s", parser_tx_obj_txnV1.custom_entry_point_len,
                          parser_tx_obj_txnV1.custom_entry_point);
                 pageString(outVal, outValLen, tmpBuf, pageIdx, pageCount);
@@ -1010,7 +1010,7 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
             break;
     }
 
-    uint8_t args_hash[32];
+    uint8_t args_hash[32] = {0};
     if (parser_tx_obj_txnV1.args_type == RuntimeArgs) {
         blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4,
                      parser_tx_obj_txnV1.runtime_args_len - 1, args_hash);
@@ -1094,9 +1094,9 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
                 CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_payment, &ctx->offset));
                 uint64_t value = 0;
                 CHECK_PARSER_ERR(readU64(ctx, &value));
-                char buffer[20];
+                char buffer[20] = {0};
                 uint64_to_str(buffer, sizeof(buffer), value);
-                char formattedPayment[30];
+                char formattedPayment[30] = {0};
                 add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer);
                 pageString(outVal, outValLen, formattedPayment, pageIdx, pageCount);
                 break;
@@ -1119,7 +1119,7 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
                 CHECK_PARSER_ERR(index_headerpart_txnV1(parser_tx_obj_txnV1.header, header_gasprice, &ctx->offset));
                 uint64_t value = 0;
                 CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&value));
-                char buffer[8];
+                char buffer[8] = {0};
                 uint64_to_str(buffer, sizeof(buffer), value);
                 pageString(outVal, outValLen, buffer, pageIdx, pageCount);
                 break;
