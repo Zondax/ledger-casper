@@ -351,11 +351,6 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
         if (new_displayIdx == 0) {
             snprintf(outKey, outKeyLen, "Target");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
-
-            //            return parser_printAddress((const uint8_t *) (ctx->buffer +
-            //            ctx->offset), pubkeyLen, outVal, outValLen,
-            //                                       pageIdx, pageCount);
-
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
