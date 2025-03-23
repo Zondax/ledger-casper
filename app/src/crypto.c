@@ -80,38 +80,6 @@ catch_cx_error:
     return error;
 }
 
-zxerr_t pubkey_to_hash(const uint8_t *pubkey, uint16_t pubkeyLen, uint8_t *out) {
-    uint8_t preimage[100] = {0};
-    uint16_t preimageLen = 0;
-    uint8_t type = pubkey[0];
-    switch (type) {
-        case 0x00: {
-            MEMCPY(preimage, (uint8_t *)"system", 6);
-            preimageLen += 6;
-            break;
-        }
-        case 0x01: {
-            MEMCPY(preimage, (uint8_t *)"ed25519", 7);
-            preimageLen += 7;
-            break;
-        }
-        case 0x02: {
-            MEMCPY(preimage, (uint8_t *)"secp256k1", 9);
-            preimageLen += 9;
-            break;
-        }
-        default: {
-            return zxerr_unknown;
-        }
-    }
-
-    preimage[preimageLen++] = 0;
-    MEMCPY(preimage + preimageLen, pubkey + 1, pubkeyLen - 1);
-    preimageLen += pubkeyLen - 1;
-    blake2b_hash(preimage, preimageLen, out);
-    return zxerr_ok;
-}
-
 typedef struct {
     uint8_t r[32];
     uint8_t s[32];
