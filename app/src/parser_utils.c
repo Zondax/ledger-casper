@@ -54,10 +54,13 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
 parser_error_t parse_item(parser_context_t *ctx) {
     uint32_t part = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
-    if (part >= ctx->bufferLen - ctx->offset) {
+
+    if (ctx->offset + part > ctx->bufferLen) {
         return parser_unexpected_buffer_end;
     }
+
     ctx->offset += part;
+
     return parser_ok;
 }
 
