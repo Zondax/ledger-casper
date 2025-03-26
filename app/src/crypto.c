@@ -92,18 +92,19 @@ typedef struct {
 } __attribute__((packed)) signature_t;
 
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
-                    uint16_t *sigSize) {
+                    uint16_t *sigSize, transaction_content_e tx_content) {
     if (signature == NULL || message == NULL || sigSize == NULL || signatureMaxlen < sizeof(signature_t)) {
         return zxerr_unknown;
     }
     MEMZERO(signature, signatureMaxlen);
 
     uint8_t hash[CX_SHA256_SIZE] = {0};
-    switch (parser_tx_obj_deploy.type) {
-        case WasmDeploy:
-        case Transaction: {
+    if (tx_content == Deploy) {
+        switch (parser_tx_obj_deploy.type) {
+            case WasmDeploy:
+            case Transaction: {
             const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj_deploy.header);
-            MEMCPY(hash, message_digest, CX_SHA256_SIZE);
+            cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
             break;
         }
         case Message:
@@ -111,7 +112,12 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
             break;
 
         default:
-            return zxerr_unknown;
+                return zxerr_unknown;
+        }
+    } else {
+        const uint8_t *message_digest = message + parser_tx_obj_txnV1.metadata.metadata_size +
+                                        parser_tx_obj_txnV1.metadata.field_offsets[HASH_FIELD_POS];
+        cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
     }
 
     cx_ecfp_private_key_t cx_privateKey = {0};
@@ -127,54 +133,6 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
                                                      privateKeyData, NULL, NULL, 0));
 
     CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey));
-    CATCH_CXERROR(cx_ecdsa_sign_no_throw(&cx_privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256, hash, CX_SHA256_SIZE,
-                                         signature_object->der_signature, &signatureLength, &tmpInfo));
-
-    const err_convert_e err_c = convertDERtoRSV(signature_object->der_signature, tmpInfo, signature_object->r,
-                                                signature_object->s, &signature_object->v);
-    if (err_c == no_error) {
-        *sigSize = sizeof_field(signature_t, r) + sizeof_field(signature_t, s) + sizeof_field(signature_t, v) +
-                   signatureLength;
-        error = zxerr_ok;
-    }
-
-catch_cx_error:
-    MEMZERO(&cx_privateKey, sizeof(cx_privateKey));
-    MEMZERO(privateKeyData, sizeof(privateKeyData));
-
-    if (error != zxerr_ok) {
-        MEMZERO(signature, signatureMaxlen);
-    }
-
-    return error;
-}
-
-zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message,
-                          __Z_UNUSED uint16_t messageLen, uint16_t *sigSize) {
-    if (signature == NULL || message == NULL || sigSize == NULL || signatureMaxlen < sizeof(signature_t)) {
-        return zxerr_unknown;
-    }
-    MEMZERO(signature, signatureMaxlen);
-
-    uint8_t hash[CX_SHA256_SIZE] = {0};
-    const uint8_t *message_digest = message + parser_tx_obj_txnV1.metadata.metadata_size +
-                                    parser_tx_obj_txnV1.metadata.field_offsets[HASH_FIELD_POS];
-    MEMCPY(hash, message_digest, CX_SHA256_SIZE);
-
-    cx_ecfp_private_key_t cx_privateKey = {0};
-    uint8_t privateKeyData[64] = {0};
-    size_t signatureLength = sizeof_field(signature_t, der_signature);
-    uint32_t tmpInfo = 0;
-    *sigSize = 0;
-
-    signature_t *const signature_object = (signature_t *)signature;
-    zxerr_t error = zxerr_unknown;
-
-    CATCH_CXERROR(os_derive_bip32_with_seed_no_throw(HDW_NORMAL, CX_CURVE_256K1, hdPath, HDPATH_LEN_DEFAULT,
-                                                     privateKeyData, NULL, NULL, 0));
-
-    CATCH_CXERROR(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &cx_privateKey));
-
     CATCH_CXERROR(cx_ecdsa_sign_no_throw(&cx_privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256, hash, CX_SHA256_SIZE,
                                          signature_object->der_signature, &signatureLength, &tmpInfo));
 

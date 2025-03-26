@@ -40,11 +40,8 @@ __Z_INLINE void app_sign() {
 
     zxerr_t err = zxerr_unknown;
 
-    if (tx_get_content_type() == TransactionV1) {
-        err = crypto_sign_txnV1(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength, &replyLen);
-    } else {
-        err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength, &replyLen);
-    }
+    transaction_content_e tx_content = tx_get_content_type();
+    err = crypto_sign(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE - 3, message, messageLength, &replyLen, tx_content);
 
     if (err != zxerr_ok || replyLen == 0) {
         set_code(G_io_apdu_buffer, 0, APDU_CODE_SIGN_VERIFY_ERROR);

@@ -60,14 +60,17 @@ describe("Generic", function () {
           "hex"
         );
 
+        const hash = sha256.hex(headerhash).toString("hex");
+
         const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
         expect(pk.byteLength).toEqual(33);
+        const digest = Uint8Array.from(Buffer.from(hash, "hex"));
         const signature = Uint8Array.from(signatureResponse.signatureRSV);
         expect(signature.byteLength).toEqual(65);
 
         const signatureOk = secp256k1.ecdsaVerify(
           signature.slice(0, 64),
-          headerhash,
+          digest,
           pk
         );
 

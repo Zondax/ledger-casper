@@ -26,6 +26,7 @@ extern "C" {
 #include <zxmacros.h>
 
 #include "coin.h"
+#include "parser_txdef.h"
 
 #define CHECKSUM_LENGTH 4
 
@@ -53,10 +54,7 @@ zxerr_t crypto_extractPublicKey(const uint32_t path[HDPATH_LEN_DEFAULT], uint8_t
 zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrLen);
 
 zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
-                    uint16_t *sigSize);
-
-zxerr_t crypto_sign_txnV1(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t *message, uint16_t messageLen,
-                          uint16_t *sigSize);
+                    uint16_t *sigSize, transaction_content_e tx_content);
 
 zxerr_t blake2b_hash(const unsigned char *in, unsigned int inLen, unsigned char *out);
 

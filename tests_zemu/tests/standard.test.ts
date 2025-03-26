@@ -143,9 +143,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -189,9 +191,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -239,9 +243,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -286,9 +292,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
 
       // use the legacy field that does not include the V component
       const signature = Uint8Array.from(signatureResponse.signatureRS);
@@ -335,9 +343,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -387,9 +397,11 @@ describe("Standard", function () {
         "hex"
       );
 
+      let hash = sha256.hex(headerhash).toString("hex");
+
       const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
       expect(pk.byteLength).toEqual(33);
-      const digest = Uint8Array.from(headerhash);
+      const digest = Uint8Array.from(Buffer.from(hash, "hex"));
       const signature = Uint8Array.from(signatureResponse.signatureRSV);
       expect(signature.byteLength).toEqual(65);
 
@@ -437,14 +449,17 @@ describe("Standard", function () {
           "hex"
         );
 
+        let hash = sha256.hex(txnV1_hash).toString("hex");
+
         const pk = Uint8Array.from(Buffer.from(expected_pk, "hex"));
         expect(pk.byteLength).toEqual(33);
+        const digest = Uint8Array.from(Buffer.from(hash, "hex"));
         const signature = Uint8Array.from(signatureResponse.signatureRSV);
         expect(signature.byteLength).toEqual(65);
 
         const signatureOk = secp256k1.ecdsaVerify(
           signature.slice(0, 64),
-          txnV1_hash,
+          digest,
           pk
         );
         expect(signatureOk).toEqual(true);
