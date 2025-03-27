@@ -48,7 +48,7 @@ parser_error_t read_string(parser_context_t *ctx, uint32_t *outLen) {
     uint32_t len = 0;
     CHECK_PARSER_ERR(readU32(ctx, &len));
 
-    if (len > ctx->bufferLen - ctx->offset) {
+    if (ctx->offset + len > ctx->bufferLen) {
         return parser_unexpected_value;
     }
 
@@ -62,7 +62,7 @@ parser_error_t read_bytes(parser_context_t *ctx, uint32_t *outLen) {
     uint32_t len = 0;
     CHECK_PARSER_ERR(readU32(ctx, &len));
 
-    if (len > ctx->bufferLen - ctx->offset) {
+    if (ctx->offset + len > ctx->bufferLen) {
         return parser_unexpected_value;
     }
 
