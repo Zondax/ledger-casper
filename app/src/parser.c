@@ -46,14 +46,21 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
 parser_error_t parser_parse(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
 
-    CHECK_PARSER_ERR(readU8(ctx, (uint8_t *)&ctx->tx_content));
+    uint8_t tx_content = 0;
+    CHECK_PARSER_ERR(readU8(ctx, &tx_content));
+    ctx->tx_content = tx_content;
 
     // Dirty hack to avoid rewriting deploy's parser
     // We read the first byte, which indicates Deploy or TransactionV1
     // and then we reset the offset to 0 and set the buffer to the rest of the
     // data
     ctx->buffer = ctx->buffer + ctx->offset;
+    ctx->bufferLen = ctx->bufferLen - ctx->offset;
     ctx->offset = 0;
+
+    if (ctx->buffer == NULL || ctx->bufferLen == 0) {
+        return parser_unexpected_buffer_end;
+    }
 
     if (ctx->tx_content == Deploy) {
         memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));

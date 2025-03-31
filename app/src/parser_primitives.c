@@ -22,8 +22,14 @@
 
 // read_metadata
 parser_error_t read_metadata(parser_context_t *ctx, parser_metadata_txnV1_t *metadata) {
+    if (ctx->buffer == NULL || ctx->bufferLen == 0 || metadata == NULL) {
+        return parser_unexpected_value;
+    }
+
     uint32_t initial_ctx_offset = ctx->offset;
-    CHECK_PARSER_ERR(readU32(ctx, (uint32_t *)&metadata->num_fields));
+    uint32_t num_fields = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &num_fields));
+    metadata->num_fields = num_fields;
 
     PARSER_ASSERT_OR_ERROR(metadata->num_fields > 0 && metadata->num_fields <= MAX_METADATA_FIELDS, parser_unexpected_number_fields);
 

@@ -110,6 +110,11 @@ parser_error_t copy_item_into_charbuffer(parser_context_t *ctx, char *buffer, ui
     if (part > bufferLen || part > ctx->bufferLen - ctx->offset) {
         return parser_unexpected_buffer_end;
     }
+
+    if (buffer == NULL || bufferLen <= sizeof(uint32_t)) {
+        return parser_unexpected_value;
+    }
+
     MEMZERO(buffer, bufferLen);
     MEMCPY(buffer, (char *)(ctx->buffer + ctx->offset), part);
     ctx->offset += part;
@@ -255,8 +260,14 @@ parser_error_t parseDeployItem(parser_context_t *ctx, ExecutableDeployItem *item
 }
 
 parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v) {
-    v->header.pubkeytype = ctx->buffer[0];
-    PARSER_ASSERT_OR_ERROR(v->header.pubkeytype == 0x01 || v->header.pubkeytype == 0x02, parser_context_unknown_prefix);
+    if (ctx->buffer == NULL || ctx->bufferLen == 0 || v == NULL) {
+        return parser_unexpected_value;
+    }
+
+    uint8_t pubkeytype = 0;
+    CHECK_PARSER_ERR(readU8(ctx, &pubkeytype));
+    PARSER_ASSERT_OR_ERROR(pubkeytype == 0x01 || pubkeytype == 0x02, parser_context_unknown_prefix);
+    v->header.pubkeytype = pubkeytype;
 
     CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_deps, ctx));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenDependencies));
