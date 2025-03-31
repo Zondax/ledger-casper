@@ -1,36 +1,35 @@
 /*******************************************************************************
-*   (c) 2018 - 2023 Zondax AG
-*   (c) 2016 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   (c) 2018 - 2023 Zondax AG
+ *   (c) 2016 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
-#include "app_main.h"
-
-#include <string.h>
-#include <os_io_seproxyhal.h>
 #include <os.h>
+#include <os_io_seproxyhal.h>
+#include <string.h>
 #include <ux.h>
 
-#include "view.h"
 #include "actions.h"
-#include "tx.h"
 #include "addr.h"
-#include "crypto.h"
+#include "app_main.h"
 #include "coin.h"
-#include "zxmacros.h"
+#include "crypto.h"
 #include "secret.h"
+#include "tx.h"
+#include "view.h"
 #include "view_internal.h"
+#include "zxmacros.h"
 
 static bool tx_initialized = false;
 static bool tx_bufferFull = false;
@@ -43,11 +42,9 @@ static void extractHDPath(uint32_t rx, uint32_t offset) {
 
     MEMCPY(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * HDPATH_LEN_DEFAULT);
 
-    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT &&
-                         hdPath[1] == HDPATH_1_DEFAULT;
+    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
 
-    const bool testnet = hdPath[0] == HDPATH_0_TESTNET &&
-                         hdPath[1] == HDPATH_1_TESTNET;
+    const bool testnet = hdPath[0] == HDPATH_0_TESTNET && hdPath[1] == HDPATH_1_TESTNET;
 
     if (!mainnet && !testnet) {
         THROW(APDU_CODE_DATA_INVALID);
@@ -143,7 +140,6 @@ static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
             }
             added = tx_append(&(G_io_apdu_buffer[OFFSET_DATA]), rx - OFFSET_DATA);
             if (!tx_bufferFull && (added != rx - OFFSET_DATA)) {
-                ZEMU_LOGF(50, "START PARSING WASM!!!!\n")
                 if (tx_parse_wasm() != zxerr_ok) {
                     tx_initialized = false;
                     THROW(APDU_CODE_EXECUTION_ERROR);
@@ -165,9 +161,9 @@ __Z_INLINE void handleSignWasm(volatile uint32_t *flags, volatile uint32_t *tx, 
         // Don't refresh too fast
         if ((wasm_counter % 5) == 0) {
             view_message_show("Raw Wasm", message);
-            #if !(defined(TARGET_STAX) || defined(TARGET_FLEX))
+#if !(defined(TARGET_STAX) || defined(TARGET_FLEX))
             UX_WAIT_DISPLAYED();
-            #endif
+#endif
         }
         THROW(APDU_CODE_OK);
     }
@@ -196,9 +192,9 @@ __Z_INLINE void handle_getversion(volatile uint32_t *flags, volatile uint32_t *t
 #else
     G_io_apdu_buffer[0] = 0;
 #endif
-    G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
-    G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
-    G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
+    G_io_apdu_buffer[1] = MAJOR_VERSION;
+    G_io_apdu_buffer[2] = MINOR_VERSION;
+    G_io_apdu_buffer[3] = PATCH_VERSION;
     G_io_apdu_buffer[4] = !IS_UX_ALLOWED;
 
     G_io_apdu_buffer[5] = (TARGET_ID >> 24) & 0xFF;
@@ -280,10 +276,8 @@ __Z_INLINE void handleSignMessage(volatile uint32_t *flags, volatile uint32_t *t
 void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
     uint16_t sw = 0;
 
-    BEGIN_TRY
-    {
-        TRY
-        {
+    BEGIN_TRY {
+        TRY {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(APDU_CODE_CLA_NOT_SUPPORTED);
             }
@@ -326,12 +320,8 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
                     THROW(APDU_CODE_INS_NOT_SUPPORTED);
             }
         }
-        CATCH(EXCEPTION_IO_RESET)
-        {
-            THROW(EXCEPTION_IO_RESET);
-        }
-        CATCH_OTHER(e)
-        {
+        CATCH(EXCEPTION_IO_RESET) { THROW(EXCEPTION_IO_RESET); }
+        CATCH_OTHER(e) {
             switch (e & 0xF000) {
                 case 0x6000:
                 case APDU_CODE_OK:
@@ -345,9 +335,7 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
             G_io_apdu_buffer[*tx + 1] = sw;
             *tx += 2;
         }
-        FINALLY
-        {
-        }
+        FINALLY {}
     }
     END_TRY;
 }
