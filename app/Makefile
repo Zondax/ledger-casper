@@ -22,14 +22,8 @@ endif
 
 MY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
-
-include $(BOLOS_SDK)/Makefile.defines
-
 # Set the default value for PRODUCTION_BUILD to 0 if not already defined
 PRODUCTION_BUILD ?= 1
-
-$(info ************ CASPER_NAME  = [$(TARGET_NAME)])
 
 # Display whether this is a production build or for internal use
 ifeq ($(PRODUCTION_BUILD), 1)
@@ -39,9 +33,8 @@ else
 endif
 
 # Display whether swap functionality is enabled or not
-ifdef HAVE_SWAP
+ifeq ($(ENABLE_SWAP), 1)
     $(info ************ HAVE_SWAP  = [ENABLED])
-    DEFINES += HAVE_SWAP=$(HAVE_SWAP)
 else
     $(info ************ HAVE_SWAP  = [DISABLED])
 endif
@@ -54,6 +47,9 @@ include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
 ifndef COIN
 COIN=CSPR
 endif
+ 
+VARIANT_PARAM=COIN
+VARIANT_VALUES=$(COIN)
 
 include $(CURDIR)/Makefile.version
 
@@ -83,7 +79,18 @@ else
 	APP_STACK_MIN_SIZE := 1752
 endif
 
+include $(BOLOS_SDK)/Makefile.target
+
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.devices
+
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
+
+CFLAGS += -Wvla
+
+DEFINES += HAVE_HASH HAVE_BLAKE2
+INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
+
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
 
 $(info TARGET_NAME  = [$(TARGET_NAME)])
 $(info ICONNAME  = [$(ICONNAME)])
@@ -92,14 +99,11 @@ ifndef ICONNAME
 $(error ICONNAME is not set)
 endif
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
-
-DEFINES += HAVE_HASH HAVE_BLAKE2
-INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
-
-# NanoX SDK does not allow += in APP_SOURCE_PATH or INCLUDES_PATH
-CFLAGS += -I$(MY_DIR)/../deps/tinycbor/src
-APP_SOURCE_PATH += $(MY_DIR)/../deps/tinycbor-ledger
+# Enable QR code display for Flex and Stax
+ENABLE_NBGL_QRCODE ?= 1
+ 
+# make rust a prerequisite for all object files 
+$(OBJECT_FILES): | rust
 
 .PHONY: rust
 rust:
@@ -111,17 +115,8 @@ rust_clean:
 
 clean: rust_clean
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.side_loading
-
-# Import generic rules from the SDK
-include $(BOLOS_SDK)/Makefile.rules
-
 #add dependency on custom makefile filename
 dep/%.d: %.c Makefile
-
-.PHONY: listvariants
-listvariants:
-	@echo VARIANTS COIN CSPR
 
 .PHONY: version
 version:

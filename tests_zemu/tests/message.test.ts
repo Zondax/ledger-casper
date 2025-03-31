@@ -34,7 +34,6 @@ describe("SignMessage", function () {
       const app = new CasperApp(sim.getTransport());
 
       const respAddr = await app.getAddressAndPubKey(PATH);
-      console.log(respAddr);
 
       expect(respAddr.returnCode).toEqual(0x9000);
       expect(respAddr.errorMessage).toEqual("No errors");
@@ -50,7 +49,6 @@ describe("SignMessage", function () {
       await sim.compareSnapshotsAndApprove(".", `${m.prefix.toLowerCase()}-sign_message`);
 
       let signatureResponse = await respRequest;
-      console.log(signatureResponse);
 
       expect(signatureResponse.returnCode).toEqual(0x9000);
       expect(signatureResponse.errorMessage).toEqual("No errors");

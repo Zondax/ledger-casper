@@ -20,12 +20,13 @@
     "lint": "eslint . --config eslint.config.mjs",
     "lint:fix": "eslint --fix . --config eslint.config.js",
     "test": "yarn clean && jest --maxConcurrency 2",
-    "try": "node try.mjs",
+    "try_deploy": "node try_deploy.mjs",
+    "try_txnV1": "node try_txnV1.mjs",
     "upgrade": "bunx npm-check-updates -i"
   },
   "dependencies": {
     "@zondax/ledger-casper": "^2.6.3",
-    "@zondax/zemu": "^0.50.2"
+    "@zondax/zemu": "^0.55.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.8",
