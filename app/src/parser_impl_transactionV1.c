@@ -42,8 +42,6 @@
 #define TAG_STORED_PACKAGE_ALIAS 0x03
 
 #define TAG_SCHEDULING_STANDARD 0x00
-#define TAG_SCHEDULING_FUTURE_ERA 0x01
-#define TAG_SCHEDULING_FUTURE_TIMESTAMP 0x02
 
 #define TAG_RUNTIME_ARGS 0x00
 #define TAG_BYTES_REPR 0x01
@@ -174,6 +172,9 @@ static parser_error_t parser_getItem_txV1_AddReservations(parser_context_t *ctx,
 static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *ctx, uint8_t displayIdx, char *outKey,
                                                              uint16_t outKeyLen, char *outVal, uint16_t outValLen,
                                                              uint8_t pageIdx, uint8_t *pageCount);
+static parser_error_t parser_getItem_txV1_Burn(parser_context_t *ctx, uint8_t displayIdx, char *outKey,
+                                                uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                                                uint8_t *pageCount);
 
 static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser_tx_txnV1_t *v);
 
@@ -624,7 +625,7 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
     uint8_t tag = 0;
     CHECK_PARSER_ERR(readU8(ctx, &tag));
 
-    if (tag > (uint8_t)EntryPointCancelReservations) {
+    if (tag > (uint8_t)EntryPointBurn) {
         return parser_unexpected_value;
     }
 
@@ -666,6 +667,7 @@ static parser_error_t read_entry_point(parser_context_t *ctx, parser_tx_txnV1_t 
         case EntryPointRedelegate:
         case EntryPointActivateBid:
         case EntryPointChangePublicKey:
+        case EntryPointBurn:
             INCR_NUM_ITEMS_BY(v, false, v->num_runtime_args);
             break;
         case EntryPointAddReservations:
@@ -706,18 +708,6 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
 
     switch (tag) {
         case TAG_SCHEDULING_STANDARD:
-            break;
-        case TAG_SCHEDULING_FUTURE_ERA:
-            field_offset = initial_field_offset + metadata.field_offsets[SCHEDULING_DATA_FIELD_POS];
-            PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
-            uint64_t future_era_id;
-            CHECK_PARSER_ERR(readU64(ctx, &future_era_id));
-            break;
-        case TAG_SCHEDULING_FUTURE_TIMESTAMP:
-            field_offset = initial_field_offset + metadata.field_offsets[SCHEDULING_DATA_FIELD_POS];
-            PARSER_ASSERT_OR_ERROR(ctx->offset == field_offset, parser_unexpected_field_offset);
-            uint64_t future_timestamp;
-            CHECK_PARSER_ERR(readU64(ctx, &future_timestamp));
             break;
         default:
             return parser_unexpected_value;
@@ -784,6 +774,9 @@ static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal
             break;
         case EntryPointCancelReservations:
             snprintf(outVal, outValLen, "Cancel Reservations");
+            break;
+        case EntryPointBurn:
+            snprintf(outVal, outValLen, "Burn");
             break;
         default:
             snprintf(outVal, outValLen, "Unknown");
@@ -908,6 +901,9 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
             case EntryPointCancelReservations:
                 return parser_getItem_txV1_CancelReservations(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen,
                                                               pageIdx, pageCount);
+            case EntryPointBurn:
+                return parser_getItem_txV1_Burn(ctx, displayIdx, outKey, outKeyLen, outVal, outValLen, pageIdx,
+                                                pageCount);
             default:
                 break;
         }
@@ -1514,6 +1510,35 @@ static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *c
     return parser_ok;
 }
 
+static parser_error_t parser_getItem_txV1_Burn(parser_context_t *ctx, uint8_t displayIdx, char *outKey,
+                                                uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                                                uint8_t *pageCount) {
+    uint32_t burn_display_idx = displayIdx - 8;
+    uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
+    parser_context_t initial_ctx = *ctx;
+
+    if (burn_display_idx >= num_items) {
+        return parser_no_data;
+    }
+
+    uint32_t dataLength = 0;
+    uint8_t datatype = 255;
+
+    parser_error_t err = parser_runtimeargs_getData("source", &dataLength, &datatype, num_items, ctx);
+
+    if (err == parser_ok && burn_display_idx == 0) {
+        snprintf(outKey, outKeyLen, "Source");
+        return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
+    }
+
+    *ctx = initial_ctx;
+
+
+    snprintf(outKey, outKeyLen, "Amount");
+    CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, num_items, ctx))
+    return parser_display_runtimeArgMotes(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
+}
+
 static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     uint32_t dataLength = 0;
     uint8_t datatype = 255;
@@ -1588,6 +1613,12 @@ static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser
             CHECK_PARSER_ERR(parser_runtimeargs_getData("validator", &dataLength, &datatype, v->num_runtime_args, ctx))
             *ctx = initial_ctx;
             CHECK_PARSER_ERR(parser_runtimeargs_getData("delegators", &dataLength, &datatype, v->num_runtime_args, ctx))
+            break;
+        case EntryPointBurn:
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype, v->num_runtime_args, ctx))
+            *ctx = initial_ctx;
+            CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, v->num_runtime_args, ctx))
+            PARSER_ASSERT_OR_ERROR(datatype == TAG_U512, parser_unexpected_value);
             break;
         default:
             break;
