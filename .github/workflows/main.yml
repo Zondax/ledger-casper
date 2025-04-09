@@ -143,7 +143,7 @@ jobs:
         with:
           submodules: true
       - name: Install deps
-        run: pip install ledgerblue
+        run: pip install --break-system-packages ledgerblue
 
       - name: Build NanoS
         shell: bash -l {0}
@@ -179,7 +179,7 @@ jobs:
         with:
           submodules: true
       - name: Install deps
-        run: pip install ledgerblue
+        run: pip install --break-system-packages ledgerblue
 
       - name: Build NanoSP
         shell: bash -l {0}
@@ -215,7 +215,7 @@ jobs:
         with:
           submodules: true
       - name: Install deps
-        run: pip install ledgerblue
+        run: pip install --break-system-packages ledgerblue
 
       - name: Build Stax
         shell: bash -l {0}
@@ -250,7 +250,7 @@ jobs:
         with:
           submodules: true
       - name: Install deps
-        run: pip install ledgerblue
+        run: pip install --break-system-packages ledgerblue
 
       - name: Build Flex
         shell: bash -l {0}
