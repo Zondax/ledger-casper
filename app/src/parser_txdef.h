@@ -133,6 +133,7 @@ typedef enum {
     EntryPointChangePublicKey = 9,
     EntryPointAddReservations = 10,
     EntryPointCancelReservations = 11,
+    EntryPointBurn = 12,
 } entry_point_type_e;
 
 typedef enum {
