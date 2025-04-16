@@ -172,6 +172,7 @@ typedef struct {
     args_type_e args_type;
     uint32_t runtime_args_len;
     uint32_t num_runtime_args;
+    uint32_t module_bytes_len;
     uint8_t numItems;
     uint8_t num_approvals;
 } parser_tx_txnV1_t;
@@ -180,6 +181,13 @@ typedef enum {
     Deploy = 0,
     TransactionV1 = 1,
 } transaction_content_e;
+
+typedef enum {
+    StreamingStateNoStreaming = 0,
+    StreamingStateInit = 1,
+    StreamingStateInProgress = 2,
+    StreamingStateFinal = 3,
+} streaming_state_e;
 
 #ifdef __cplusplus
 }

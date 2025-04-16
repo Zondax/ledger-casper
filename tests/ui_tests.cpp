@@ -92,12 +92,11 @@ void check_testcase(const testcase_t &tc, bool expert_mode, transaction_type_e t
     switch (type)
     {
     case Transaction:
-        err = parser_parse(&ctx, buffer, bufferLen);
+        err = parser_parse(&ctx, buffer, bufferLen, sizeof(buffer));
         break;
     case Message:
         err = parser_parse_message(&ctx, buffer, bufferLen);
         break;
-
     default:
         return;
     }
@@ -107,6 +106,11 @@ void check_testcase(const testcase_t &tc, bool expert_mode, transaction_type_e t
     } else {
         ASSERT_NE(err, parser_ok) << parser_getErrorDescription(err);
         return;
+    }
+
+    if (type == Transaction) {
+        err = parser_validate(&ctx);
+        ASSERT_EQ(err, parser_ok) << parser_getErrorDescription(err);
     }
 
     auto output = dumpUI(&ctx, 40, 35, type);

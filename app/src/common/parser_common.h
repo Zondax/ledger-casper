@@ -23,6 +23,7 @@ extern "C" {
 #include <stdint.h>
 
 #include "parser_txdef.h"
+#include "crypto.h"
 
 #define CHECK_PARSER_ERR(__CALL)              \
     {                                         \
@@ -67,14 +68,17 @@ typedef enum {
     // Casper specific
     parser_runtimearg_notfound = 27,
     parser_invalid_stored_contract = 28,
+    parser_wasm_too_large = 29,
 } parser_error_t;
 
 typedef struct {
     const uint8_t *buffer;
     uint16_t bufferLen;
+    uint16_t bufferSize;
     uint16_t offset;
     void *tx_obj;  // Can be either parser_tx_deploy_t or parser_tx_txnV1_t
     transaction_content_e tx_content;
+    uint8_t txnV1_hash[BLAKE2B_256_SIZE];
 } parser_context_t;
 
 #ifdef __cplusplus
