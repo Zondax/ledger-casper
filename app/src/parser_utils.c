@@ -14,10 +14,11 @@ parser_error_t readU16(parser_context_t *ctx, uint16_t *result) { return _readUI
 
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result) { return _readUInt8(ctx, result); }
 
-parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize) {
+parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize) {
     ctx->offset = 0;
     ctx->buffer = NULL;
     ctx->bufferLen = 0;
+    ctx->bufferSize = 0;
 
     if (bufferSize == 0 || buffer == NULL) {
         // Not available, use defaults
@@ -25,15 +26,16 @@ parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer,
     }
 
     ctx->buffer = buffer;
-    ctx->bufferLen = bufferSize;
+    ctx->bufferLen = bufferLen;
+    ctx->bufferSize = bufferSize;
 
     entry_point_offset = 0;
 
     return parser_ok;
 }
 
-parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize) {
-    CHECK_PARSER_ERR(parser_init_context(ctx, buffer, bufferSize))
+parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize, uint16_t bufferLen) {
+    CHECK_PARSER_ERR(parser_init_context(ctx, buffer, bufferSize, bufferLen))
     return parser_ok;
 }
 
@@ -341,6 +343,8 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "RuntimArg not found";
         case parser_invalid_stored_contract:
             return "Invalid stored contract";
+        case parser_wasm_too_large:
+            return WASM_TOO_LARGE_ERROR_MSG;
         default:
             return "Unrecognized error code";
     }

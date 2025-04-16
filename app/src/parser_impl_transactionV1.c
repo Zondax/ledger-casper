@@ -601,8 +601,19 @@ static parser_error_t read_target(parser_context_t *ctx, parser_tx_txnV1_t *v) {
             uint8_t is_install_upgrade = 0;
             CHECK_PARSER_ERR(read_bool(ctx, &is_install_upgrade));
             CHECK_PARSER_ERR(read_runtime(ctx));
-            CHECK_PARSER_ERR(read_bytes(ctx, &len));
-            break;
+
+            uint32_t wasm_len = 0;
+            CHECK_PARSER_ERR(readU32(ctx, &wasm_len));
+            v->module_bytes_len = wasm_len;
+
+            if (ctx->offset + wasm_len > ctx->bufferSize) {
+                // Streaming, we will only show hash
+                v->numItems = 1;
+                return parser_wasm_too_large;
+            }
+
+            ctx->offset += wasm_len;
+            return parser_ok;
         default:
             return parser_unexpected_value;
     }

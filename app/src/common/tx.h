@@ -17,9 +17,10 @@
 
 #include "coin.h"
 #include "crypto.h"
-#include "os.h"
 #include "parser_txdef.h"
 #include "zxerror.h"
+#include "os.h"
+
 void tx_initialize();
 
 /// Clears the transaction buffer
@@ -36,6 +37,10 @@ uint32_t tx_append(unsigned char *buffer, uint32_t length);
 /// \return
 uint32_t tx_get_buffer_length();
 
+/// Returns the size of the flash buffer
+/// \return
+uint32_t tx_get_flash_buffer_size();
+
 /// Returns the raw json transaction buffer
 /// \return
 uint8_t *tx_get_buffer();
@@ -44,6 +49,11 @@ uint8_t *tx_get_buffer();
 /// This function should be called as soon as full buffer data is loaded.
 /// \return It returns NULL if data is valid or error message otherwise.
 const char *tx_parse();
+
+/// Incrementally hashes the transactionV1
+/// \param operation
+/// \return It returns an error message if the operation fails.
+zxerr_t tx_incrementally_hash_txnV1(hash_chunk_operation_e operation);
 
 /// Return the number of items in the transaction
 zxerr_t tx_getNumItems(uint8_t *num_items);

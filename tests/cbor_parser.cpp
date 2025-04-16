@@ -64,7 +64,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);
@@ -79,7 +79,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);
@@ -94,7 +94,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);
@@ -109,7 +109,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);
@@ -124,7 +124,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);
@@ -139,7 +139,7 @@ namespace {
         auto inBufferLen = parseHexString(inBuffer, sizeof(inBuffer), tmp);
 
         parser_context_t ctx;
-        auto err = parser_parse(&ctx, inBuffer, inBufferLen);
+        auto err = parser_parse(&ctx, inBuffer, inBufferLen, sizeof(inBuffer));
         EXPECT_EQ(err, parser_ok);
 
         err = parser_validate(&ctx);

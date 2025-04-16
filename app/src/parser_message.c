@@ -18,13 +18,14 @@
 #include "app_mode.h"
 #include "common/parser.h"
 #include "parser_impl_deploy.h"
+#include "parser_utils.h"
 #include "zxformat.h"
 
 static const char messagePrefix[] = "Casper Message:\n";
 #define NEW_LINE_CHAR 0x0a
 
 parser_error_t parser_parse_message(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
-    CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
+    CHECK_PARSER_ERR(parser_init(ctx, data, dataLen, dataLen))
 
     memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
     ctx->tx_obj = &parser_tx_obj_deploy;

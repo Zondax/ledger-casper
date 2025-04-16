@@ -11,6 +11,8 @@
 
 #define NO_ENTITY_VERSION_PRESENT 0xFFFFFFFF
 
+#define WASM_TOO_LARGE_ERROR_MSG "WASM too large"
+
 #define PARSER_ASSERT_OR_ERROR(CALL, ERROR) \
     if (!(CALL)) return ERROR;
 
@@ -104,8 +106,8 @@ parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
 parser_error_t readU16(parser_context_t *ctx, uint16_t *result);
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
-parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
-parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
+parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize);
+parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize);
 bool is_container_type(uint8_t cl_type);
 bool is_map_type(uint8_t cl_type);
 parser_error_t check_runtime_type(uint8_t cl_type);
