@@ -58,10 +58,27 @@ uint32_t tx_append(unsigned char *buffer, uint32_t length) { return buffering_ap
 
 uint32_t tx_get_buffer_length() { return buffering_get_buffer()->pos; }
 
+uint32_t tx_get_flash_buffer_size() { return buffering_get_flash_buffer()->size; }
+
 uint8_t *tx_get_buffer() { return buffering_get_buffer()->data; }
 
+zxerr_t tx_incrementally_hash_txnV1(hash_chunk_operation_e operation) {
+    if (ctx_parsed_tx.tx_content != TransactionV1) {
+        return zxerr_unknown;
+    }
+
+    const uint8_t *pPayloadTxnV1 = ctx_parsed_tx.buffer + ((parser_tx_txnV1_t *)ctx_parsed_tx.tx_obj)->metadata.metadata_size + ((parser_tx_txnV1_t *)ctx_parsed_tx.tx_obj)->metadata.field_offsets[PAYLOAD_FIELD_POS];
+    const uint32_t buffer_pos = tx_get_buffer_length();
+
+    if (operation == hash_start) {
+        return crypto_hashChunk(pPayloadTxnV1, buffer_pos, ctx_parsed_tx.txnV1_hash, BLAKE2B_256_SIZE, operation);
+    }
+
+    return crypto_hashChunk(tx_get_buffer(), buffer_pos, ctx_parsed_tx.txnV1_hash, BLAKE2B_256_SIZE, operation);
+}
+
 const char *tx_parse() {
-    uint8_t err = parser_parse(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
+    uint8_t err = parser_parse(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length(), tx_get_flash_buffer_size());
 
     if (err != parser_ok) {
         return parser_getErrorDescription(err);
@@ -151,7 +168,7 @@ zxerr_t tx_getMessageItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, c
 }
 
 zxerr_t tx_parse_wasm() {
-    const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length());
+    const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length(), tx_get_flash_buffer_size());
     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
 }
 

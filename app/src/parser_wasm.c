@@ -71,8 +71,8 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txOb
     return parser_unexpected_error;
 }
 
-parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen) {
-    CHECK_PARSER_ERR(parser_init(ctx, data, dataLen))
+parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen, size_t bufferSize) {
+    CHECK_PARSER_ERR(parser_init(ctx, data, dataLen, bufferSize))
 
     memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
     ctx->tx_obj = &parser_tx_obj_deploy;

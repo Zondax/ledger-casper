@@ -25,7 +25,7 @@ extern "C" {
 
 extern parser_tx_deploy_t parser_tx_obj_deploy;
 
-parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize);
+parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferSize, uint16_t bufferLen);
 
 parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v);
 

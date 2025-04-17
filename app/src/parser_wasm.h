@@ -22,7 +22,7 @@ extern "C" {
 
 #include "parser_common.h"
 
-parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen);
+parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen, size_t bufferSize);
 parser_error_t parser_validate_wasm(const parser_context_t *ctx, const parser_tx_deploy_t *v);
 
 parser_error_t parser_getWasmNumItems(uint8_t *num_items);
