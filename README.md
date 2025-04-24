@@ -14,7 +14,7 @@ _Please visit our website at [zondax.ch](https://www.zondax.ch)_
 
 This repository contains:
 
-- Ledger Nano S/SP/X BOLOS app
+- Ledger Nano SP/Nano X/Flex/Stax BOLOS app
 - Specs / Documentation
 - C++ unit tests
 - Zemu tests

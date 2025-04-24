@@ -32,8 +32,7 @@ const char HEX_CHARS[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a
 
 static bool get_next_hash_bit(char *hash_input, uint8_t *index, uint8_t *offset);
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || \
-    defined(TARGET_FLEX)
+#if defined(LEDGER_SPECIFIC)
 #include "cx.h"
 #include "cx_blake2b.h"
 static cx_blake2b_t body_hash_ctx;
