@@ -156,11 +156,16 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
                         THROW(APDU_CODE_EXECUTION_ERROR);
                     }
 
-                    tx_incrementally_hash_txnV1(hash_start);
+                    if (tx_incrementally_hash_txnV1(hash_start) != zxerr_ok) {
+                        THROW(APDU_CODE_EXECUTION_ERROR);
+                    }
+
                     tx_reset();
                     streaming_state = StreamingStateInProgress;
                 } else if (streaming_state == StreamingStateInProgress) {
-                    tx_incrementally_hash_txnV1(hash_update);
+                    if (tx_incrementally_hash_txnV1(hash_update) != zxerr_ok) {
+                        THROW(APDU_CODE_EXECUTION_ERROR);
+                    }
                     tx_reset();
                 } else {
                     // Something went wrong, this should never be reached
@@ -181,7 +186,13 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
 
             if (streaming_state == StreamingStateInProgress) {
                 // Hash the last bytes of the transaction
-                tx_incrementally_hash_txnV1(hash_finish);
+                if (tx_incrementally_hash_txnV1(hash_update) != zxerr_ok) {
+                    THROW(APDU_CODE_EXECUTION_ERROR);
+                }
+
+                if (tx_incrementally_hash_txnV1(hash_finish) != zxerr_ok) {
+                    THROW(APDU_CODE_EXECUTION_ERROR);
+                }
                 streaming_state = StreamingStateFinal;
             }
 
@@ -245,6 +256,12 @@ __Z_INLINE void handleSign(volatile uint32_t *flags, volatile uint32_t *tx, uint
     if (streaming_state == StreamingStateNoStreaming) {
         const char *error_msg = tx_parse();
         CHECK_APP_CANARY()
+        if (error_msg != NULL) {
+            write_error_msg(error_msg, tx);
+            THROW(APDU_CODE_DATA_INVALID);
+        }
+    } else {
+        const char *error_msg = tx_validate_incremental_hash();
         if (error_msg != NULL) {
             write_error_msg(error_msg, tx);
             THROW(APDU_CODE_DATA_INVALID);

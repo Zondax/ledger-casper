@@ -79,6 +79,7 @@ typedef struct {
     void *tx_obj;  // Can be either parser_tx_deploy_t or parser_tx_txnV1_t
     transaction_content_e tx_content;
     uint8_t txnV1_hash[BLAKE2B_256_SIZE];
+    bool isStreaming;
 } parser_context_t;
 
 #ifdef __cplusplus

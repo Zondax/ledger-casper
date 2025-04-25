@@ -38,6 +38,8 @@ extern "C" {
 #define PAYLOAD_FIELD_POS 1
 #define VALIDATORS_FIELD_POS 2
 
+#define BLAKE2B_256_SIZE 32
+
 typedef struct {
     uint8_t pubkeytype;
     uint32_t lenDependencies;
@@ -177,6 +179,7 @@ typedef struct {
     uint32_t module_bytes_len;
     uint8_t numItems;
     uint8_t num_approvals;
+    uint8_t txnHash[BLAKE2B_256_SIZE];
 } parser_tx_txnV1_t;
 
 typedef enum {

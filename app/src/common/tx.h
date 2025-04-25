@@ -19,9 +19,18 @@
 #include "crypto.h"
 #include "parser_txdef.h"
 #include "zxerror.h"
+
+#if defined(LEDGER_SPECIFIC)
 #include "os.h"
+#endif
 
 void tx_initialize();
+
+uint8_t *tx_get_incremental_hash();
+
+bool tx_isStreaming();
+
+const char *tx_validate_incremental_hash();
 
 /// Clears the transaction buffer
 void tx_reset();

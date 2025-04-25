@@ -19,6 +19,7 @@
 #include <zxmacros.h>
 
 #include "app_mode.h"
+#include "tx.h"
 #include "parser_primitives.h"
 
 #define TAG_SIZE 1
@@ -260,6 +261,7 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_
 }
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v) {
+    MEMCPY(v->txnHash, ctx->buffer + ctx->offset, HASH_LENGTH);
     ctx->offset += HASH_LENGTH;
 
     INCR_NUM_ITEMS(v, false);
@@ -731,17 +733,18 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
 }
 
 parser_error_t _validateTxV1(const parser_context_t *ctx, const parser_tx_txnV1_t *v) {
-    const uint8_t *pTxnHash = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[HASH_FIELD_POS];
     uint8_t txnHash[BLAKE2B_256_SIZE] = {0};
+    if (tx_isStreaming()) {
+        MEMCPY(txnHash, tx_get_incremental_hash(), BLAKE2B_256_SIZE);
+    } else {
+        const uint8_t *pPayload = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
+        uint32_t payload_size = v->payload_metadata.metadata_size + v->payload_metadata.fields_size;
 
-    const uint8_t *pPayload = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
-    uint32_t payload_size = v->payload_metadata.metadata_size + v->payload_metadata.fields_size;
-
-    if (blake2b_hash(pPayload, payload_size, txnHash) != zxerr_ok) {
-        return parser_unexpected_error;
+        if (blake2b_hash(pPayload, payload_size, txnHash) != zxerr_ok) {
+            return parser_unexpected_error;
+        }
     }
-
-    PARSER_ASSERT_OR_ERROR(MEMCMP(txnHash, pTxnHash, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
+    PARSER_ASSERT_OR_ERROR(MEMCMP(txnHash, v->txnHash, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
 
     return parser_ok;
 }

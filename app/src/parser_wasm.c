@@ -74,6 +74,18 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txOb
 parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen, size_t bufferSize) {
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen, bufferSize))
 
+    uint8_t tx_content = 0;
+    CHECK_PARSER_ERR(readU8(ctx, &tx_content));
+    ctx->tx_content = tx_content;
+
+    // handleSignWasm only handles Deploys
+    PARSER_ASSERT_OR_ERROR(tx_content == Deploy, parser_unexpected_type);
+
+    // Reset ctx pointers to ignore prefix
+    ctx->buffer = ctx->buffer + ctx->offset;
+    ctx->bufferLen = ctx->bufferLen - ctx->offset;
+    ctx->offset = 0;
+
     memset(&parser_tx_obj_deploy, 0, sizeof(parser_tx_obj_deploy));
     ctx->tx_obj = &parser_tx_obj_deploy;
 

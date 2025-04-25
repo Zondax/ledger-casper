@@ -20,6 +20,7 @@
 #include "parser_impl_deploy.h"
 #include "parser_impl_transactionV1.h"
 #include "parser_txdef.h"
+#include "tx.h"
 #include "zxformat.h"
 #include "zxmacros.h"
 
@@ -114,8 +115,7 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
                 return zxerr_unknown;
         }
     } else {
-        const uint8_t *message_digest = message + parser_tx_obj_txnV1.metadata.metadata_size +
-                                        parser_tx_obj_txnV1.metadata.field_offsets[HASH_FIELD_POS];
+        const uint8_t *message_digest = parser_tx_obj_txnV1.txnHash;
         cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE);
     }
 
