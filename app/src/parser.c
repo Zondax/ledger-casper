@@ -369,29 +369,27 @@ parser_error_t parser_getItem_Transfer(ExecutableDeployItem item, parser_context
 
         return parser_no_data;
     } else {
-        if (new_displayIdx == 0 && item.UI_runtime_items == 4) {
+        if (new_displayIdx == 0 && item.hasSource) {
             snprintf(outKey, outKeyLen, "From");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
+        } else {
+            new_displayIdx += 1;
         }
 
-        if (item.UI_runtime_items == 4) {
-            new_displayIdx -= 1;
-        }
-
-        if (new_displayIdx == 0) {
+        if (new_displayIdx == 1) {
             snprintf(outKey, outKeyLen, "Target");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
-        if (new_displayIdx == 1) {
+        if (new_displayIdx == 2) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
-        if (new_displayIdx == 2) {
+        if (new_displayIdx == 3 && item.hasId) {
             snprintf(outKey, outKeyLen, "ID");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);

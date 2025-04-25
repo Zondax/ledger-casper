@@ -1568,8 +1568,6 @@ static parser_error_t check_sanity_native_transfer(parser_context_t *ctx, parser
             PARSER_ASSERT_OR_ERROR(datatype == TAG_U512, parser_unexpected_value);
             *ctx = initial_ctx;
             CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, v->num_runtime_args, ctx));
-            *ctx = initial_ctx;
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype, v->num_runtime_args, ctx));
             break;
         case EntryPointAddBid:
             CHECK_PARSER_ERR(parser_runtimeargs_getData("public_key", &dataLength, &datatype, v->num_runtime_args, ctx))

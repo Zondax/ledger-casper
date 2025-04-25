@@ -96,7 +96,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
         return parser_no_data;
     }
 
-    bool expected_items = num_items == 3 || num_items == 4;
+    bool expected_items = num_items >= 2 && num_items <= 4;
 
     // generic no hash there is less args than expected but they are valid
     if (!expected_items) {
@@ -120,29 +120,29 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
 
         return parser_no_data;
     } else {
-        if (new_displayIdx == 0 && item.UI_runtime_items == 4) {
-            snprintf(outKey, outKeyLen, "From");
-            CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype, num_items, ctx))
-            return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
+        if (item.hasSource) {
+            if (new_displayIdx == 0) {
+                snprintf(outKey, outKeyLen, "From");
+                CHECK_PARSER_ERR(parser_runtimeargs_getData("source", &dataLength, &datatype, num_items, ctx))
+                return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
+            }
+        } else {
+            new_displayIdx += 1;
         }
 
-        if (item.UI_runtime_items == 4) {
-            new_displayIdx -= 1;
-        }
-
-        if (new_displayIdx == 0) {
+        if (new_displayIdx == 1) {
             snprintf(outKey, outKeyLen, "Target");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("target", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
-        if (new_displayIdx == 1) {
+        if (new_displayIdx == 2) {
             snprintf(outKey, outKeyLen, "Amount");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArgMotes(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
         }
 
-        if (new_displayIdx == 2) {
+        if (new_displayIdx == 3 && item.hasId) {
             snprintf(outKey, outKeyLen, "ID");
             CHECK_PARSER_ERR(parser_runtimeargs_getData("id", &dataLength, &datatype, num_items, ctx))
             return parser_display_runtimeArg(datatype, dataLength, ctx, outVal, outValLen, pageIdx, pageCount);
@@ -152,7 +152,7 @@ parser_error_t parser_getItem_NativeTransfer(ExecutableDeployItem item, parser_c
     return parser_no_data;
 }
 
-parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED ExecutableDeployItem *item, uint32_t num_items,
+parser_error_t checkNativeTransferArgs(parser_context_t *ctx, ExecutableDeployItem *item, uint32_t num_items,
                                        uint32_t *fitems) {
     uint8_t type = 0;
     uint8_t internal_type = 0;
@@ -164,12 +164,23 @@ parser_error_t checkNativeTransferArgs(parser_context_t *ctx, __Z_UNUSED Executa
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "amount", (type == TAG_U512))
 
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == TAG_OPTION && internal_type == TAG_U64) || type == TAG_U64))
+
+    // Target is mandatory
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target",
                           (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
 
-    if (num_items == 4) {
+    if (num_args_found == 3) {
+        item->hasId = true;
+    }
+
+    if (num_items >= 3) {
         COUNT_RUNTIME_ARGTYPE(ctx, num_items, "source",
                               (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
+    }
+
+    if ((item->hasId && num_args_found == 4) || (!item->hasId && num_args_found == 3)) {
+        item->hasSource = true;
     }
     *fitems = num_args_found;
 
@@ -186,9 +197,9 @@ parser_error_t parseNativeTransfer(parser_context_t *ctx, ExecutableDeployItem *
 
     uint32_t uitems = num_items - found_items;
 
-    bool expected_items = found_items == 3 || found_items == 4;
+    bool expected_items = (found_items >= 2 && found_items <= 4);
 
-    // normal tx, target, id, source(optional) and amount
+    // normal tx, target, id (optional), source(optional) and amount
     if (uitems == 0 && expected_items) {
         if (app_mode_expert()) {
             item->UI_runtime_items += num_items;

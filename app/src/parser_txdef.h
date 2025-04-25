@@ -88,6 +88,8 @@ typedef struct {
     uint32_t totalLength;
     uint32_t itemOffset;
     bool hasAmount;
+    bool hasId;
+    bool hasSource;
 } ExecutableDeployItem;
 
 typedef struct {
