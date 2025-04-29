@@ -163,6 +163,28 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
+__attribute__((noinline)) parser_error_t display_runtimearg_amount_bignum(parser_context_t *ctx, char *buffer, uint16_t bufferSize, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount)
+{                                                                                             
+    uint8_t bcdOut[128];                                                                      
+    MEMZERO(bcdOut, sizeof(bcdOut));                                                          
+    uint16_t bcdOutLen = sizeof(bcdOut);                                                      
+    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (ctx)->buffer + (ctx)->offset + 1, len-1); 
+    MEMZERO(buffer, bufferSize);                                                          
+    bool ok = bignumLittleEndian_bcdprint(buffer, bufferSize, bcdOut, bcdOutLen);         
+    if (!ok) {                                                                                
+        return parser_unexpected_error;                                                       
+    }                                                                                         
+    uint16_t numsize = 0;                                                                     
+    CHECK_PARSER_ERR(find_end_of_number(buffer, bufferSize, &numsize))                    
+    CHECK_PARSER_ERR(add_thousands_separators(buffer, bufferSize, &numsize))              
+    if (numsize + 6 >= bufferSize) {
+        return parser_unexpected_buffer_end;
+    }                                                                                        
+    MEMCPY(buffer + numsize, (char *)" motes", 6);
+    pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
+    return parser_ok;                                                                        
+}
+
 #define DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(CTX, LEN)                                                \
     {                                                                                             \
         uint8_t bcdOut[128];                                                                      \
@@ -203,7 +225,7 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
 // helper function to render integers with the motes suffix at the end.
 parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, parser_context_t *ctx, char *outVal,
                                               uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
-    char buffer[400] = {0};
+    char buffer[300] = {0};
     uint64_t value = 0;
     if (ctx->offset + dataLen >= ctx->bufferLen) {
         return parser_unexpected_buffer_end;
@@ -221,7 +243,7 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U512: {
-            DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx, dataLen);
+            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx, pageCount);
         }
 
         default: {
@@ -232,7 +254,7 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
 
 parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_context_t *ctx, char *outVal,
                                          uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
-    char buffer[400] = {0};
+    char buffer[300] = {0};
     if (ctx->offset + dataLen >= ctx->bufferLen) {
         return parser_unexpected_buffer_end;
     }
@@ -241,25 +263,25 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
     }
     switch (type) {
         case TAG_U8: {
-            DISPLAY_RUNTIMEARG_U8(ctx)
+            return display_runtimearg_u8(ctx, outVal, outValLen, pageIdx, pageCount);
         }
         case TAG_U32: {
-            DISPLAY_RUNTIMEARG_U32(ctx)
+            return display_runtimearg_u32(ctx, outVal, outValLen, pageIdx, pageCount);
         }
         case TAG_U64: {
-            DISPLAY_RUNTIMEARG_U64(ctx)
+            return display_runtimearg_u64(ctx, outVal, outValLen, pageIdx, pageCount);
         }
         case TAG_U512: {
-            DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(ctx, dataLen);
+            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx, pageCount);
         }
 
         case TAG_KEY: {
             ctx->offset++;  // skip internal type for key
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
+            return display_runtimearg_bytes(ctx, dataLen - 1, outVal, outValLen, pageIdx, pageCount);
         }
 
         case TAG_UREF: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 1);
+            return display_runtimearg_bytes(ctx, dataLen - 1, outVal, outValLen, pageIdx, pageCount);
         }
 
         case TAG_OPTION: {
@@ -271,12 +293,12 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             } else {
                 type = *(ctx->buffer + ctx->offset + dataLen);
                 if (type == TAG_U64) {
-                    DISPLAY_RUNTIMEARG_U64(ctx)
+                    return display_runtimearg_u64(ctx, outVal, outValLen, pageIdx, pageCount);
                 } else if (type == TAG_U32) {
-                    DISPLAY_RUNTIMEARG_U32(ctx)
+                    return display_runtimearg_u32(ctx, outVal, outValLen, pageIdx, pageCount);
                 } else if (type == TAG_UREF) {
                     if (dataLen < 2) return parser_unexpected_value;
-                    DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen - 2);
+                    return display_runtimearg_bytes(ctx, dataLen - 2, outVal, outValLen, pageIdx, pageCount);
                 } else {
                     return parser_unexpected_error;
                 }
@@ -284,13 +306,13 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
         }
 
         case TAG_BYTE_ARRAY: {
-            DISPLAY_RUNTIMEARG_BYTES(ctx, dataLen)
+            return display_runtimearg_bytes(ctx, dataLen, outVal, outValLen, pageIdx, pageCount);
         }
 
         case TAG_PUBLIC_KEY: {
             uint8_t pubkeyType = *(ctx->buffer + ctx->offset);
             uint16_t pubkeyLen = pubkeyType == 0x01 ? 32 : 33;
-            DISPLAY_RUNTIMEARG_ADDRESS(ctx, 1 + pubkeyLen)
+            return display_runtimearg_address(ctx, 1 + pubkeyLen, outVal, outValLen, pageIdx, pageCount);
         }
 
         default: {

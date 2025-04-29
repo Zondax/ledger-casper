@@ -53,6 +53,14 @@ VARIANT_VALUES=$(COIN)
 
 include $(CURDIR)/Makefile.version
 
+# Application icons following guidelines:
+# https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
+ICON_NANOS = nanos_icon.gif
+ICON_NANOX = nanox_icon.gif
+ICON_NANOSP = nanox_icon.gif
+ICON_STAX = stax_icon.gif
+ICON_FLEX = flex_icon.gif
+
 $(info COIN  = [$(COIN)])
 
 ifeq ($(COIN),CSPR)
@@ -82,6 +90,8 @@ endif
 include $(BOLOS_SDK)/Makefile.target
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.devices
+
+APP_SOURCE_PATH += $(MY_DIR)/../app/src/
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 

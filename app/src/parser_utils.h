@@ -29,39 +29,6 @@
         return parser_ok;                                                  \
     }
 
-#define DISPLAY_RUNTIMEARG_U64(CTX)                                           \
-    {                                                                         \
-        uint64_t value = 0;                                                   \
-        CHECK_PARSER_ERR(readU64(CTX, &value));                               \
-        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount); \
-    }
-
-#define DISPLAY_RUNTIMEARG_U32(CTX)                                           \
-    {                                                                         \
-        uint32_t value = 0;                                                   \
-        CHECK_PARSER_ERR(readU32(CTX, &value));                               \
-        return parser_printU32(value, outVal, outValLen, pageIdx, pageCount); \
-    }
-
-#define DISPLAY_RUNTIMEARG_U8(CTX)                                           \
-    {                                                                        \
-        uint8_t value = 0;                                                   \
-        CHECK_PARSER_ERR(readU8(CTX, &value));                               \
-        return parser_printU8(value, outVal, outValLen, pageIdx, pageCount); \
-    }
-
-#define DISPLAY_RUNTIMEARG_BYTES(CTX, LEN)                                                                          \
-    {                                                                                                               \
-        return parser_printBytes((const uint8_t *)((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx, \
-                                 pageCount);                                                                        \
-    }
-
-#define DISPLAY_RUNTIMEARG_ADDRESS(CTX, LEN)                                                                          \
-    {                                                                                                                 \
-        return parser_printAddress((const uint8_t *)((CTX)->buffer + (CTX)->offset), LEN, outVal, outValLen, pageIdx, \
-                                   pageCount);                                                                        \
-    }
-
 #define DISPLAY_HEADER_U64(KEYNAME, HEADERPART, TX_CONTENT)                                              \
     {                                                                                                    \
         snprintf(outKey, outKeyLen, KEYNAME);                                                            \
@@ -126,3 +93,9 @@ parser_error_t parser_printU32(uint32_t value, char *outVal, uint16_t outValLen,
 parser_error_t parser_printU64(uint64_t value, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 const char *parser_getErrorDescription(parser_error_t err);
 parser_error_t add_thousand_separators(char *out, uint16_t outLen, const char *number);
+
+__attribute__((noinline)) parser_error_t display_runtimearg_u64(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_u32(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);    
+__attribute__((noinline)) parser_error_t display_runtimearg_u8(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_bytes(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_address(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);

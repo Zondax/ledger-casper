@@ -280,6 +280,32 @@ parser_error_t parser_printU64(uint64_t value, char *outVal, uint16_t outValLen,
     return parser_ok;
 }
 
+__attribute__((noinline)) parser_error_t display_runtimearg_u64(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    uint64_t value = 0;
+    CHECK_PARSER_ERR(readU64(ctx, &value));
+    return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);
+}
+
+__attribute__((noinline)) parser_error_t display_runtimearg_u32(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    uint32_t value = 0;
+    CHECK_PARSER_ERR(readU32(ctx, &value));
+    return parser_printU32(value, outVal, outValLen, pageIdx, pageCount);
+}
+
+__attribute__((noinline)) parser_error_t display_runtimearg_u8(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    uint8_t value = 0;
+    CHECK_PARSER_ERR(readU8(ctx, &value));
+    return parser_printU8(value, outVal, outValLen, pageIdx, pageCount);
+}
+
+__attribute__((noinline)) parser_error_t display_runtimearg_bytes(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    return parser_printBytes((const uint8_t *)((ctx)->buffer + (ctx)->offset), len, outVal, outValLen, pageIdx, pageCount);
+}
+
+__attribute__((noinline)) parser_error_t display_runtimearg_address(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    return parser_printAddress((const uint8_t *)((ctx)->buffer + (ctx)->offset), len, outVal, outValLen, pageIdx, pageCount);
+}
+
 const char *parser_getErrorDescription(parser_error_t err) {
     switch (err) {
         // General errors
