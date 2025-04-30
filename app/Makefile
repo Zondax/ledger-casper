@@ -53,6 +53,8 @@ VARIANT_VALUES=$(COIN)
 
 include $(CURDIR)/Makefile.version
 
+APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
+
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
 ICON_NANOS = nanos_icon.gif
