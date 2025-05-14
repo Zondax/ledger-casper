@@ -6,13 +6,33 @@
 #include "parser_txdef.h"
 #include "runtime_arg.h"
 
-parser_error_t readU64(parser_context_t *ctx, uint64_t *result) { return _readUInt64(ctx, result); }
+parser_error_t readU64(parser_context_t *ctx, uint64_t *result) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+    return _readUInt64(ctx, result);
+}
 
-parser_error_t readU32(parser_context_t *ctx, uint32_t *result) { return _readUInt32(ctx, result); }
+parser_error_t readU32(parser_context_t *ctx, uint32_t *result) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+    return _readUInt32(ctx, result);
+}
 
-parser_error_t readU16(parser_context_t *ctx, uint16_t *result) { return _readUInt16(ctx, result); }
+parser_error_t readU16(parser_context_t *ctx, uint16_t *result) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+    return _readUInt16(ctx, result);
+}
 
-parser_error_t readU8(parser_context_t *ctx, uint8_t *result) { return _readUInt8(ctx, result); }
+parser_error_t readU8(parser_context_t *ctx, uint8_t *result) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+    return _readUInt8(ctx, result);
+}
 
 parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize) {
     ctx->offset = 0;
@@ -54,6 +74,10 @@ parser_error_t check_runtime_type(uint8_t cl_type) {
 }
 
 parser_error_t parse_item(parser_context_t *ctx) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+
     uint32_t part = 0;
     CHECK_PARSER_ERR(_readUInt32(ctx, &part));
 
@@ -67,6 +91,10 @@ parser_error_t parse_item(parser_context_t *ctx) {
 }
 
 parser_error_t get_type(parser_context_t *ctx, uint8_t *runtime_type, uint8_t *option_type) {
+    if (ctx == NULL) {
+        return parser_unexpected_error;
+    }
+
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));
     CHECK_PARSER_ERR(check_runtime_type(type));

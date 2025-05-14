@@ -261,6 +261,14 @@ parser_error_t parser_read_transactionV1(parser_context_t *ctx, parser_tx_txnV1_
 }
 
 static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v) {
+    if (ctx->offset + HASH_LENGTH > ctx->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+    
+    if (HASH_LENGTH > sizeof(v->txnHash)) {
+        return parser_unexpected_value;
+    }
+    
     MEMCPY(v->txnHash, ctx->buffer + ctx->offset, HASH_LENGTH);
     ctx->offset += HASH_LENGTH;
 
@@ -733,6 +741,10 @@ static parser_error_t read_scheduling(parser_context_t *ctx) {
 }
 
 parser_error_t _validateTxV1(const parser_context_t *ctx, const parser_tx_txnV1_t *v) {
+    if (ctx == NULL || v == NULL) {
+        return parser_unexpected_error;
+    }
+
     uint8_t txnHash[BLAKE2B_256_SIZE] = {0};
     if (tx_isStreaming()) {
         MEMCPY(txnHash, tx_get_incremental_hash(), BLAKE2B_256_SIZE);
@@ -799,6 +811,10 @@ static void entry_point_to_str(entry_point_type_e entry_point_type, char *outVal
 
 parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *outKey, uint16_t outKeyLen, char *outVal,
                             uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
+    if (ctx == NULL || outKey == NULL || outVal == NULL || pageCount == NULL) {
+        return parser_unexpected_error;
+    }
+
     MEMZERO(outKey, outKeyLen);
     MEMZERO(outVal, outValLen);
     snprintf(outKey, outKeyLen, "?");
@@ -1059,11 +1075,15 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
 
     uint8_t args_hash[32] = {0};
     if (parser_tx_obj_txnV1.args_type == RuntimeArgs) {
-        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4,
-                     parser_tx_obj_txnV1.runtime_args_len - 1, args_hash);
+        if (blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4,
+                     parser_tx_obj_txnV1.runtime_args_len - 1, args_hash) != zxerr_ok) {
+            return parser_unexpected_value;
+        }
     } else {
-        blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset, parser_tx_obj_txnV1.runtime_args_len,
-                     args_hash);
+        if (blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset, parser_tx_obj_txnV1.runtime_args_len,
+                     args_hash) != zxerr_ok) {
+            return parser_unexpected_value;
+        }
     }
 
     snprintf(outKey, outKeyLen, "Args hash");
@@ -1144,7 +1164,7 @@ static parser_error_t parser_getItem_pricing_mode(parser_context_t *ctx, uint8_t
                 char buffer[20] = {0};
                 uint64_to_str(buffer, sizeof(buffer), value);
                 char formattedPayment[30] = {0};
-                add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer);
+                CHECK_PARSER_ERR(add_thousand_separators(formattedPayment, sizeof(formattedPayment), buffer));
                 pageString(outVal, outValLen, formattedPayment, pageIdx, pageCount);
                 break;
             case PricingModeFixed:

@@ -72,6 +72,10 @@ static parser_error_t readHeader(parser_context_t *ctx, parser_tx_deploy_t *txOb
 }
 
 parser_error_t parser_parse_wasm(parser_context_t *ctx, const uint8_t *data, size_t dataLen, size_t bufferSize) {
+    if (ctx == NULL || data == NULL || dataLen == 0 || bufferSize == 0) {
+        return parser_unexpected_error;
+    }
+
     CHECK_PARSER_ERR(parser_init(ctx, data, dataLen, bufferSize))
 
     uint8_t tx_content = 0;

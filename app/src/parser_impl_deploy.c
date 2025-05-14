@@ -303,10 +303,15 @@ parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v) 
 parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_deploy_t *v) {
     uint8_t hash[BLAKE2B_256_SIZE] = {0};
 
+    if (header_length_deploy(v->header) + BLAKE2B_256_SIZE > c->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+
     // check headerhash
     if (blake2b_hash(c->buffer, header_length_deploy(v->header), hash) != zxerr_ok) {
         return parser_unexpected_error;
     }
+
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash, c->buffer + header_length_deploy(v->header), BLAKE2B_256_SIZE) == 0,
                            parser_context_mismatch);
 
@@ -319,6 +324,11 @@ parser_error_t _validateTxDeploy(const parser_context_t *c, const parser_tx_depl
     }
 
     CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_bodyhash, (parser_context_t *)c));
+
+    if (c->offset + BLAKE2B_256_SIZE > c->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+
     PARSER_ASSERT_OR_ERROR(MEMCMP(hash, c->buffer + c->offset, BLAKE2B_256_SIZE) == 0, parser_context_mismatch);
 
     return parser_ok;
