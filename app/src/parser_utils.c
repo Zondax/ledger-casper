@@ -271,7 +271,9 @@ parser_error_t parser_printBytes(const uint8_t *bytes, uint16_t byteLength, char
                                  uint8_t pageIdx, uint8_t *pageCount) {
     char encodedAddr[100];
     MEMZERO(encodedAddr, sizeof(encodedAddr));
-    encode((char *)bytes, byteLength, encodedAddr);
+    if (encode((char *)bytes, byteLength, encodedAddr) != zxerr_ok) {
+        return parser_unexpected_error;
+    }
     pageString(outVal, outValLen, encodedAddr, pageIdx, pageCount);
     return parser_ok;
 }
@@ -281,7 +283,9 @@ parser_error_t parser_printAddress(const uint8_t *bytes, uint16_t byteLength, ch
     char buffer[100];
     MEMZERO(buffer, sizeof(buffer));
 
-    encode_addr((char *)bytes, byteLength, buffer);
+    if (encode_addr((char *)bytes, byteLength, buffer) != zxerr_ok) {
+        return parser_unexpected_error;
+    }
 
     pageString(outVal, outValLen, buffer, pageIdx, pageCount);
     return parser_ok;
