@@ -22,6 +22,7 @@
 
 #include "actions.h"
 #include "addr.h"
+#include "app_mode.h"
 #include "app_main.h"
 #include "coin.h"
 #include "crypto.h"
@@ -233,6 +234,13 @@ __Z_INLINE void handleSignWasmDeploy(volatile uint32_t *flags, volatile uint32_t
         THROW(APDU_CODE_EXECUTION_ERROR);
     }
 
+    if (!app_mode_blindsign()) {
+        write_error_msg(BLIND_SIGN_REQUIRED_ERROR_MSG, tx);
+        *flags |= IO_ASYNCH_REPLY;
+        view_blindsign_error_show();
+        THROW(APDU_CODE_DATA_INVALID);
+    }
+
     if (tx_validate_wasm() != zxerr_ok) {
         THROW(APDU_CODE_EXECUTION_ERROR);
     }
@@ -254,6 +262,7 @@ __Z_INLINE void handleSign(volatile uint32_t *flags, volatile uint32_t *tx, uint
     // If the transaction didn't require streaming, we can parse the transaction here.
     // Otherwise, tx_parse is called in process_chunk
     if (streaming_state == StreamingStateNoStreaming) {
+        app_mode_skip_blindsign_ui();
         const char *error_msg = tx_parse();
         CHECK_APP_CANARY()
         if (error_msg != NULL) {
@@ -264,6 +273,10 @@ __Z_INLINE void handleSign(volatile uint32_t *flags, volatile uint32_t *tx, uint
         const char *error_msg = tx_validate_incremental_hash();
         if (error_msg != NULL) {
             write_error_msg(error_msg, tx);
+            if (strcmp(error_msg, BLIND_SIGN_REQUIRED_ERROR_MSG) == 0) {
+                *flags |= IO_ASYNCH_REPLY;
+                view_blindsign_error_show();
+            }
             THROW(APDU_CODE_DATA_INVALID);
         }
     }
@@ -371,6 +384,7 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
                 case INS_SIGN_MSG: {
                     CHECK_PIN_VALIDATED()
+                    app_mode_skip_blindsign_ui();
                     handleSignMessage(flags, tx, rx);
                     break;
                 }

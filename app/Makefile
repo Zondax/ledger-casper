@@ -41,6 +41,7 @@ endif
 
 # Add the PRODUCTION_BUILD definition to the compiler flags
 DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
+DEFINES += APP_BLINDSIGN_MODE_ENABLED
 
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
 

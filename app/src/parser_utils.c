@@ -353,7 +353,9 @@ const char *parser_getErrorDescription(parser_error_t err) {
             return "display_page_out_of_range";
         case parser_unexpected_error:
             return "Unexepected internal error";
-            // cbor
+        case parser_blind_sign_required:
+            return BLIND_SIGN_REQUIRED_ERROR_MSG;
+        // cbor
         case parser_cbor_unexpected:
             return "unexpected CBOR error";
         case parser_cbor_not_canonical:

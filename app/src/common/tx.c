@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "apdu_codes.h"
+#include "app_mode.h"
 #include "buffering.h"
 #include "parser.h"
 #include "parser_txdef.h"
@@ -162,6 +163,9 @@ const char *tx_parse() {
 }
 
 const char *tx_validate_incremental_hash() {
+    if (!app_mode_blindsign()) {
+        return parser_getErrorDescription(parser_blind_sign_required);
+    }
     parser_error_t err = parser_validate(&ctx_parsed_tx);
     return (err == parser_ok) ? NULL : parser_getErrorDescription(err);
 }
