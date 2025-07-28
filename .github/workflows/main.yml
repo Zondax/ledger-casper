@@ -130,7 +130,6 @@ jobs:
 
   build_package_nanos:
     needs: [configure, build, build_ledger, test_zemu]
-    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
     container:
       image: zondax/ledger-app-builder:latest
@@ -154,6 +153,7 @@ jobs:
         id: nanos
         run: echo "tag_name=$(./app/pkg/installer_nanos.sh version)" >> $GITHUB_OUTPUT
       - name: Create or Update Release (1)
+        if: ${{ github.ref == 'refs/heads/main' }}
         id: create_release_0
         uses: softprops/action-gh-release@v1
         env:
@@ -166,7 +166,6 @@ jobs:
 
   build_package_nanosp:
     needs: [configure, build, build_ledger, test_zemu]
-    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
     container:
       image: zondax/ledger-app-builder:latest
@@ -190,6 +189,7 @@ jobs:
         id: nanosp
         run: echo "tag_name=$(./app/pkg/installer_nanos_plus.sh version)" >> $GITHUB_OUTPUT
       - name: Update Release
+        if: ${{ github.ref == 'refs/heads/main' }}
         id: update_release_2
         uses: softprops/action-gh-release@v1
         env:
@@ -202,7 +202,6 @@ jobs:
 
   build_package_stax:
     needs: [configure, build, build_ledger, test_zemu]
-    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
     container:
       image: zondax/ledger-app-builder:latest
@@ -224,6 +223,7 @@ jobs:
         id: stax
         run: echo "tag_name=$(./app/pkg/installer_stax.sh version)" >> $GITHUB_OUTPUT
       - name: Update Release
+        if: ${{ github.ref == 'refs/heads/main' }}
         id: update_release_2
         uses: softprops/action-gh-release@v1
         env:
@@ -237,7 +237,6 @@ jobs:
 
   build_package_flex:
     needs: [configure, build, build_ledger, test_zemu]
-    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ${{ github.repository_owner == 'zondax' && 'zondax-runners' || 'ubuntu-latest' }}
     container:
       image: zondax/ledger-app-builder:latest
@@ -259,6 +258,7 @@ jobs:
         id: flex
         run: echo "tag_name=$(./app/pkg/installer_flex.sh version)" >> $GITHUB_OUTPUT
       - name: Update Release
+        if: ${{ github.ref == 'refs/heads/main' }}
         id: update_release_2
         uses: softprops/action-gh-release@v1
         env:

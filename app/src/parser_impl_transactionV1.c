@@ -1187,6 +1187,12 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
 
     if (displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Txn hash");
+
+        if (tx_isStreaming()) {
+            return parser_printBytes(tx_get_incremental_hash(), HASH_LENGTH, outVal, outValLen, pageIdx,
+                                    pageCount);
+        }
+
         ctx->offset = parser_tx_obj.metadata.metadata_size + parser_tx_obj.metadata.field_offsets[HASH_FIELD_POS];
         return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen, pageIdx,
                                  pageCount);
