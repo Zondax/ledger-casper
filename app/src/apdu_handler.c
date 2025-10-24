@@ -38,6 +38,9 @@ static bool tx_bufferFull = false;
 static uint32_t wasm_counter = 0;
 streaming_state_e streaming_state = StreamingStateNoStreaming;
 
+// Global variable to store error message offset for custom error display
+uint16_t G_error_message_offset = 0;
+
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx);
 
 static void extractHDPath(uint32_t rx, uint32_t offset) {
@@ -354,6 +357,9 @@ __Z_INLINE void handleSignMessage(volatile uint32_t *flags, volatile uint32_t *t
 void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
     uint16_t sw = 0;
 
+    // Reset error message offset at the beginning of each command
+    G_error_message_offset = 0;
+
     BEGIN_TRY {
         TRY {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
@@ -421,7 +427,9 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx) {
     int error_msg_length = strlen(error_msg);
+    MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
     MEMCPY(G_io_apdu_buffer, error_msg, error_msg_length);
     *tx += (error_msg_length);
+    G_error_message_offset = error_msg_length;
 }
 
