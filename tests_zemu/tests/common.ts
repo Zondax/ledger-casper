@@ -14,11 +14,11 @@ const Resolve = require("path").resolve;
 export const APP_SEED =
   "equip will roof matter pink blind book anxiety banner elbow sun young";
 
-const APP_PATH_S = Resolve("../app/output/app_s.elf");
 const APP_PATH_X = Resolve("../app/output/app_x.elf");
 const APP_PATH_SP = Resolve("../app/output/app_s2.elf");
 const APP_PATH_ST = Resolve("../app/output/app_stax.elf");
 const APP_PATH_FL = Resolve('../app/output/app_flex.elf')
+const APP_PATH_APEX = Resolve('../app/output/app_apex_p.elf')
 
 export const defaultOptions = {
   ...DEFAULT_START_OPTIONS,
@@ -30,11 +30,11 @@ export const defaultOptions = {
 export const PATH = "m/44'/506'/0'/0/0"
 
 export const models: IDeviceModel[] = [
-  { name: "nanos", prefix: "S", path: APP_PATH_S },
   { name: "nanox", prefix: "X", path: APP_PATH_X },
   { name: "nanosp", prefix: "SP", path: APP_PATH_SP },
   { name: "stax", prefix: "ST", path: APP_PATH_ST },
   { name: "flex", prefix: "FL", path: APP_PATH_FL },
+  { name: "apex_p", prefix: "AP", path: APP_PATH_APEX },
 ];
 
 export const TRANSACTIONV1_BLOBS = [

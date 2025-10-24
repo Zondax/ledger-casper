@@ -31,7 +31,7 @@
 #include "parser_utils.h"
 #include "runtime_arg.h"
 
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2) || defined(TARGET_STAX) || defined(TARGET_FLEX)
+#if defined(LEDGER_SPECIFIC)
 // For some reason NanoX requires this function
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function) {
     UNUSED(assertion);
