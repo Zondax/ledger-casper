@@ -30,28 +30,28 @@
         return parser_ok;                                                  \
     }
 
-#define DISPLAY_HEADER_U64(KEYNAME, HEADERPART, TX_CONTENT)                                              \
-    {                                                                                                    \
-        snprintf(outKey, outKeyLen, KEYNAME);                                                            \
+#define DISPLAY_HEADER_U64(KEYNAME, HEADERPART, TX_CONTENT)                                     \
+    {                                                                                           \
+        snprintf(outKey, outKeyLen, KEYNAME);                                                   \
         CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, ctx)); \
-        uint64_t value = 0;                                                                              \
-        CHECK_PARSER_ERR(readU64(ctx, &value));                                                          \
-        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                            \
+        uint64_t value = 0;                                                                     \
+        CHECK_PARSER_ERR(readU64(ctx, &value));                                                 \
+        return parser_printU64(value, outVal, outValLen, pageIdx, pageCount);                   \
     }
 
-#define DISPLAY_HEADER_TIMESTAMP(KEYNAME, HEADERPART, TX_CONTENT)                                        \
-    {                                                                                                    \
-        snprintf(outKey, outKeyLen, KEYNAME);                                                            \
-        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, ctx)); \
-        uint64_t value = 0;                                                                              \
-        CHECK_PARSER_ERR(readU64(ctx, &value));                                                          \
-        value /= 1000;                                                                                   \
-        char buffer[300];                                                                                \
-        MEMZERO(buffer, sizeof(buffer));                                                                 \
-        PARSER_ASSERT_OR_ERROR(printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok,        \
-                               parser_unexpected_error);                                                 \
-        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);                               \
-        return parser_ok;                                                                                \
+#define DISPLAY_HEADER_TIMESTAMP(KEYNAME, HEADERPART, TX_CONTENT)                                 \
+    {                                                                                             \
+        snprintf(outKey, outKeyLen, KEYNAME);                                                     \
+        CHECK_PARSER_ERR(index_headerpart_##TX_CONTENT(parser_tx_obj.header, HEADERPART, ctx));   \
+        uint64_t value = 0;                                                                       \
+        CHECK_PARSER_ERR(readU64(ctx, &value));                                                   \
+        value /= 1000;                                                                            \
+        char buffer[300];                                                                         \
+        MEMZERO(buffer, sizeof(buffer));                                                          \
+        PARSER_ASSERT_OR_ERROR(printTimeSpecialFormat(buffer, sizeof(buffer), value) == zxerr_ok, \
+                               parser_unexpected_error);                                          \
+        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);                        \
+        return parser_ok;                                                                         \
     }
 
 #define GEN_DEC_READFIX_UNSIGNED(BITS)                                                           \
@@ -74,7 +74,8 @@ parser_error_t readU64(parser_context_t *ctx, uint64_t *result);
 parser_error_t readU32(parser_context_t *ctx, uint32_t *result);
 parser_error_t readU16(parser_context_t *ctx, uint16_t *result);
 parser_error_t readU8(parser_context_t *ctx, uint8_t *result);
-parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize);
+parser_error_t parser_init_context(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen,
+                                   uint16_t bufferSize);
 parser_error_t parser_init(parser_context_t *ctx, const uint8_t *buffer, uint16_t bufferLen, uint16_t bufferSize);
 bool is_container_type(uint8_t cl_type);
 bool is_map_type(uint8_t cl_type);
@@ -95,8 +96,15 @@ parser_error_t parser_printU64(uint64_t value, char *outVal, uint16_t outValLen,
 const char *parser_getErrorDescription(parser_error_t err);
 parser_error_t add_thousand_separators(char *out, uint16_t outLen, const char *number);
 
-__attribute__((noinline)) parser_error_t display_runtimearg_u64(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
-__attribute__((noinline)) parser_error_t display_runtimearg_u32(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);    
-__attribute__((noinline)) parser_error_t display_runtimearg_u8(parser_context_t *ctx, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
-__attribute__((noinline)) parser_error_t display_runtimearg_bytes(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
-__attribute__((noinline)) parser_error_t display_runtimearg_address(parser_context_t *ctx, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_u64(parser_context_t *ctx, char *outVal, uint16_t outValLen,
+                                                                uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_u32(parser_context_t *ctx, char *outVal, uint16_t outValLen,
+                                                                uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_u8(parser_context_t *ctx, char *outVal, uint16_t outValLen,
+                                                               uint8_t pageIdx, uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_bytes(parser_context_t *ctx, uint32_t len, char *outVal,
+                                                                  uint16_t outValLen, uint8_t pageIdx,
+                                                                  uint8_t *pageCount);
+__attribute__((noinline)) parser_error_t display_runtimearg_address(parser_context_t *ctx, uint32_t len, char *outVal,
+                                                                    uint16_t outValLen, uint8_t pageIdx,
+                                                                    uint8_t *pageCount);

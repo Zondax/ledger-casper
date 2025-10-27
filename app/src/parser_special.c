@@ -166,7 +166,8 @@ parser_error_t checkNativeTransferArgs(parser_context_t *ctx, ExecutableDeployIt
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "id", ((type == TAG_OPTION && internal_type == TAG_U64) || type == TAG_U64))
 
     // Target is mandatory
-    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target", (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
+    CHECK_RUNTIME_ARGTYPE(ctx, num_items, "target",
+                          (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
     COUNT_RUNTIME_ARGTYPE(ctx, num_items, "target",
                           (type == TAG_KEY || type == TAG_UREF || type == TAG_BYTE_ARRAY || type == TAG_PUBLIC_KEY))
 

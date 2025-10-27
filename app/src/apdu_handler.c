@@ -22,21 +22,24 @@
 
 #include "actions.h"
 #include "addr.h"
-#include "app_mode.h"
 #include "app_main.h"
+#include "app_mode.h"
 #include "coin.h"
 #include "crypto.h"
+#include "parser_utils.h"
 #include "secret.h"
 #include "tx.h"
 #include "view.h"
 #include "view_internal.h"
 #include "zxmacros.h"
-#include "parser_utils.h"
 
 static bool tx_initialized = false;
 static bool tx_bufferFull = false;
 static uint32_t wasm_counter = 0;
 streaming_state_e streaming_state = StreamingStateNoStreaming;
+
+// Global variable to store error message offset for custom error display
+uint16_t G_error_message_offset = 0;
 
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx);
 
@@ -106,10 +109,12 @@ static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
                 tx_bufferFull = true;
             }
             return true;
-    }
 
-    tx_initialized = false;
-    THROW(APDU_CODE_INVALIDP1P2);
+        default:
+            tx_initialized = false;
+            THROW(APDU_CODE_INVALIDP1P2);
+    }
+    return false;  // Should never reach here
 }
 
 static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
@@ -146,7 +151,7 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
             if (tx_get_buffer_length() >= (tx_get_flash_buffer_size() - IO_APDU_BUFFER_SIZE)) {
                 if (streaming_state == StreamingStateNoStreaming) {
                     streaming_state = StreamingStateInit;
-                } 
+                }
 
                 if (streaming_state == StreamingStateInit) {
                     const char *error_msg = tx_parse();
@@ -205,11 +210,10 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
             return true;
 
         default:
+            tx_initialized = false;
             THROW(APDU_CODE_INVALIDP1P2);
     }
-
-    tx_initialized = false;
-    THROW(APDU_CODE_INVALIDP1P2);
+    return false;  // Should never reach here
 }
 
 __Z_INLINE void handleSignWasmDeploy(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
@@ -220,7 +224,7 @@ __Z_INLINE void handleSignWasmDeploy(volatile uint32_t *flags, volatile uint32_t
         // Don't refresh too fast
         if ((wasm_counter % 5) == 0) {
             view_message_show("Raw Wasm", message);
-#if !(defined(TARGET_STAX) || defined(TARGET_FLEX))
+#if !(defined(TARGET_STAX) || defined(TARGET_FLEX) || defined(TARGET_APEX_P))
             UX_WAIT_DISPLAYED();
 #endif
         }
@@ -354,6 +358,9 @@ __Z_INLINE void handleSignMessage(volatile uint32_t *flags, volatile uint32_t *t
 void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
     uint16_t sw = 0;
 
+    // Reset error message offset at the beginning of each command
+    G_error_message_offset = 0;
+
     BEGIN_TRY {
         TRY {
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
@@ -421,7 +428,8 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx) {
     int error_msg_length = strlen(error_msg);
+    MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
     MEMCPY(G_io_apdu_buffer, error_msg, error_msg_length);
     *tx += (error_msg_length);
+    G_error_message_offset = error_msg_length;
 }
-

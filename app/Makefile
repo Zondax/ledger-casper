@@ -58,11 +58,11 @@ APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
-ICON_NANOS = nanos_icon.gif
 ICON_NANOX = nanox_icon.gif
 ICON_NANOSP = nanox_icon.gif
 ICON_STAX = stax_icon.gif
 ICON_FLEX = flex_icon.gif
+ICON_APEX_P = apex_p_icon.png
 
 $(info COIN  = [$(COIN)])
 
@@ -84,11 +84,7 @@ endif
 
 APP_LOAD_PARAMS = --curve secp256k1 $(COMMON_LOAD_PARAMS) --path ${APPPATH}
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-	APP_STACK_MIN_SIZE := 1600
-else
-	APP_STACK_MIN_SIZE := 1752
-endif
+APP_STACK_MIN_SIZE := 1752
 
 include $(BOLOS_SDK)/Makefile.target
 

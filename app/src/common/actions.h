@@ -21,12 +21,13 @@
 #include "apdu_codes.h"
 #include "coin.h"
 #include "crypto.h"
-#include "parser_txdef.h"
 #include "parser_impl_deploy.h"
+#include "parser_txdef.h"
 #include "tx.h"
 #include "zxerror.h"
 
 extern uint16_t action_addrResponseLen;
+extern uint16_t G_error_message_offset;
 
 __Z_INLINE void app_sign() {
     const uint8_t *message = tx_get_buffer();
@@ -77,6 +78,7 @@ __Z_INLINE void app_reply_address() {
 }
 
 __Z_INLINE void app_reply_error() {
-    set_code(G_io_apdu_buffer, 0, APDU_CODE_DATA_INVALID);
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    // Use the stored offset to place the error code after the error message
+    set_code(G_io_apdu_buffer, G_error_message_offset, APDU_CODE_DATA_INVALID);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, G_error_message_offset + 2);
 }
