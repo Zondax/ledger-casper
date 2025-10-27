@@ -109,10 +109,11 @@ static bool process_wasm_chunk(volatile uint32_t *tx, uint32_t rx) {
                 tx_bufferFull = true;
             }
             return true;
-    }
 
-    tx_initialized = false;
-    THROW(APDU_CODE_INVALIDP1P2);
+        default:
+            tx_initialized = false;
+            THROW(APDU_CODE_INVALIDP1P2);
+    }
 }
 
 static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
@@ -208,11 +209,9 @@ static bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
             return true;
 
         default:
+            tx_initialized = false;
             THROW(APDU_CODE_INVALIDP1P2);
     }
-
-    tx_initialized = false;
-    THROW(APDU_CODE_INVALIDP1P2);
 }
 
 __Z_INLINE void handleSignWasmDeploy(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {

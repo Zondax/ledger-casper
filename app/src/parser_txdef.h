@@ -66,6 +66,7 @@ typedef enum {
     Delegate = 3,
     UnDelegate = 4,
     ReDelegate = 5,
+    Unknown = 255,
 } special_deploy_e;
 
 typedef enum {
