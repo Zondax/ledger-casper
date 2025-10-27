@@ -136,8 +136,8 @@ parser_error_t parser_getWasmItem(parser_context_t *ctx, uint8_t displayIdx, cha
 
         case 1:
             snprintf(outKey, outKeyLen, "BodyHash");
-            CHECK_PARSER_ERR(index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash,
-                                                    ctx));
+            CHECK_PARSER_ERR(
+                index_headerpart_deploy(((parser_tx_deploy_t *)ctx->tx_obj)->header, header_bodyhash, ctx));
             pageStringHex(outVal, outValLen, (const char *)ctx->buffer + ctx->offset, HASH_LENGTH, pageIdx, pageCount);
             return parser_ok;
 

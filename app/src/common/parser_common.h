@@ -22,8 +22,8 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
-#include "parser_txdef.h"
 #include "crypto.h"
+#include "parser_txdef.h"
 
 #define CHECK_PARSER_ERR(__CALL)              \
     {                                         \

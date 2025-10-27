@@ -163,48 +163,50 @@ parser_error_t add_thousands_separators(char *buffer, uint16_t bufferSize, uint1
     return parser_ok;
 }
 
-__attribute__((noinline)) parser_error_t display_runtimearg_amount_bignum(parser_context_t *ctx, char *buffer, uint16_t bufferSize, uint32_t len, char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount)
-{                                                                                             
-    uint8_t bcdOut[128];                                                                      
-    MEMZERO(bcdOut, sizeof(bcdOut));                                                          
-    uint16_t bcdOutLen = sizeof(bcdOut);                                                      
-    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (ctx)->buffer + (ctx)->offset + 1, len-1); 
-    MEMZERO(buffer, bufferSize);                                                          
-    bool ok = bignumLittleEndian_bcdprint(buffer, bufferSize, bcdOut, bcdOutLen);         
-    if (!ok) {                                                                                
-        return parser_unexpected_error;                                                       
-    }                                                                                         
-    uint16_t numsize = 0;                                                                     
-    CHECK_PARSER_ERR(find_end_of_number(buffer, bufferSize, &numsize))                    
-    CHECK_PARSER_ERR(add_thousands_separators(buffer, bufferSize, &numsize))              
+__attribute__((noinline)) parser_error_t display_runtimearg_amount_bignum(parser_context_t *ctx, char *buffer,
+                                                                          uint16_t bufferSize, uint32_t len,
+                                                                          char *outVal, uint16_t outValLen,
+                                                                          uint8_t pageIdx, uint8_t *pageCount) {
+    uint8_t bcdOut[128];
+    MEMZERO(bcdOut, sizeof(bcdOut));
+    uint16_t bcdOutLen = sizeof(bcdOut);
+    bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (ctx)->buffer + (ctx)->offset + 1, len - 1);
+    MEMZERO(buffer, bufferSize);
+    bool ok = bignumLittleEndian_bcdprint(buffer, bufferSize, bcdOut, bcdOutLen);
+    if (!ok) {
+        return parser_unexpected_error;
+    }
+    uint16_t numsize = 0;
+    CHECK_PARSER_ERR(find_end_of_number(buffer, bufferSize, &numsize))
+    CHECK_PARSER_ERR(add_thousands_separators(buffer, bufferSize, &numsize))
     if (numsize + 6 >= bufferSize) {
         return parser_unexpected_buffer_end;
-    }                                                                                        
+    }
     MEMCPY(buffer + numsize, (char *)" motes", 6);
     pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);
-    return parser_ok;                                                                        
+    return parser_ok;
 }
 
-#define DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(CTX, LEN)                                                \
-    {                                                                                             \
-        uint8_t bcdOut[128];                                                                      \
-        MEMZERO(bcdOut, sizeof(bcdOut));                                                          \
-        uint16_t bcdOutLen = sizeof(bcdOut);                                                      \
-        bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN)-1); \
-        MEMZERO(buffer, sizeof(buffer));                                                          \
-        bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);         \
-        if (!ok) {                                                                                \
-            return parser_unexpected_error;                                                       \
-        }                                                                                         \
-        uint16_t numsize = 0;                                                                     \
-        CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &numsize))                    \
-        CHECK_PARSER_ERR(add_thousands_separators(buffer, sizeof(buffer), &numsize))              \
-        if (numsize + 6 >= sizeof(buffer)) {                                                      \
-            return parser_unexpected_buffer_end;                                                  \
-        }                                                                                         \
-        MEMCPY(buffer + numsize, (char *)" motes", 6);                                            \
-        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);                        \
-        return parser_ok;                                                                         \
+#define DISPLAY_RUNTIMEARG_AMOUNT_BIGNUM(CTX, LEN)                                                  \
+    {                                                                                               \
+        uint8_t bcdOut[128];                                                                        \
+        MEMZERO(bcdOut, sizeof(bcdOut));                                                            \
+        uint16_t bcdOutLen = sizeof(bcdOut);                                                        \
+        bignumLittleEndian_to_bcd(bcdOut, bcdOutLen, (CTX)->buffer + (CTX)->offset + 1, (LEN) - 1); \
+        MEMZERO(buffer, sizeof(buffer));                                                            \
+        bool ok = bignumLittleEndian_bcdprint(buffer, sizeof(buffer), bcdOut, bcdOutLen);           \
+        if (!ok) {                                                                                  \
+            return parser_unexpected_error;                                                         \
+        }                                                                                           \
+        uint16_t numsize = 0;                                                                       \
+        CHECK_PARSER_ERR(find_end_of_number(buffer, sizeof(buffer), &numsize))                      \
+        CHECK_PARSER_ERR(add_thousands_separators(buffer, sizeof(buffer), &numsize))                \
+        if (numsize + 6 >= sizeof(buffer)) {                                                        \
+            return parser_unexpected_buffer_end;                                                    \
+        }                                                                                           \
+        MEMCPY(buffer + numsize, (char *)" motes", 6);                                              \
+        pageString(outVal, outValLen, (char *)buffer, pageIdx, pageCount);                          \
+        return parser_ok;                                                                           \
     }
 
 // render alternative amounts of type u64, u32
@@ -243,7 +245,8 @@ parser_error_t parser_display_runtimeArgMotes(uint8_t type, uint32_t dataLen, pa
             DISPLAY_RUNTIMEARG_AMOUNT_INT(value);
         }
         case TAG_U512: {
-            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx, pageCount);
+            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx,
+                                                    pageCount);
         }
 
         default: {
@@ -272,7 +275,8 @@ parser_error_t parser_display_runtimeArg(uint8_t type, uint32_t dataLen, parser_
             return display_runtimearg_u64(ctx, outVal, outValLen, pageIdx, pageCount);
         }
         case TAG_U512: {
-            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx, pageCount);
+            return display_runtimearg_amount_bignum(ctx, buffer, sizeof(buffer), dataLen, outVal, outValLen, pageIdx,
+                                                    pageCount);
         }
 
         case TAG_KEY: {

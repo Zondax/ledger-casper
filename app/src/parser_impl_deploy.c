@@ -29,7 +29,7 @@
 parser_tx_deploy_t parser_tx_obj_deploy;
 
 #define TIMESTAMP_SIZE 8
-#define TTL_SIZE 8  
+#define TTL_SIZE 8
 #define GAS_PRICE_SIZE 8
 #define BODY_HASH_SIZE 32
 #define DEPLOY_HEADER_FIXED_LEN (TIMESTAMP_SIZE + TTL_SIZE + GAS_PRICE_SIZE + BODY_HASH_SIZE)

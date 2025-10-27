@@ -21,8 +21,8 @@
 #include "apdu_codes.h"
 #include "coin.h"
 #include "crypto.h"
-#include "parser_txdef.h"
 #include "parser_impl_deploy.h"
+#include "parser_txdef.h"
 #include "tx.h"
 #include "zxerror.h"
 

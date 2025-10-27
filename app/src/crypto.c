@@ -103,19 +103,19 @@ zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen, const uint8_t 
         switch (parser_tx_obj_deploy.type) {
             case WasmDeploy:
             case Transaction: {
-            const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj_deploy.header);
-            if (cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE) != CX_SHA256_SIZE) {
-                return zxerr_unknown;
+                const uint8_t *message_digest = message + header_length_deploy(parser_tx_obj_deploy.header);
+                if (cx_hash_sha256(message_digest, CX_SHA256_SIZE, hash, CX_SHA256_SIZE) != CX_SHA256_SIZE) {
+                    return zxerr_unknown;
+                }
+                break;
             }
-            break;
-        }
-        case Message:
-            if (cx_hash_sha256(message, messageLen, hash, CX_SHA256_SIZE) != CX_SHA256_SIZE) {
-                return zxerr_unknown;
-            }
-            break;
+            case Message:
+                if (cx_hash_sha256(message, messageLen, hash, CX_SHA256_SIZE) != CX_SHA256_SIZE) {
+                    return zxerr_unknown;
+                }
+                break;
 
-        default:
+            default:
                 return zxerr_unknown;
         }
     } else {
