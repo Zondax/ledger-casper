@@ -10,8 +10,8 @@ on:
       - master
       - dev
     paths-ignore:
-      - '.github/workflows/*.yml'
-      - 'tests/*'
+      - ".github/workflows/*.yml"
+      - "tests/*"
 
 jobs:
   analyse:
