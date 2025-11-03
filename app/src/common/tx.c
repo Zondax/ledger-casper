@@ -25,13 +25,9 @@
 #include "parser_txdef.h"
 #include "zxmacros.h"
 
-#if defined(TARGET_NANOS)
-#define RAM_BUFFER_SIZE 384
-#define FLASH_BUFFER_SIZE 8192
-#else
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
-#endif
+
 // Ram
 uint8_t ram_buffer[RAM_BUFFER_SIZE];
 

@@ -23,6 +23,11 @@
 
 ifeq ($(BOLOS_SDK),)
 PRODUCTION_BUILD ?= 1
+SKIP_NANOS = 1
+
+ifeq ($(SKIP_NANOS), 0)
+$(error "NanoS device is not supported")
+endif
 include $(CURDIR)/deps/ledger-zxlib/dockerized_build.mk
 else
 default:
