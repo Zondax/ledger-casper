@@ -19,8 +19,8 @@
 #include <zxmacros.h>
 
 #include "app_mode.h"
-#include "tx.h"
 #include "parser_primitives.h"
+#include "tx.h"
 
 #define TAG_SIZE 1
 
@@ -509,8 +509,8 @@ static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *c
  * @return parser_error_t Parser error code
  */
 static parser_error_t parser_getItem_txV1_Burn(parser_context_t *ctx, uint8_t displayIdx, char *outKey,
-                                                uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
-                                                uint8_t *pageCount);
+                                               uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                                               uint8_t *pageCount);
 
 /**
  * @brief Validates the transaction data for native transfer operations
@@ -610,11 +610,11 @@ static parser_error_t read_txV1_hash(parser_context_t *ctx, parser_tx_txnV1_t *v
     if (ctx->offset + HASH_LENGTH > ctx->bufferLen) {
         return parser_unexpected_buffer_end;
     }
-    
+
     if (HASH_LENGTH > sizeof(v->txnHash)) {
         return parser_unexpected_value;
     }
-    
+
     MEMCPY(v->txnHash, ctx->buffer + ctx->offset, HASH_LENGTH);
     ctx->offset += HASH_LENGTH;
 
@@ -1095,7 +1095,8 @@ parser_error_t _validateTxV1(const parser_context_t *ctx, const parser_tx_txnV1_
     if (tx_isStreaming()) {
         MEMCPY(txnHash, tx_get_incremental_hash(), BLAKE2B_256_SIZE);
     } else {
-        const uint8_t *pPayload = ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
+        const uint8_t *pPayload =
+            ctx->buffer + v->metadata.metadata_size + v->metadata.field_offsets[PAYLOAD_FIELD_POS];
         uint32_t payload_size = v->payload_metadata.metadata_size + v->payload_metadata.fields_size;
 
         if (blake2b_hash(pPayload, payload_size, txnHash) != zxerr_ok) {
@@ -1187,6 +1188,11 @@ parser_error_t _getItemTxV1(parser_context_t *ctx, uint8_t displayIdx, char *out
 
     if (displayIdx == 0) {
         snprintf(outKey, outKeyLen, "Txn hash");
+
+        if (tx_isStreaming()) {
+            return parser_printBytes(tx_get_incremental_hash(), HASH_LENGTH, outVal, outValLen, pageIdx, pageCount);
+        }
+
         ctx->offset = parser_tx_obj.metadata.metadata_size + parser_tx_obj.metadata.field_offsets[HASH_FIELD_POS];
         return parser_printBytes((const uint8_t *)(ctx->buffer + ctx->offset), HASH_LENGTH, outVal, outValLen, pageIdx,
                                  pageCount);
@@ -1422,12 +1428,12 @@ static parser_error_t parser_getItem_txV1_Custom(parser_context_t *ctx, uint8_t 
     uint8_t args_hash[32] = {0};
     if (parser_tx_obj_txnV1.args_type == RuntimeArgs) {
         if (blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset - 4,
-                     parser_tx_obj_txnV1.runtime_args_len - 1, args_hash) != zxerr_ok) {
+                         parser_tx_obj_txnV1.runtime_args_len - 1, args_hash) != zxerr_ok) {
             return parser_unexpected_value;
         }
     } else {
         if (blake2b_hash(ctx->buffer + parser_tx_obj_txnV1.runtime_args_offset, parser_tx_obj_txnV1.runtime_args_len,
-                     args_hash) != zxerr_ok) {
+                         args_hash) != zxerr_ok) {
             return parser_unexpected_value;
         }
     }
@@ -1891,8 +1897,8 @@ static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *c
 }
 
 static parser_error_t parser_getItem_txV1_Burn(parser_context_t *ctx, uint8_t displayIdx, char *outKey,
-                                                uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
-                                                uint8_t *pageCount) {
+                                               uint16_t outKeyLen, char *outVal, uint16_t outValLen, uint8_t pageIdx,
+                                               uint8_t *pageCount) {
     uint32_t burn_display_idx = displayIdx - 8;
     uint32_t num_items = parser_tx_obj_txnV1.num_runtime_args;
     parser_context_t initial_ctx = *ctx;
@@ -1912,7 +1918,6 @@ static parser_error_t parser_getItem_txV1_Burn(parser_context_t *ctx, uint8_t di
     }
 
     *ctx = initial_ctx;
-
 
     snprintf(outKey, outKeyLen, "Amount");
     CHECK_PARSER_ERR(parser_runtimeargs_getData("amount", &dataLength, &datatype, num_items, ctx))

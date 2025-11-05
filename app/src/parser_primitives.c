@@ -31,7 +31,8 @@ parser_error_t read_metadata(parser_context_t *ctx, parser_metadata_txnV1_t *met
     CHECK_PARSER_ERR(readU32(ctx, &num_fields));
     metadata->num_fields = num_fields;
 
-    PARSER_ASSERT_OR_ERROR(metadata->num_fields > 0 && metadata->num_fields <= MAX_METADATA_FIELDS, parser_unexpected_number_fields);
+    PARSER_ASSERT_OR_ERROR(metadata->num_fields > 0 && metadata->num_fields <= MAX_METADATA_FIELDS,
+                           parser_unexpected_number_fields);
 
     for (uint8_t i = 0; i < metadata->num_fields; i++) {
         uint16_t index = 0;

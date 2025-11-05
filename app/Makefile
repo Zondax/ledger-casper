@@ -1,6 +1,6 @@
 #*******************************************************************************
 #  Ledger App
-#  (c) 2018 - 2024 Zondax AG
+#  (c) 2019 - 2025 Zondax AG
 #  (c) 2017 Ledger
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +20,85 @@ ifeq ($(BOLOS_SDK),)
 $(error BOLOS_SDK is not set)
 endif
 
-MY_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+########################################
+#        Mandatory configuration       #
+########################################
+# Upload targets to configure the devices 
+include $(BOLOS_SDK)/Makefile.defines
 
+ifndef COIN
+COIN=CSPR
+endif
+
+$(info COIN  = [$(COIN)])
+VARIANT_PARAM=COIN
+VARIANT_VALUES=$(COIN)
+
+ifeq ($(COIN),CSPR)
+APPNAME = "Casper"
+APPPATH = "44'/506'"
+endif
+
+$(info PATHS LIST = $(APPPATH))
+PATH_APP_LOAD_PARAMS = $(APPPATH)
+
+# Application version
+include $(CURDIR)/Makefile.version
+APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
+
+# Application source files
+APP_SOURCE_PATH += src
+
+# Application icons following guidelines:
+# https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
+ICON_NANOX = nanox_icon.gif
+ICON_NANOSP = nanox_icon.gif
+ICON_STAX = stax_icon.gif
+ICON_FLEX = flex_icon.gif
+ICON_APEX_P = apex_p_icon.png
+
+# Application allowed derivation curves.
+# Possibles curves are: secp256k1, secp256r1, ed25519 and bls12381g1
+# If your app needs it, you can specify multiple curves by using:
+# `CURVE_APP_LOAD_PARAMS = <curve1> <curve2>`
+ifeq ($(COIN), CSPR)
+CURVE_APP_LOAD_PARAMS = secp256k1
+endif
+
+INCLUDES_PATH += $(CURDIR)/src/common
+INCLUDES_PATH += ../deps/ledger-zxlib/include
+INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
+
+########################################
+# Application communication interfaces #
+########################################
+ENABLE_BLUETOOTH = 1
+#ENABLE_NFC = 1
+
+########################################
+#         NBGL custom features         #
+########################################
+ENABLE_NBGL_QRCODE = 1
+#ENABLE_NBGL_KEYBOARD = 1
+#ENABLE_NBGL_KEYPAD = 1
+
+########################################
+#          Features disablers          #
+########################################
+# These advanced settings allow to disable some feature that are by
+# default enabled in the SDK `Makefile.standard_app`.
+#DISABLE_STANDARD_APP_FILES = 1
+#DISABLE_DEFAULT_IO_SEPROXY_BUFFER_SIZE = 1 # To allow custom size declaration
+#DISABLE_STANDARD_APP_DEFINES = 1 # Will set all the following disablers
+#DISABLE_STANDARD_SNPRINTF = 1
+#DISABLE_STANDARD_USB = 1
+#DISABLE_STANDARD_WEBUSB = 1
+#DISABLE_DEBUG_LEDGER_ASSERT = 1
+#DISABLE_DEBUG_THROW = 1
+
+########################################
+#        Other configurations          #
+########################################
 # Set the default value for PRODUCTION_BUILD to 0 if not already defined
 PRODUCTION_BUILD ?= 1
 
@@ -32,104 +109,29 @@ else
     $(info ************ PRODUCTION_BUILD  = [INTERNAL USE])
 endif
 
-# Display whether swap functionality is enabled or not
-ifeq ($(ENABLE_SWAP), 1)
-    $(info ************ HAVE_SWAP  = [ENABLED])
-else
-    $(info ************ HAVE_SWAP  = [DISABLED])
-endif
-
 # Add the PRODUCTION_BUILD definition to the compiler flags
 DEFINES += PRODUCTION_BUILD=$(PRODUCTION_BUILD)
 DEFINES += APP_BLINDSIGN_MODE_ENABLED
+DEFINES += HAVE_HASH HAVE_BLAKE2
 
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
-
-ifndef COIN
-COIN=CSPR
-endif
- 
-VARIANT_PARAM=COIN
-VARIANT_VALUES=$(COIN)
-
-include $(CURDIR)/Makefile.version
-
-APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
-
-# Application icons following guidelines:
-# https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
-ICON_NANOS = nanos_icon.gif
-ICON_NANOX = nanox_icon.gif
-ICON_NANOSP = nanox_icon.gif
-ICON_STAX = stax_icon.gif
-ICON_FLEX = flex_icon.gif
-
-$(info COIN  = [$(COIN)])
-
-ifeq ($(COIN),CSPR)
-# Main app configuration
-DEFINES += APP_STANDARD
-APPNAME = "Casper"
-APPPATH = "44'/506'"
-
-else ifeq ($(COIN),CSPR_INVALID)
-else
-define error_message
-
-COIN value not supported: [$(COIN)]
-
-endef
-$(error "$(error_message)")
-endif
-
-APP_LOAD_PARAMS = --curve secp256k1 $(COMMON_LOAD_PARAMS) --path ${APPPATH}
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-	APP_STACK_MIN_SIZE := 1600
-else
-	APP_STACK_MIN_SIZE := 1752
-endif
-
-include $(BOLOS_SDK)/Makefile.target
-
+########################################
+# Configure devices and permissions
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.devices
-
-APP_SOURCE_PATH += $(MY_DIR)/../app/src/
-
+# Create installer script
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
+# Enable logging
+include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.app_testing
+# Call standard app flags
 include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.platform
 
+# Use small buffers for NanoX
+ifeq ($(TARGET_NAME), TARGET_NANOX)
+CFLAGS += -DZXLIB_LIGHT_MODE
+endif
 CFLAGS += -Wvla
-
-DEFINES += HAVE_HASH HAVE_BLAKE2
-INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
-
-include $(CURDIR)/../deps/ledger-zxlib/makefiles/Makefile.installer_script
 
 $(info TARGET_NAME  = [$(TARGET_NAME)])
 $(info ICONNAME  = [$(ICONNAME)])
-
-ifndef ICONNAME
-$(error ICONNAME is not set)
-endif
-
-# Enable QR code display for Flex and Stax
-ENABLE_NBGL_QRCODE ?= 1
- 
-# make rust a prerequisite for all object files 
-$(OBJECT_FILES): | rust
-
-.PHONY: rust
-rust:
-	@echo "No rust code"
-
-.PHONY: rust_clean
-rust_clean:
-	@echo "No rust code"
-
-clean: rust_clean
-
-#add dependency on custom makefile filename
-dep/%.d: %.c Makefile
 
 .PHONY: version
 version:

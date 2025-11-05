@@ -78,7 +78,7 @@ describe("SignMessage", function () {
         const respRequest = await app.signMessage(PATH, txBlob);
 
         expect(respRequest.returnCode).toEqual(0x6984);
-        expect(respRequest.errorMessage).toEqual("Data is invalid : Unrecognized error code");
+        expect(respRequest.errorMessage).toEqual("Data is invalid");
     } finally {
       await sim.close();
     }

@@ -25,13 +25,9 @@
 #include "parser_txdef.h"
 #include "zxmacros.h"
 
-#if defined(TARGET_NANOS)
-#define RAM_BUFFER_SIZE 384
-#define FLASH_BUFFER_SIZE 8192
-#else
 #define RAM_BUFFER_SIZE 8192
 #define FLASH_BUFFER_SIZE 16384
-#endif
+
 // Ram
 uint8_t ram_buffer[RAM_BUFFER_SIZE];
 
@@ -54,25 +50,19 @@ static void tx_incremental_hash_reset() {
     bytes_hashed = 0;
 }
 
-uint8_t *tx_get_incremental_hash() {
-    return ctx_parsed_tx.txnV1_hash;
-}
+uint8_t *tx_get_incremental_hash() { return ctx_parsed_tx.txnV1_hash; }
 
-bool tx_isStreaming() {
-    return ctx_parsed_tx.isStreaming;
-}
+bool tx_isStreaming() { return ctx_parsed_tx.isStreaming; }
 
 transaction_content_e tx_get_content_type() { return ctx_parsed_tx.tx_content; }
 #if defined(LEDGER_SPECIFIC)
 
-void tx_initialize() { 
+void tx_initialize() {
     buffering_init(ram_buffer, sizeof(ram_buffer), (uint8_t *)N_appdata.buffer, FLASH_BUFFER_SIZE);
     tx_incremental_hash_reset();
 }
 
-void tx_reset() { 
-    buffering_reset(); 
-}
+void tx_reset() { buffering_reset(); }
 
 uint32_t tx_append(unsigned char *buffer, uint32_t length) { return buffering_append(buffer, length); }
 
@@ -91,10 +81,12 @@ zxerr_t tx_incrementally_hash_txnV1(hash_chunk_operation_e operation) {
 
     ctx_parsed_tx.isStreaming = true;
 
-    const uint32_t total_bytes_to_hash = txnV1_parser_obj->payload_metadata.metadata_size + txnV1_parser_obj->payload_metadata.fields_size;
+    const uint32_t total_bytes_to_hash =
+        txnV1_parser_obj->payload_metadata.metadata_size + txnV1_parser_obj->payload_metadata.fields_size;
 
     if (operation == hash_start) {
-        const uint8_t *pPayload = ctx_parsed_tx.buffer + txnV1_parser_obj->metadata.metadata_size + txnV1_parser_obj->metadata.field_offsets[PAYLOAD_FIELD_POS];
+        const uint8_t *pPayload = ctx_parsed_tx.buffer + txnV1_parser_obj->metadata.metadata_size +
+                                  txnV1_parser_obj->metadata.field_offsets[PAYLOAD_FIELD_POS];
         uint32_t in_len = (uint32_t)(ctx_parsed_tx.buffer + ctx_parsed_tx.bufferLen) - (uint32_t)pPayload;
 
         // init blake2b context
@@ -243,7 +235,8 @@ zxerr_t tx_getMessageItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, c
 }
 
 zxerr_t tx_parse_wasm() {
-    const parser_error_t err = parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length(), tx_get_flash_buffer_size());
+    const parser_error_t err =
+        parser_parse_wasm(&ctx_parsed_tx, tx_get_buffer(), tx_get_buffer_length(), tx_get_flash_buffer_size());
     return (err == parser_ok) ? zxerr_ok : zxerr_unknown;
 }
 
