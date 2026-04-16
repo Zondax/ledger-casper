@@ -275,6 +275,18 @@ parser_error_t parser_read_deploy(parser_context_t *ctx, parser_tx_deploy_t *v) 
     CHECK_PARSER_ERR(index_headerpart_deploy(v->header, header_chainname, ctx));
     CHECK_PARSER_ERR(_readUInt32(ctx, &v->header.lenChainName));
 
+    // Reject embedded NUL bytes in the chain name so the C-string-oriented
+    // pageString display helper cannot silently truncate the rendered Chain
+    // ID below the signed byte count.
+    if (ctx->offset + v->header.lenChainName > ctx->bufferLen) {
+        return parser_unexpected_buffer_end;
+    }
+    for (uint32_t i = 0; i < v->header.lenChainName; i++) {
+        if (ctx->buffer[ctx->offset + i] == '\0') {
+            return parser_unexpected_characters;
+        }
+    }
+
     ctx->offset = header_length_deploy(v->header) + BLAKE2B_256_SIZE;
     uint8_t type = 0;
     CHECK_PARSER_ERR(_readUInt8(ctx, &type));

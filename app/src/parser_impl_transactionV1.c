@@ -748,6 +748,16 @@ static parser_error_t read_initiator_address(parser_context_t *ctx, parser_tx_tx
 static parser_error_t read_chain_name(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     uint32_t len = 0;
     CHECK_PARSER_ERR(read_string(ctx, &len));
+
+    // Reject embedded NUL bytes so the C-string-oriented pageString display
+    // helper cannot silently truncate the rendered Chain ID below the signed
+    // byte count. After read_string the string occupies [offset - len, offset).
+    for (uint32_t i = 0; i < len; i++) {
+        if (ctx->buffer[ctx->offset - len + i] == '\0') {
+            return parser_unexpected_characters;
+        }
+    }
+
     v->header.chain_name_len = len;
     return parser_ok;
 }
