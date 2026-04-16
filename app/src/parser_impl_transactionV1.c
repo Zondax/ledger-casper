@@ -1860,7 +1860,7 @@ static parser_error_t parser_getItem_txV1_AddReservations(parser_context_t *ctx,
     if (addrsv_display_idx == 0) {
         snprintf(outKey, outKeyLen, "Rsrv len");
 
-        parser_printU32((uint32_t) * (ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
+        parser_printU32((uint32_t)*(ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
         return parser_ok;
     }
 
@@ -1899,7 +1899,7 @@ static parser_error_t parser_getItem_txV1_CancelReservations(parser_context_t *c
 
         CHECK_PARSER_ERR(parser_runtimeargs_getData("delegators", &dataLength, &datatype, num_items, ctx))
 
-        parser_printU32((uint32_t) * (ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
+        parser_printU32((uint32_t)*(ctx->buffer + ctx->offset), outVal, outValLen, pageIdx, pageCount);
         return parser_ok;
     }
 
