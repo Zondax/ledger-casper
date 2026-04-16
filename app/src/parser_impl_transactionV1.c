@@ -70,11 +70,14 @@
 
 #define MINIMUM_RUNTIME_ARGS_NATIVE_TRANSFER 2
 
-// Upper bound on runtime args accepted per TransactionV1. Chosen well below
-// UINT8_MAX minus the maximum possible count of non-runtime-arg display items
-// (header + body + entry-point + hash rows sum to ~15) so that the aggregate
-// numItems cannot wrap the uint8_t accumulator used by the UI layer.
-#define MAX_RUNTIME_ARGS_PER_TX 64
+// Upper bound on runtime args accepted per TransactionV1. The aggregate
+// numItems counter used by the UI layer is uint8_t; its worst-case non-
+// runtime-arg population across all entry-point shapes is 13 rows
+// (Txn hash, approvals, Account, Timestamp, TTL, Chain ID, Payment,
+// Max gs prce, Execution, Entry-point, Target address/name + Version,
+// Type). Capping at 235 leaves ~7 rows of slack for any future base-item
+// additions while keeping the sum comfortably below UINT8_MAX.
+#define MAX_RUNTIME_ARGS_PER_TX 235
 
 #define INCR_NUM_ITEMS(v, only_in_expert_mode) \
     {                                          \
