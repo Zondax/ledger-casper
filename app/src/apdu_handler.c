@@ -47,7 +47,7 @@ uint16_t G_error_message_offset = 0;
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx);
 
 static void extractHDPath(uint32_t rx, uint32_t offset) {
-    if ((rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
+    if (rx < offset || (rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
