@@ -70,6 +70,12 @@
 
 #define MINIMUM_RUNTIME_ARGS_NATIVE_TRANSFER 2
 
+// Upper bound on runtime args accepted per TransactionV1. Chosen well below
+// UINT8_MAX minus the maximum possible count of non-runtime-arg display items
+// (header + body + entry-point + hash rows sum to ~15) so that the aggregate
+// numItems cannot wrap the uint8_t accumulator used by the UI layer.
+#define MAX_RUNTIME_ARGS_PER_TX 64
+
 #define INCR_NUM_ITEMS(v, only_in_expert_mode) \
     {                                          \
         if (only_in_expert_mode) {             \
@@ -840,6 +846,10 @@ static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
     if (tag == TAG_RUNTIME_ARGS) {
         v->args_type = RuntimeArgs;
         CHECK_PARSER_ERR(readU32(ctx, &v->num_runtime_args));
+
+        if (v->num_runtime_args > MAX_RUNTIME_ARGS_PER_TX) {
+            return parser_unexpected_number_items;
+        }
 
         v->runtime_args_offset = ctx->offset;
 
