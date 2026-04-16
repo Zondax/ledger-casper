@@ -38,23 +38,35 @@ static bool tx_bufferFull = false;
 static uint32_t wasm_counter = 0;
 streaming_state_e streaming_state = StreamingStateNoStreaming;
 
+// Storage for the review-pending lock declared in actions.h.
+volatile bool g_review_pending = false;
+
 // Global variable to store error message offset for custom error display
 uint16_t G_error_message_offset = 0;
 
 static void write_error_msg(const char *error_msg, volatile uint32_t *tx);
 
 static void extractHDPath(uint32_t rx, uint32_t offset) {
-    if ((rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
+    if (rx < offset || (rx - offset) < sizeof(uint32_t) * HDPATH_LEN_DEFAULT) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
     MEMCPY(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * HDPATH_LEN_DEFAULT);
 
-    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+    // Enforce the BIP-44 shape for Casper (SLIP-0044 coin type 506):
+    //   m / 44' / 506' / account' / change / address_index
+    // - purpose and coin type must match the mainnet or testnet defaults
+    // - account must be hardened (any index, per BIP-44)
+    // - change must be 0 (external) or 1 (internal) and non-hardened
+    // - address_index must be non-hardened
+    const uint32_t HARDENED = 0x80000000u;
+    const bool prefix_mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+    const bool prefix_testnet = hdPath[0] == HDPATH_0_TESTNET && hdPath[1] == HDPATH_1_TESTNET;
+    const bool account_hardened = (hdPath[2] & HARDENED) != 0;
+    const bool change_valid = (hdPath[3] == 0u) || (hdPath[3] == 1u);
+    const bool index_normal = (hdPath[4] & HARDENED) == 0;
 
-    const bool testnet = hdPath[0] == HDPATH_0_TESTNET && hdPath[1] == HDPATH_1_TESTNET;
-
-    if (!mainnet && !testnet) {
+    if ((!prefix_mainnet && !prefix_testnet) || !account_hardened || !change_valid || !index_normal) {
         THROW(APDU_CODE_DATA_INVALID);
     }
 }
@@ -363,6 +375,13 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
     BEGIN_TRY {
         TRY {
+            // Reject any new APDU while an async user review is pending so the
+            // host cannot swap the tx buffer between review rendering and the
+            // approval callback.
+            if (review_is_pending()) {
+                THROW(APDU_CODE_COMMAND_NOT_ALLOWED);
+            }
+
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(APDU_CODE_CLA_NOT_SUPPORTED);
             }
@@ -404,6 +423,15 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
                 default:
                     THROW(APDU_CODE_INS_NOT_SUPPORTED);
+            }
+
+            // If a handler entered async review (IO_ASYNCH_REPLY set with no
+            // THROW), lock the dispatcher until the approval/reject callback
+            // clears the pending flag. Error paths that raise IO_ASYNCH_REPLY
+            // (e.g. blind-sign warning screens) THROW instead of falling
+            // through, so they don't reach this line.
+            if ((*flags & IO_ASYNCH_REPLY) != 0) {
+                review_mark_pending();
             }
         }
         CATCH(EXCEPTION_IO_RESET) { THROW(EXCEPTION_IO_RESET); }
