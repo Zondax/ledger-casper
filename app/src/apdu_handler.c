@@ -38,6 +38,9 @@ static bool tx_bufferFull = false;
 static uint32_t wasm_counter = 0;
 streaming_state_e streaming_state = StreamingStateNoStreaming;
 
+// Storage for the review-pending lock declared in actions.h.
+volatile bool g_review_pending = false;
+
 // Global variable to store error message offset for custom error display
 uint16_t G_error_message_offset = 0;
 
@@ -363,6 +366,13 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
     BEGIN_TRY {
         TRY {
+            // Reject any new APDU while an async user review is pending so the
+            // host cannot swap the tx buffer between review rendering and the
+            // approval callback.
+            if (review_is_pending()) {
+                THROW(APDU_CODE_COMMAND_NOT_ALLOWED);
+            }
+
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(APDU_CODE_CLA_NOT_SUPPORTED);
             }
@@ -404,6 +414,15 @@ void handleApdu(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
 
                 default:
                     THROW(APDU_CODE_INS_NOT_SUPPORTED);
+            }
+
+            // If a handler entered async review (IO_ASYNCH_REPLY set with no
+            // THROW), lock the dispatcher until the approval/reject callback
+            // clears the pending flag. Error paths that raise IO_ASYNCH_REPLY
+            // (e.g. blind-sign warning screens) THROW instead of falling
+            // through, so they don't reach this line.
+            if ((*flags & IO_ASYNCH_REPLY) != 0) {
+                review_mark_pending();
             }
         }
         CATCH(EXCEPTION_IO_RESET) { THROW(EXCEPTION_IO_RESET); }

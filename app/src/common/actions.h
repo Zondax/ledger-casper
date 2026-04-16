@@ -16,6 +16,7 @@
 #pragma once
 
 #include <os_io_seproxyhal.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "apdu_codes.h"
@@ -29,7 +30,18 @@
 extern uint16_t action_addrResponseLen;
 extern uint16_t G_error_message_offset;
 
+// APDU-level review lock. While set, handleApdu rejects every incoming APDU
+// so the host cannot mutate the tx buffer between review rendering and
+// approval. Set by handleApdu right after IO_ASYNCH_REPLY is raised;
+// cleared on approval and reject paths below.
+extern volatile bool g_review_pending;
+
+static inline bool review_is_pending(void) { return g_review_pending; }
+static inline void review_mark_pending(void) { g_review_pending = true; }
+static inline void review_clear_pending(void) { g_review_pending = false; }
+
 __Z_INLINE void app_sign() {
+    review_clear_pending();
     const uint8_t *message = tx_get_buffer();
     uint16_t messageLength = tx_get_buffer_length();
     uint16_t replyLen = 0;
@@ -54,6 +66,7 @@ __Z_INLINE void app_sign() {
 }
 
 __Z_INLINE void app_reject() {
+    review_clear_pending();
     set_code(G_io_apdu_buffer, 0, APDU_CODE_COMMAND_NOT_ALLOWED);
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 }
@@ -73,11 +86,13 @@ __Z_INLINE zxerr_t app_fill_address() {
 }
 
 __Z_INLINE void app_reply_address() {
+    review_clear_pending();
     set_code(G_io_apdu_buffer, action_addrResponseLen, APDU_CODE_OK);
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, action_addrResponseLen + 2);
 }
 
 __Z_INLINE void app_reply_error() {
+    review_clear_pending();
     // Use the stored offset to place the error code after the error message
     set_code(G_io_apdu_buffer, G_error_message_offset, APDU_CODE_DATA_INVALID);
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, G_error_message_offset + 2);
