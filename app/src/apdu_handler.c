@@ -53,11 +53,20 @@ static void extractHDPath(uint32_t rx, uint32_t offset) {
 
     MEMCPY(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * HDPATH_LEN_DEFAULT);
 
-    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+    // Enforce the BIP-44 shape for Casper (SLIP-0044 coin type 506):
+    //   m / 44' / 506' / account' / change / address_index
+    // - purpose and coin type must match the mainnet or testnet defaults
+    // - account must be hardened (any index, per BIP-44)
+    // - change must be 0 (external) or 1 (internal) and non-hardened
+    // - address_index must be non-hardened
+    const uint32_t HARDENED = 0x80000000u;
+    const bool prefix_mainnet = hdPath[0] == HDPATH_0_DEFAULT && hdPath[1] == HDPATH_1_DEFAULT;
+    const bool prefix_testnet = hdPath[0] == HDPATH_0_TESTNET && hdPath[1] == HDPATH_1_TESTNET;
+    const bool account_hardened = (hdPath[2] & HARDENED) != 0;
+    const bool change_valid = (hdPath[3] == 0u) || (hdPath[3] == 1u);
+    const bool index_normal = (hdPath[4] & HARDENED) == 0;
 
-    const bool testnet = hdPath[0] == HDPATH_0_TESTNET && hdPath[1] == HDPATH_1_TESTNET;
-
-    if (!mainnet && !testnet) {
+    if ((!prefix_mainnet && !prefix_testnet) || !account_hardened || !change_valid || !index_normal) {
         THROW(APDU_CODE_DATA_INVALID);
     }
 }
