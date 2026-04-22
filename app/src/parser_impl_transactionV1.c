@@ -864,7 +864,10 @@ static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
             return parser_unexpected_number_items;
         }
 
-        v->runtime_args_offset = ctx->offset;
+        if (ctx->offset > UINT8_MAX) {
+            return parser_value_out_of_range;
+        }
+        v->runtime_args_offset = (uint8_t)ctx->offset;
 
         for (uint32_t i = 0; i < v->num_runtime_args; i++) {
             uint32_t name_len = 0;
@@ -873,7 +876,10 @@ static parser_error_t read_args(parser_context_t *ctx, parser_tx_txnV1_t *v) {
         }
     } else if (tag == TAG_BYTES_REPR) {
         v->args_type = BytesRepr;
-        v->runtime_args_offset = ctx->offset + sizeof(uint32_t);
+        if (ctx->offset > UINT8_MAX - sizeof(uint32_t)) {
+            return parser_value_out_of_range;
+        }
+        v->runtime_args_offset = (uint8_t)(ctx->offset + sizeof(uint32_t));
         uint32_t len = 0;
         CHECK_PARSER_ERR(read_bytes(ctx, &len));
         v->runtime_args_len = len;
