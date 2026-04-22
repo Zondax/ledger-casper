@@ -187,7 +187,7 @@ zxerr_t tx_getItem(int8_t displayIdx, char *outKey, uint16_t outKeyLen, char *ou
     uint8_t numItems = 0;
     CHECK_ZXERR(tx_getNumItems(&numItems))
 
-    if (displayIdx < 0 || displayIdx > numItems) {
+    if (displayIdx < 0 || displayIdx >= numItems) {
         return zxerr_no_data;
     }
 
