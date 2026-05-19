@@ -19,7 +19,7 @@
     "format:check": "FORCE_COLOR=1 prettier --check .",
     "lint": "eslint . --config eslint.config.mjs",
     "lint:fix": "eslint --fix . --config eslint.config.js",
-    "test": "yarn clean && jest --maxConcurrency 2",
+    "test": "pnpm clean && jest --maxConcurrency 2",
     "try_deploy": "node try_deploy.mjs",
     "try_txnV1": "node try_txnV1.mjs",
     "upgrade": "bunx npm-check-updates -i"
@@ -37,6 +37,7 @@
     "@ledgerhq/hw-transport-node-hid": "^6.33.2",
     "@types/jest": "^30.0.0",
     "@types/ledgerhq__hw-transport": "^6.0.0",
+    "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
     "babel-eslint": "^10.1.0",
